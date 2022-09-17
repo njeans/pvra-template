@@ -38,3 +38,7 @@ size_t quote_buffer_size;
 
 void *sealed_state_buffer;
 size_t sealed_state_buffer_size;
+
+
+void *pub_enckey_buffer;
+size_t pub_enckey_buffer_size;

@@ -20,7 +20,9 @@ enclave
             [out] sgx_report_t *report,
             [in] sgx_target_info_t *target_info,
             [out, size=sealedstate_size] char *sealedstate,
-            size_t sealedstate_size);
+            size_t sealedstate_size,
+            [out, size=signature_size] char *enckey_signature, size_t signature_size,
+            [out, size=enckey_size] char *pub_enckey, size_t enckey_size);
 
         public sgx_status_t ecall_commandPVRA(
             [out] sgx_report_t *report,

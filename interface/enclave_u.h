@@ -26,7 +26,7 @@ void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_string, (const char* str));
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_rdtsc, (void));
 #endif
 
-sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_report_t* report, sgx_target_info_t* target_info, char* sealedstate, size_t sealedstate_size);
+sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_report_t* report, sgx_target_info_t* target_info, char* sealedstate, size_t sealedstate_size, char* enckey_signature, size_t signature_size, char* pub_enckey, size_t enckey_size);
 sgx_status_t ecall_commandPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_report_t* report, sgx_target_info_t* target_info, char* sealedstate, size_t sealedstate_size);
 sgx_status_t ecall_key_gen_and_seal(sgx_enclave_id_t eid, sgx_status_t* retval, char* pubkey, size_t pubkey_size, char* sealedprivkey, size_t sealedprivkey_size);
 sgx_status_t ecall_key_gen_and_seal_all(sgx_enclave_id_t eid, sgx_status_t* retval, char* sealedpubkey, size_t sealedpubkey_size, char* sealedprivkey, size_t sealedprivkey_size);

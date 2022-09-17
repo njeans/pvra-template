@@ -45,6 +45,32 @@ bool enclave_sign_data() {
   return (sgx_lasterr == SGX_SUCCESS);
 }
 
+bool save_message(void) {
+  bool ret_status = true;
+  FILE *file = NULL;
+  file = open_file("enckey.dat", "wb");
+  if (file == NULL) {
+    fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
+    sgx_lasterr = SGX_ERROR_UNEXPECTED;
+    ret_status = false;
+    goto cleanup;
+  }
+
+  if (fwrite(pub_enckey_buffer, pub_enckey_buffer_size, 1, file) != 1) {
+    fprintf(stderr, "GatewayApp]: ERROR: Could not write signature\n");
+    sgx_lasterr = SGX_ERROR_UNEXPECTED;
+    ret_status = false;
+    goto cleanup;
+  }
+
+cleanup:
+  if (file != NULL) {
+    fclose(file);
+  }
+
+  return ret_status;
+}
+
 bool save_signature(const char *const signature_file) {
   bool ret_status = true;
   ECDSA_SIG *ecdsa_sig = NULL;

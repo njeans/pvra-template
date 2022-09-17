@@ -7,6 +7,10 @@ typedef struct ms_ecall_initPVRA_t {
 	sgx_target_info_t* ms_target_info;
 	char* ms_sealedstate;
 	size_t ms_sealedstate_size;
+	char* ms_enckey_signature;
+	size_t ms_signature_size;
+	char* ms_pub_enckey;
+	size_t ms_enckey_size;
 } ms_ecall_initPVRA_t;
 
 typedef struct ms_ecall_commandPVRA_t {
@@ -256,7 +260,7 @@ static const struct {
 		(void*)enclave_ocall_rdtsc,
 	}
 };
-sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_report_t* report, sgx_target_info_t* target_info, char* sealedstate, size_t sealedstate_size)
+sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_report_t* report, sgx_target_info_t* target_info, char* sealedstate, size_t sealedstate_size, char* enckey_signature, size_t signature_size, char* pub_enckey, size_t enckey_size)
 {
 	sgx_status_t status;
 	ms_ecall_initPVRA_t ms;
@@ -264,6 +268,10 @@ sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_repo
 	ms.ms_target_info = target_info;
 	ms.ms_sealedstate = sealedstate;
 	ms.ms_sealedstate_size = sealedstate_size;
+	ms.ms_enckey_signature = enckey_signature;
+	ms.ms_signature_size = signature_size;
+	ms.ms_pub_enckey = pub_enckey;
+	ms.ms_enckey_size = enckey_size;
 	status = sgx_ecall(eid, 0, &ocall_table_enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;

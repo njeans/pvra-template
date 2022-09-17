@@ -33,6 +33,10 @@ typedef struct ms_ecall_initPVRA_t {
 	sgx_target_info_t* ms_target_info;
 	char* ms_sealedstate;
 	size_t ms_sealedstate_size;
+	char* ms_enckey_signature;
+	size_t ms_signature_size;
+	char* ms_pub_enckey;
+	size_t ms_enckey_size;
 } ms_ecall_initPVRA_t;
 
 typedef struct ms_ecall_commandPVRA_t {
@@ -276,10 +280,20 @@ static sgx_status_t SGX_CDECL sgx_ecall_initPVRA(void* pms)
 	size_t _tmp_sealedstate_size = ms->ms_sealedstate_size;
 	size_t _len_sealedstate = _tmp_sealedstate_size;
 	char* _in_sealedstate = NULL;
+	char* _tmp_enckey_signature = ms->ms_enckey_signature;
+	size_t _tmp_signature_size = ms->ms_signature_size;
+	size_t _len_enckey_signature = _tmp_signature_size;
+	char* _in_enckey_signature = NULL;
+	char* _tmp_pub_enckey = ms->ms_pub_enckey;
+	size_t _tmp_enckey_size = ms->ms_enckey_size;
+	size_t _len_pub_enckey = _tmp_enckey_size;
+	char* _in_pub_enckey = NULL;
 
 	CHECK_UNIQUE_POINTER(_tmp_report, _len_report);
 	CHECK_UNIQUE_POINTER(_tmp_target_info, _len_target_info);
 	CHECK_UNIQUE_POINTER(_tmp_sealedstate, _len_sealedstate);
+	CHECK_UNIQUE_POINTER(_tmp_enckey_signature, _len_enckey_signature);
+	CHECK_UNIQUE_POINTER(_tmp_pub_enckey, _len_pub_enckey);
 
 	//
 	// fence after pointer checks
@@ -320,8 +334,34 @@ static sgx_status_t SGX_CDECL sgx_ecall_initPVRA(void* pms)
 
 		memset((void*)_in_sealedstate, 0, _len_sealedstate);
 	}
+	if (_tmp_enckey_signature != NULL && _len_enckey_signature != 0) {
+		if ( _len_enckey_signature % sizeof(*_tmp_enckey_signature) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_enckey_signature = (char*)malloc(_len_enckey_signature)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
-	ms->ms_retval = ecall_initPVRA(_in_report, _in_target_info, _in_sealedstate, _tmp_sealedstate_size);
+		memset((void*)_in_enckey_signature, 0, _len_enckey_signature);
+	}
+	if (_tmp_pub_enckey != NULL && _len_pub_enckey != 0) {
+		if ( _len_pub_enckey % sizeof(*_tmp_pub_enckey) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_pub_enckey = (char*)malloc(_len_pub_enckey)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		memset((void*)_in_pub_enckey, 0, _len_pub_enckey);
+	}
+
+	ms->ms_retval = ecall_initPVRA(_in_report, _in_target_info, _in_sealedstate, _tmp_sealedstate_size, _in_enckey_signature, _tmp_signature_size, _in_pub_enckey, _tmp_enckey_size);
 	if (_in_report) {
 		if (memcpy_s(_tmp_report, _len_report, _in_report, _len_report)) {
 			status = SGX_ERROR_UNEXPECTED;
@@ -334,11 +374,25 @@ static sgx_status_t SGX_CDECL sgx_ecall_initPVRA(void* pms)
 			goto err;
 		}
 	}
+	if (_in_enckey_signature) {
+		if (memcpy_s(_tmp_enckey_signature, _len_enckey_signature, _in_enckey_signature, _len_enckey_signature)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
+	if (_in_pub_enckey) {
+		if (memcpy_s(_tmp_pub_enckey, _len_pub_enckey, _in_pub_enckey, _len_pub_enckey)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
 
 err:
 	if (_in_report) free(_in_report);
 	if (_in_target_info) free(_in_target_info);
 	if (_in_sealedstate) free(_in_sealedstate);
+	if (_in_enckey_signature) free(_in_enckey_signature);
+	if (_in_pub_enckey) free(_in_pub_enckey);
 	return status;
 }
 

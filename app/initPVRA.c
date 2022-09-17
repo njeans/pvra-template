@@ -28,19 +28,21 @@ bool initPVRA() {
 
   status = sgx_init_quote(&target_info, &epid_gid);
   memset(&report, 0, sizeof(report));
-  
+  printf("[Gateway][initPVRA]: enc_pub: ");
+  print_hexstring_nl(stdout, pub_enckey_buffer, 64);
   clock_t t;
   t = clock();
 
   sgx_lasterr = ecall_initPVRA(
       enclave_id, &ecall_retval, &report, &target_info, (char *)sealed_state_buffer,
-      sealed_state_buffer_size);
+      sealed_state_buffer_size, (char *)signature_buffer, signature_buffer_size, (char *)pub_enckey_buffer, pub_enckey_buffer_size);
 
    t = clock() - t;
    double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
    printf("[GatewayApp][initPVRA]: Simple clock took %f seconds to execute\n", time_taken);
 
-
+  printf("[Gateway][initPVRA]: enc_pub: ");
+  print_hexstring_nl(stdout, signature_buffer, signature_buffer_size);
 
   if (sgx_lasterr == SGX_SUCCESS && (ecall_retval != SGX_SUCCESS)) {
     fprintf(stderr, "[GatewayApp][initPVRA]: ERROR: ecall_initPVRA returned %d\n",

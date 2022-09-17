@@ -146,7 +146,7 @@ bool save_quote(const char *const quote_file) {
   FILE *fquote = open_file(quote_file, "wb");
 
   if (fquote == NULL) {
-    fprintf(stderr, "[GatewayApp]: save_quote() fopen failed\n");
+    fprintf(stderr, "[GatewayApp]: save_quote() fopen failed %s\n",quote_file);
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     return false;
   }

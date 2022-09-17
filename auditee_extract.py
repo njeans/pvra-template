@@ -36,7 +36,7 @@ def swap_endians(b, *, length=32, from_byteorder="little", to_byteorder="big"):
 #                                                                            #
 ##############################################################################
 print(f"{term.bold}Reading quote from file ...{term.normal}")
-time.sleep(4)
+time.sleep(0)
 with open(DEMO_DIR.joinpath("quote.bin"), "rb") as f:
     quote_bytes = f.read()
 
@@ -74,7 +74,7 @@ else:
 
 print(f"{term.bold}IAS response is: {term.normal}")
 print(f"{term.blue}{json.dumps(res.json(), indent=4)}")
-time.sleep(5)
+time.sleep(1)
 
 ias_report = {"body": res.json(), "headers": dict(res.headers)}
 
@@ -89,15 +89,19 @@ with open(DEMO_DIR.joinpath("ias_report.json"), "w") as f:
 print(
     f"{term.bold}Verify reported MRENCLAVE against trusted source code ...{term.normal}"
 )
-time.sleep(4)
+time.sleep(0)
 
-match = auditee.verify_mrenclave(SOURCE_CODE, SIGNED_ENCLAVE, ias_report=IAS_REPORT,)
+#match = auditee.verify_mrenclave(SOURCE_CODE, SIGNED_ENCLAVE, ias_report=IAS_REPORT,)
 
 #if not match:
 #    sys.exit(
 #        f"{term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
 #    )
-time.sleep(5)
+
+print(
+    f"{term.bold}SKIPPED{term.normal}"
+)
+time.sleep(1)
 
 
 ##############################################################################
@@ -121,28 +125,12 @@ pubkey_pem = pubkey.public_bytes(
 )
 print(f"{term.blue}{pubkey_pem.decode()}{term.normal}")
 
-time.sleep(4)
+original_stdout = sys.stdout
+with open('signingkey.pem', 'w') as f:
+    sys.stdout = f # Change the standard output to the file we created.
+    print(f"{pubkey_pem.decode()}")
+    sys.stdout = original_stdout
+
+time.sleep(1)
 
 
-##############################################################################
-#                                                                            #
-#                          Verify Signature                                  #
-#                                                                            #
-##############################################################################
-with open(DEMO_DIR.joinpath("enckey.sig"), "rb") as f:
-    signature = f.read()
-
-with open(SOURCE_CODE.joinpath("scratch/ekey.dat")) as f:
-    sensor_data = f.read()
-
-print(
-    f"{term.bold}\nVerifying signature:{term.normal}\n"
-    f"{term.blue}{signature.hex()}{term.normal}\n"
-    f"{term.bold}for sensor data:{term.normal}\n"
-    f"{sensor_data}\n"
-)
-pubkey.verify(
-    signature, sensor_data.encode(), signature_algorithm=ec.ECDSA(hashes.SHA256()),
-)
-
-print(f"{term.green}Signature verification successful!{term.normal}")

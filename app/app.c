@@ -544,6 +544,9 @@ int main(int argc, char **argv) {
 
       (opt_initPVRA ? initPVRA() : true) &&
       (opt_initPVRA ? save_sealed_state(opt_sealedstate_file) : true) &&
+      (opt_initPVRA ? save_quote(opt_quote_file) : true) &&
+      (opt_initPVRA ? save_signature(opt_signature_file) : true) &&
+      (opt_initPVRA ? save_message() : true) &&
 
       (opt_commandPVRA ? commandPVRA() : true) &&
       //(opt_commandPVRA ? save_enclave_state(opt_sealedstate_file) : true) &&

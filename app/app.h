@@ -49,6 +49,10 @@ extern size_t quote_buffer_size;
 extern void *sealed_state_buffer;
 extern size_t sealed_state_buffer_size;
 
+extern void *pub_enckey_buffer;
+extern size_t pub_enckey_buffer_size;
+
+
 /* Function prototypes */
 
 bool initPVRA(void);
