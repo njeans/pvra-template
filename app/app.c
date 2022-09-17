@@ -543,7 +543,7 @@ int main(int argc, char **argv) {
       allocate_buffers() && 
 
       (opt_initPVRA ? initPVRA() : true) &&
-      //(opt_initPVRA ? save_enclave_state(opt_sealedstate_file) : true) &&
+      (opt_initPVRA ? save_sealed_state(opt_sealedstate_file) : true) &&
 
       (opt_commandPVRA ? commandPVRA() : true) &&
       //(opt_commandPVRA ? save_enclave_state(opt_sealedstate_file) : true) &&
