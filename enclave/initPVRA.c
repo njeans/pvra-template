@@ -58,7 +58,7 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   enclave_state.enclavekeys.encrypt_prikey = p_private_e;
   enclave_state.enclavekeys.encrypt_pubkey = p_public_e;
 
-  printf("GOTHERE :D!\n");
+
 
   // Generate Enclave Signing Key
   // Step 1: Open Context.
@@ -78,7 +78,10 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
     goto cleanup;
   }
 
-  // Hardcoded Signing Key
+  enclave_state.enclavekeys.sign_prikey = p_private_s;
+  enclave_state.enclavekeys.sign_pubkey = p_public_s;
+
+  // Hardcoded Key (duplicate of p256-key.pem)
   static const sgx_ec256_public_t hpub_key = {
       {
           0x31, 0x35, 0xb2, 0x8a, 0x4b, 0x32, 0x52, 0x21,
@@ -105,32 +108,37 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
 
   };
 
-  //enclave_state.enclavekeys.sign_prikey = p_private_s;
-  //enclave_state.enclavekeys.sign_pubkey = p_public_s;
 
-  enclave_state.enclavekeys.sign_prikey = hpri_key;
-  enclave_state.enclavekeys.sign_pubkey = hpub_key;
+  enclave_state.enclavekeys.encrypt_prikey = hpri_key;
+  enclave_state.enclavekeys.encrypt_pubkey = hpub_key;
+  //enclave_state.enclavekeys.sign_prikey = hpri_key;
+  //enclave_state.enclavekeys.sign_pubkey = hpub_key;
 
 
   // Sign Encryption Key + Publish
-
-  // Step 4: Perform ECDSA Signing.
-  
   sgx_ecc_state_handle_t p_ecc_handle_sign = NULL;
   if ((ret = sgx_ecc256_open_context(&p_ecc_handle_sign)) != SGX_SUCCESS) {
     print("\nTrustedApp: sgx_ecc256_open_context() failed !\n");
     goto cleanup;
   }
 
-  if ((ret = sgx_ecdsa_sign(&p_public_e, sizeof(p_public_e), &hpri_key, (sgx_ec256_signature_t *)enckey_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
+  // Reverse Endianess
+  sgx_ec256_public_t bigendian_encrypt_pubkey;
+  for(int i = 0; i < SGX_ECP256_KEY_SIZE; i++) {
+    bigendian_encrypt_pubkey.gx[i] = enclave_state.enclavekeys.encrypt_pubkey.gx[SGX_ECP256_KEY_SIZE-i-1];
+    bigendian_encrypt_pubkey.gy[i] = enclave_state.enclavekeys.encrypt_pubkey.gy[SGX_ECP256_KEY_SIZE-i-1];
+  }
+
+
+  if ((ret = sgx_ecdsa_sign(&bigendian_encrypt_pubkey, sizeof(sgx_ec256_public_t), &enclave_state.enclavekeys.sign_prikey, (sgx_ec256_signature_t *)enckey_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
     printf("\n[Enclave]: sgx_ecdsa_sign() failed !\n");
   }
 
-  printf("%p %p %d %d\n", pub_enckey, &p_public_e, sizeof(p_public_e),  signature_size);
+  //printf("%p %p %d %d\n", pub_enckey, &p_public_e, sizeof(p_public_e),  signature_size);
   
-  memcpy(pub_enckey, &p_public_e, sizeof(p_public_e));
-  print_hexstring(&p_public_e, sizeof(p_public_e));
-  print_hexstring(&hpub_key, sizeof(hpub_key));
+  memcpy(pub_enckey, &bigendian_encrypt_pubkey, sizeof(sgx_ec256_public_t));
+  //print_hexstring(&p_public_e, sizeof(p_public_e));
+  //print_hexstring(&hpub_key, sizeof(hpub_key));
 
 
 
@@ -158,12 +166,12 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   // Generate Quote
   sgx_report_data_t report_data = {{0}};
 
-  printf("[Enclave][initPVRA]: sig_pub: ");
-  print_hexstring(&hpub_key, sizeof(hpub_key));
-  printf("[Enclave][initPVRA]: sig_pri: ");
-  print_hexstring(&hpri_key, sizeof(hpri_key));
+  //printf("[Enclave][initPVRA]: sig_pub: ");
+  //print_hexstring(&hpub_key, sizeof(hpub_key));
+  //printf("[Enclave][initPVRA]: sig_pri: ");
+  //print_hexstring(&hpri_key, sizeof(hpri_key));
 
-  memcpy((uint8_t *const) &report_data, (uint8_t *)&hpub_key, sizeof(hpub_key));
+  memcpy((uint8_t *const) &report_data, (uint8_t *)&enclave_state.enclavekeys.sign_pubkey, sizeof(sgx_ec256_public_t));
   //memcpy((uint8_t *const) (&report_data + sizeof(p_public_s)), (uint8_t *)&p_public_e, sizeof(p_public_e));
 
   // BEGIN WIP --------------------------------------------

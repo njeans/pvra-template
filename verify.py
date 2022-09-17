@@ -93,10 +93,10 @@ time.sleep(4)
 
 match = auditee.verify_mrenclave(SOURCE_CODE, SIGNED_ENCLAVE, ias_report=IAS_REPORT,)
 
-#if not match:
-#    sys.exit(
-#        f"{term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
-#    )
+if not match:
+    sys.exit(
+        f"{term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
+    )
 time.sleep(5)
 
 

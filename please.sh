@@ -25,6 +25,11 @@ openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
 
 exit
 
+# hello post sleep mohammad
+# look a bit into ECDH otherwise change encryptkey to RSA
+# write client enc(AESKey) enc(CMD) -> requires cmd_formatter based on CMD.h 
+# verify(signedFT) using RSA calls so thats why
+
 # test_sgx/ias_report.json ready to be published to bulletin board
 
 echo "\nVerifying Signature to Extract PVRA_encryption_key\n"

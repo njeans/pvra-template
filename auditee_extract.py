@@ -134,3 +134,20 @@ with open('signingkey.pem', 'w') as f:
 time.sleep(1)
 
 
+import ecdsa
+
+print(f"{term.bold}\nPEM encoding signed encrypt key ...{term.normal}")
+with open(DEMO_DIR.joinpath("enckey.dat"), mode='rb') as file: # b is important -> binary
+    pubbin = file.read()
+    #print(pubbin)
+
+    # load binary key info
+    pub = ecdsa.VerifyingKey.from_string(pubbin, curve=ecdsa.NIST256p)
+    pubpem = pub.to_pem().decode()
+    print(f"{term.blue}{pubpem}{term.normal}")
+
+    original_stdout = sys.stdout
+    with open('encryptkey.pem', 'w') as f:
+        sys.stdout = f # Change the standard output to the file we created.
+        print(f"{pub.to_pem()}")
+        sys.stdout = original_stdout
