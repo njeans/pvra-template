@@ -28,12 +28,15 @@ char * json_student_buffer;
 size_t json_student_buffer_size = 2048;
 char * json_enclave_state_buffer;
 size_t json_enclave_state_buffer_size = 2048;
-void *signature_buffer;
-size_t signature_buffer_size;
+
 void *input_buffer;
 size_t input_buffer_size;
 void *quote_buffer;
 size_t quote_buffer_size;
+
+
+void *signature_buffer;
+size_t signature_buffer_size;
 
 
 void *sealed_state_buffer;
@@ -42,3 +45,21 @@ size_t sealed_state_buffer_size;
 
 void *pub_enckey_buffer;
 size_t pub_enckey_buffer_size;
+
+
+void *signedFT_buffer;
+size_t signedFT_buffer_size;
+void *eCMD_buffer;
+size_t eCMD_buffer_size;
+void *eAESkey_buffer;
+size_t eAESkey_buffer_size;
+
+
+
+void *cResponse_buffer;
+size_t cResponse_buffer_size;
+
+void *sealed_out_buffer;
+size_t sealed_out_buffer_size;
+
+

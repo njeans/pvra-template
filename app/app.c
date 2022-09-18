@@ -65,7 +65,12 @@ static struct option long_options[] = {
     {"commandPVRA", no_argument, 0, 0},
 
     {"sealedState", required_argument, 0, 0},
-    
+    {"signedFT", required_argument, 0, 0},
+    {"eCMD", required_argument, 0, 0},
+    {"eAESkey", required_argument, 0, 0},
+    {"cResponse", required_argument, 0, 0},
+
+
     {0, 0, 0, 0}};
 
 /**
@@ -124,6 +129,12 @@ int main(int argc, char **argv) {
 
 
   const char *opt_sealedstate_file = NULL;
+  const char *opt_signedFT_file = NULL;
+  const char *opt_eCMD_file = NULL;
+  const char *opt_eAESkey_file = NULL;
+  const char *opt_cResponse_file = NULL;
+
+
 
   int option_index = -1;
 
@@ -275,6 +286,18 @@ int main(int argc, char **argv) {
     case 47:
       opt_sealedstate_file = optarg;
       break;
+    case 48:
+      opt_signedFT_file = optarg;
+      break;
+    case 49:
+      opt_eCMD_file = optarg;
+      break;
+    case 50:
+      opt_eAESkey_file = optarg;
+      break;
+    case 51:
+      opt_cResponse_file = optarg;
+      break;
     }
   }
 
@@ -293,15 +316,15 @@ int main(int argc, char **argv) {
 
 
 
-  if (opt_initPVRA && (!opt_enclave_path)) {
+  if (opt_initPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_quote_file) && (!opt_signature_file)) {
     fprintf(stderr, "Error Usage:\n");
     fprintf(stderr,
-            "  %s --initPVRA --enclave-path /path/to/enclave.signed.so\n",
+            "  %s --initPVRA --enclave-path /path/to/enclave.signed.so --sealedState [] --quotefile [] --signature []\n",
             argv[0]);
     return EXIT_FAILURE;
   }
 
-  if (opt_commandPVRA && (!opt_enclave_path)) {
+  if (opt_commandPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_signedFT_file) && (!opt_eCMD_file) && (!opt_eAESkey_file) && (!opt_cResponse_file)) {
     fprintf(stderr, "Error Usage:\n");
     fprintf(stderr,
             "  %s --commandPVRA --enclave-path /path/to/enclave.signed.so\n",
@@ -548,8 +571,14 @@ int main(int argc, char **argv) {
       (opt_initPVRA ? save_signature(opt_signature_file) : true) &&
       (opt_initPVRA ? save_message() : true) &&
 
+      (opt_commandPVRA ? load_seal(opt_sealedstate_file) : true) &&
+      (opt_commandPVRA ? load_sig(opt_signedFT_file) : true) &&
+      (opt_commandPVRA ? load_cmd(opt_eCMD_file) : true) &&
+      (opt_commandPVRA ? load_key(opt_eAESkey_file) : true) &&
       (opt_commandPVRA ? commandPVRA() : true) &&
-      //(opt_commandPVRA ? save_enclave_state(opt_sealedstate_file) : true) &&
+      //(opt_commandPVRA ? save_sealed_state(opt_sealedstate_file) : true) &&
+      //(opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
+
 
       (opt_keygen ? enclave_generate_key() : true) &&
       (opt_keygen

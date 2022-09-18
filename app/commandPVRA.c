@@ -31,17 +31,14 @@ bool commandPVRA() {
   clock_t t;
   t = clock();
 
-  sgx_lasterr = ecall_commandPVRA(enclave_id, &ecall_retval, &report, &target_info, (char *)sealed_state_buffer,
-      sealed_state_buffer_size);
-  /*
-      enclave_id, &ecall_retval, (char *)sealed_state_buffer,
-      sealed_state_buffer_size, (char *)signed_FT,
-      signed_FT_size, (char *)signed_FT,
-      signed_FT_size, (char *)eCMD,
-      eCMD_size, (char *)eAESkey,
-      eAESkey_size, (char *)cResponse,
-      cResponse_size);
-  */
+  sgx_lasterr = ecall_commandPVRA(
+      enclave_id, &ecall_retval, 
+      (char *)sealed_state_buffer, sealed_state_buffer_size, 
+      (char *)signedFT_buffer, signedFT_buffer_size, 
+      (char *)eCMD_buffer, eCMD_buffer_size, 
+      (char *)eAESkey_buffer, eAESkey_buffer_size, 
+      (char *)cResponse_buffer, cResponse_buffer_size);
+  
    t = clock() - t;
    double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
    printf("[GatewayApp][commandPVRA]: Simple clock took %f seconds to execute\n", time_taken);

@@ -41,10 +41,16 @@ typedef struct ms_ecall_initPVRA_t {
 
 typedef struct ms_ecall_commandPVRA_t {
 	sgx_status_t ms_retval;
-	sgx_report_t* ms_report;
-	sgx_target_info_t* ms_target_info;
 	char* ms_sealedstate;
 	size_t ms_sealedstate_size;
+	char* ms_signedFT;
+	size_t ms_signedFT_size;
+	char* ms_eCMD;
+	size_t ms_eCMD_size;
+	char* ms_eAESkey;
+	size_t ms_eAESkey_size;
+	char* ms_cResponse;
+	size_t ms_cResponse_size;
 } ms_ecall_commandPVRA_t;
 
 typedef struct ms_ecall_key_gen_and_seal_t {
@@ -405,79 +411,138 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 	sgx_lfence();
 	ms_ecall_commandPVRA_t* ms = SGX_CAST(ms_ecall_commandPVRA_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
-	sgx_report_t* _tmp_report = ms->ms_report;
-	size_t _len_report = sizeof(sgx_report_t);
-	sgx_report_t* _in_report = NULL;
-	sgx_target_info_t* _tmp_target_info = ms->ms_target_info;
-	size_t _len_target_info = sizeof(sgx_target_info_t);
-	sgx_target_info_t* _in_target_info = NULL;
 	char* _tmp_sealedstate = ms->ms_sealedstate;
 	size_t _tmp_sealedstate_size = ms->ms_sealedstate_size;
 	size_t _len_sealedstate = _tmp_sealedstate_size;
 	char* _in_sealedstate = NULL;
+	char* _tmp_signedFT = ms->ms_signedFT;
+	size_t _tmp_signedFT_size = ms->ms_signedFT_size;
+	size_t _len_signedFT = _tmp_signedFT_size;
+	char* _in_signedFT = NULL;
+	char* _tmp_eCMD = ms->ms_eCMD;
+	size_t _tmp_eCMD_size = ms->ms_eCMD_size;
+	size_t _len_eCMD = _tmp_eCMD_size;
+	char* _in_eCMD = NULL;
+	char* _tmp_eAESkey = ms->ms_eAESkey;
+	size_t _tmp_eAESkey_size = ms->ms_eAESkey_size;
+	size_t _len_eAESkey = _tmp_eAESkey_size;
+	char* _in_eAESkey = NULL;
+	char* _tmp_cResponse = ms->ms_cResponse;
+	size_t _tmp_cResponse_size = ms->ms_cResponse_size;
+	size_t _len_cResponse = _tmp_cResponse_size;
+	char* _in_cResponse = NULL;
 
-	CHECK_UNIQUE_POINTER(_tmp_report, _len_report);
-	CHECK_UNIQUE_POINTER(_tmp_target_info, _len_target_info);
 	CHECK_UNIQUE_POINTER(_tmp_sealedstate, _len_sealedstate);
+	CHECK_UNIQUE_POINTER(_tmp_signedFT, _len_signedFT);
+	CHECK_UNIQUE_POINTER(_tmp_eCMD, _len_eCMD);
+	CHECK_UNIQUE_POINTER(_tmp_eAESkey, _len_eAESkey);
+	CHECK_UNIQUE_POINTER(_tmp_cResponse, _len_cResponse);
 
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
 
-	if (_tmp_report != NULL && _len_report != 0) {
-		if ((_in_report = (sgx_report_t*)malloc(_len_report)) == NULL) {
-			status = SGX_ERROR_OUT_OF_MEMORY;
-			goto err;
-		}
-
-		memset((void*)_in_report, 0, _len_report);
-	}
-	if (_tmp_target_info != NULL && _len_target_info != 0) {
-		_in_target_info = (sgx_target_info_t*)malloc(_len_target_info);
-		if (_in_target_info == NULL) {
-			status = SGX_ERROR_OUT_OF_MEMORY;
-			goto err;
-		}
-
-		if (memcpy_s(_in_target_info, _len_target_info, _tmp_target_info, _len_target_info)) {
-			status = SGX_ERROR_UNEXPECTED;
-			goto err;
-		}
-
-	}
 	if (_tmp_sealedstate != NULL && _len_sealedstate != 0) {
 		if ( _len_sealedstate % sizeof(*_tmp_sealedstate) != 0)
 		{
 			status = SGX_ERROR_INVALID_PARAMETER;
 			goto err;
 		}
-		if ((_in_sealedstate = (char*)malloc(_len_sealedstate)) == NULL) {
+		_in_sealedstate = (char*)malloc(_len_sealedstate);
+		if (_in_sealedstate == NULL) {
 			status = SGX_ERROR_OUT_OF_MEMORY;
 			goto err;
 		}
 
-		memset((void*)_in_sealedstate, 0, _len_sealedstate);
-	}
-
-	ms->ms_retval = ecall_commandPVRA(_in_report, _in_target_info, _in_sealedstate, _tmp_sealedstate_size);
-	if (_in_report) {
-		if (memcpy_s(_tmp_report, _len_report, _in_report, _len_report)) {
+		if (memcpy_s(_in_sealedstate, _len_sealedstate, _tmp_sealedstate, _len_sealedstate)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
+
 	}
-	if (_in_sealedstate) {
-		if (memcpy_s(_tmp_sealedstate, _len_sealedstate, _in_sealedstate, _len_sealedstate)) {
+	if (_tmp_signedFT != NULL && _len_signedFT != 0) {
+		if ( _len_signedFT % sizeof(*_tmp_signedFT) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_signedFT = (char*)malloc(_len_signedFT);
+		if (_in_signedFT == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_signedFT, _len_signedFT, _tmp_signedFT, _len_signedFT)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_eCMD != NULL && _len_eCMD != 0) {
+		if ( _len_eCMD % sizeof(*_tmp_eCMD) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_eCMD = (char*)malloc(_len_eCMD);
+		if (_in_eCMD == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_eCMD, _len_eCMD, _tmp_eCMD, _len_eCMD)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_eAESkey != NULL && _len_eAESkey != 0) {
+		if ( _len_eAESkey % sizeof(*_tmp_eAESkey) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_eAESkey = (char*)malloc(_len_eAESkey);
+		if (_in_eAESkey == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_eAESkey, _len_eAESkey, _tmp_eAESkey, _len_eAESkey)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_cResponse != NULL && _len_cResponse != 0) {
+		if ( _len_cResponse % sizeof(*_tmp_cResponse) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_cResponse = (char*)malloc(_len_cResponse)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		memset((void*)_in_cResponse, 0, _len_cResponse);
+	}
+
+	ms->ms_retval = ecall_commandPVRA(_in_sealedstate, _tmp_sealedstate_size, _in_signedFT, _tmp_signedFT_size, _in_eCMD, _tmp_eCMD_size, _in_eAESkey, _tmp_eAESkey_size, _in_cResponse, _tmp_cResponse_size);
+	if (_in_cResponse) {
+		if (memcpy_s(_tmp_cResponse, _len_cResponse, _in_cResponse, _len_cResponse)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
 	}
 
 err:
-	if (_in_report) free(_in_report);
-	if (_in_target_info) free(_in_target_info);
 	if (_in_sealedstate) free(_in_sealedstate);
+	if (_in_signedFT) free(_in_signedFT);
+	if (_in_eCMD) free(_in_eCMD);
+	if (_in_eAESkey) free(_in_eAESkey);
+	if (_in_cResponse) free(_in_cResponse);
 	return status;
 }
 

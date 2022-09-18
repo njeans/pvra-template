@@ -80,6 +80,91 @@ bool load_sealedpubkey(const char *const sealedpubkey_file) {
   return ret_status;
 }
 
+bool load_seal(const char *const sealedstate_file) {
+  printf("[Gateway]: Loading sealed state\n");
+  void *new_buffer;
+  size_t new_buffer_size;
+
+  bool ret_status = read_file_into_memory(sealedstate_file, &new_buffer, &new_buffer_size);
+
+  /* If we previously allocated a buffer, free it before putting new one in
+   * its place */
+  if (sealed_state_buffer != NULL) {
+    free(sealed_state_buffer);
+    sealed_state_buffer = NULL;
+  }
+
+  /* Put new buffer into context */
+  sealed_state_buffer = new_buffer;
+  sealed_state_buffer_size = new_buffer_size;
+
+  return ret_status;
+}
+
+bool load_sig(const char *const signedFT_file) {
+  printf("[Gateway]: Loading sealed state\n");
+  void *new_buffer;
+  size_t new_buffer_size;
+
+  bool ret_status = read_file_into_memory(signedFT_file, &new_buffer, &new_buffer_size);
+
+  /* If we previously allocated a buffer, free it before putting new one in
+   * its place */
+  if (signedFT_buffer != NULL) {
+    free(signedFT_buffer);
+    signedFT_buffer = NULL;
+  }
+
+  /* Put new buffer into context */
+  signedFT_buffer = new_buffer;
+  signedFT_buffer_size = new_buffer_size;
+
+  return ret_status;
+}
+
+
+bool load_cmd(const char *const eCMD_file) {
+  printf("[Gateway]: Loading sealed state\n");
+  void *new_buffer;
+  size_t new_buffer_size;
+
+  bool ret_status = read_file_into_memory(eCMD_file, &new_buffer, &new_buffer_size);
+
+  /* If we previously allocated a buffer, free it before putting new one in
+   * its place */
+  if (eCMD_buffer != NULL) {
+    free(eCMD_buffer);
+    eCMD_buffer = NULL;
+  }
+
+  /* Put new buffer into context */
+  eCMD_buffer = new_buffer;
+  eCMD_buffer_size = new_buffer_size;
+
+  return ret_status;
+}
+
+bool load_key(const char *const eAESkey_file) {
+  printf("[Gateway]: Loading sealed state\n");
+  void *new_buffer;
+  size_t new_buffer_size;
+
+  bool ret_status = read_file_into_memory(eAESkey_file, &new_buffer, &new_buffer_size);
+
+  /* If we previously allocated a buffer, free it before putting new one in
+   * its place */
+  if (eAESkey_buffer != NULL) {
+    free(eAESkey_buffer);
+    eAESkey_buffer = NULL;
+  }
+
+  /* Put new buffer into context */
+  eAESkey_buffer = new_buffer;
+  eAESkey_buffer_size = new_buffer_size;
+
+  return ret_status;
+}
+
 bool save_sealed_state(const char *const sealedstate_file) {
 
   bool ret_status = true;
@@ -95,6 +180,29 @@ bool save_sealed_state(const char *const sealedstate_file) {
 
   if (fwrite(sealed_state_buffer, sealed_state_buffer_size, 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: enclave state only partially written.\n");
+    sgx_lasterr = SGX_ERROR_UNEXPECTED;
+    ret_status = false;
+  }
+
+  fclose(sk_file);
+  return ret_status;
+}
+
+bool save_cResponse(const char *const cResponse_file) {
+
+  bool ret_status = true;
+  printf("[Gateway]: saving cResponse.\n");
+
+  FILE *sk_file = open_file(cResponse_file, "wb");
+
+  if (sk_file == NULL) {
+    fprintf(stderr, "[Gateway]: save_cResponse()) fopen failed.\n");
+    sgx_lasterr = SGX_ERROR_UNEXPECTED;
+    return false;
+  }
+
+  if (fwrite(cResponse_buffer, cResponse_buffer_size, 1, sk_file) != 1) {
+    fprintf(stderr, "[Gateway]: cResponse only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
   }

@@ -29,13 +29,35 @@ bool allocate_buffers() {
   pub_enckey_buffer_size = 64;
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 
+/*void *signedFT_buffer;
+size_t signedFT_buffer_size;
+void *eCMD_buffer;
+size_t eCMD_buffer_size;
+void *eAESkey_buffer;
+size_t eAESkey_buffer_size;
+
+
+
+void *cResponse_buffer;
+size_t cResponse_buffer_size;
+
+void *sealed_out_buffer;
+size_t sealed_out_buffer_size;
+*/
+
 
   if (sealed_privkey_buffer == NULL || sealed_pubkey_buffer == NULL ||
       signature_buffer == NULL || public_key_buffer == NULL ||
       aes_gcm_key_buffer == NULL || encrypted_message_buffer == NULL ||
       decrypted_message_buffer == NULL || json_student_buffer == NULL ||
       json_enclave_state_buffer == NULL || pub_enckey_buffer == NULL || 
-      sealed_state_buffer == NULL) {
+      sealed_state_buffer == NULL
+      || signedFT_buffer
+      || eCMD_buffer
+      || eAESkey_buffer
+      || cResponse_buffer
+      || sealed_out_buffer
+      ) {
     fprintf(stderr,
             "[GatewayApp]: allocate_buffers() memory allocation failure\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
@@ -105,6 +127,31 @@ void cleanup_buffers() {
   if (pub_enckey_buffer != NULL) {
     free(pub_enckey_buffer);
     pub_enckey_buffer = NULL;
+  }
+
+  if (signedFT_buffer != NULL) {
+    free(signedFT_buffer);
+    signedFT_buffer = NULL;
+  }
+
+  if (eCMD_buffer != NULL) {
+    free(eCMD_buffer);
+    eCMD_buffer = NULL;
+  }
+
+  if (eAESkey_buffer != NULL) {
+    free(eAESkey_buffer);
+    eAESkey_buffer = NULL;
+  }
+
+  if (cResponse_buffer != NULL) {
+    free(cResponse_buffer);
+    cResponse_buffer = NULL;
+  }
+
+  if (sealed_out_buffer != NULL) {
+    free(sealed_out_buffer);
+    sealed_out_buffer = NULL;
   }
 
 }

@@ -19,9 +19,23 @@ printf "\nINIT PVRA Attempt 5,525,910...\n"
   --signature enckey.sig
   
 echo "\nRunning Auditee to Extract PVRA_signing_key\n"
-python3.7 ../auditee_extract.py
+#python3.7 ../auditee_extract.py
 
-openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
+#openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
+
+cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
+touch eCMD.bin
+touch eAESkey.bin
+
+
+printf "\nCOMMAND PVRA Attempt 2,425,129...\n"
+../app/app --commandPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
+  --sealedState sealedState.bin \
+  --signedFT signedFT.txt \
+  --eCMD eCMD.bin \
+  --eAESkey eAESkey.bin \
+  --cResponse cResponse.txt \
+  #--sealedOut sealedStateO.bin
 
 exit
 
@@ -36,11 +50,10 @@ echo "\nVerifying Signature to Extract PVRA_encryption_key\n"
 openssl dgst -sha256 -verify p256-pkey.pem -signature enckey.sig ekey.dat
 
 
+cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
 
 
-printf "\nCOMMAND PVRA Attempt 2,425,129...\n"
-../app/app --commandPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
-  --sealedState sealedState.txt
+
   
 #  --signedFT signedFT.txt \
 #  --sealedState sealedState.txt \

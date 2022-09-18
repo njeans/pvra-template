@@ -53,6 +53,21 @@ extern void *pub_enckey_buffer;
 extern size_t pub_enckey_buffer_size;
 
 
+extern void *signedFT_buffer;
+extern size_t signedFT_buffer_size;
+extern void *eCMD_buffer;
+extern size_t eCMD_buffer_size;
+extern void *eAESkey_buffer;
+extern size_t eAESkey_buffer_size;
+
+extern void *cResponse_buffer;
+extern size_t cResponse_buffer_size;
+
+extern void *sealed_out_buffer;
+extern size_t sealed_out_buffer_size;
+
+
+
 /* Function prototypes */
 
 bool initPVRA(void);

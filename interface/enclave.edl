@@ -25,10 +25,12 @@ enclave
             [out, size=enckey_size] char *pub_enckey, size_t enckey_size);
 
         public sgx_status_t ecall_commandPVRA(
-            [out] sgx_report_t *report,
-            [in] sgx_target_info_t *target_info,
-            [out, size=sealedstate_size] char *sealedstate,
-            size_t sealedstate_size);
+            [in, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
+            [in, size=signedFT_size] char *signedFT, size_t signedFT_size,
+            [in, size=eCMD_size] char *eCMD, size_t eCMD_size,
+            [in, size=eAESkey_size] char *eAESkey, size_t eAESkey_size,
+            [out, size=cResponse_size] char *cResponse, size_t cResponse_size
+            );
 
         public sgx_status_t ecall_key_gen_and_seal(
             [out, size=pubkey_size] char *pubkey,
