@@ -17,7 +17,7 @@
 
 bool initPVRA() {
 
-  printf("[GatewayApp][initPVRA]: Calling INITPVRA enclave\n");
+  printf("[hiPVRA]: Calling ecall_initPVRA\n");
 
   sgx_status_t ecall_retval = SGX_ERROR_UNEXPECTED;
   sgx_report_t report;
@@ -28,8 +28,7 @@ bool initPVRA() {
 
   status = sgx_init_quote(&target_info, &epid_gid);
   memset(&report, 0, sizeof(report));
-  printf("[Gateway][initPVRA]: enc_pub: ");
-  print_hexstring_nl(stdout, pub_enckey_buffer, 64);
+
   clock_t t;
   t = clock();
 
@@ -39,10 +38,8 @@ bool initPVRA() {
 
    t = clock() - t;
    double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-   printf("[GatewayApp][initPVRA]: Simple clock took %f seconds to execute\n", time_taken);
+   printf("\n[biPVRA]: ecall_initPVRA took %f seconds\n", time_taken);
 
-  printf("[Gateway][initPVRA]: enc_pub: ");
-  print_hexstring_nl(stdout, signature_buffer, signature_buffer_size);
 
   if (sgx_lasterr == SGX_SUCCESS && (ecall_retval != SGX_SUCCESS)) {
     fprintf(stderr, "[GatewayApp][initPVRA]: ERROR: ecall_initPVRA returned %d\n",
@@ -109,7 +106,7 @@ bool initPVRA() {
     printf("Could not base64 encode quote\n");
     return 1;
   }
-
+/*
   printf("Quote, ready to be sent to IAS (POST /attestation/v4/report):\n");
   printf("{\n");
   printf("\t\"isvEnclaveQuote\":\"%s\"", b64quote);
@@ -122,7 +119,7 @@ bool initPVRA() {
   printf("\n}\n\n");
   printf("See "
          "https://api.trustedservices.intel.com/documents/"
-         "sgx-attestation-api-spec.pdf\n");
+         "sgx-attestation-api-spec.pdf\n"); */
 
   return (sgx_lasterr == SGX_SUCCESS);
 

@@ -30,6 +30,8 @@ echo "\nRunning Auditee to Extract PVRA_signing_key\n"
 cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
 cp /home/azureuser/mbehnia/pvra-template/scratch/aes128gcm.pem .
 
+
+#CLIENT
 openssl rsautl -encrypt -pubin -inkey enckey.dat -in aes128gcm.pem > eAESkey.bin
 cp /home/azureuser/mbehnia/pvra-template/scratch/eCMD.bin .
 

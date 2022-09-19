@@ -45,7 +45,7 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
 
   struct ES enclave_state;
 
-  ocallrdtsc();
+  //ocallrdtsc();
   
 
   // Generate Enclave Encryption Key
@@ -146,8 +146,8 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   //print_hexstring(&enclave_state.enclavekeys.pub_key_buffer, pub_len);
   //print_hexstring(&enclave_state.enclavekeys.priv_key_buffer, pri_len);
 
-  printf("%d %d %s\n", strlen(&enclave_state.enclavekeys.pub_key_buffer), MBED_TLS_KEY_SIZE, &enclave_state.enclavekeys.pub_key_buffer);
-  printf("%d %s\n", strlen(&enclave_state.enclavekeys.priv_key_buffer), &enclave_state.enclavekeys.priv_key_buffer);
+  printf("[eiPVRA]: Public Enclave Encryption Key (PEM RSA2048)\n%s\n", &enclave_state.enclavekeys.pub_key_buffer);
+  //printf("%d %s\n", strlen(&enclave_state.enclavekeys.priv_key_buffer), &enclave_state.enclavekeys.priv_key_buffer);
 
   
   mbedtls_rsa_free( &rsa );
@@ -183,6 +183,9 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
 
   enclave_state.enclavekeys.sign_prikey = p_private_s;
   enclave_state.enclavekeys.sign_pubkey = p_public_s;
+
+  printf("[eiPVRA]: Public Enclave Signing Key (RAW EC PRIME256V1)\n");
+  print_hexstring(&enclave_state.enclavekeys.sign_pubkey, sizeof(enclave_state.enclavekeys.sign_pubkey));
 
   // Hardcoded Key (duplicate of p256-key.pem)
   static const sgx_ec256_public_t hpub_key = {
@@ -280,14 +283,14 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   //memcpy((uint8_t *const) (&report_data + sizeof(p_public_s)), (uint8_t *)&p_public_e, sizeof(p_public_e));
 
   // BEGIN WIP --------------------------------------------
-  print("[[TrustedApp]][initPVRA]: Calling enclave to generate attestation report\n");
+  print("[eiPVRA]: Calling enclave to generate attestation report\n");
   ret = sgx_create_report(target_info, &report_data, report);
   // --------------------------------------------- END WIP
-  print("\n[[TrustedApp]][initPVRA]: Unsealed the sealed public key and created a report containing the public key in the report data.\n");
+  print("[eiPVRA]: Unsealed the sealed public key and created a report containing the public key in the report data.\n");
 
 
   // Seal Enclave State
-  printf("sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
+  printf("[eiPVRA]: sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
   if (sealedstate_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
     if ((ret = sgx_seal_data(0U, NULL, sizeof(enclave_state), (uint8_t *)&enclave_state,
                              (uint32_t)sealedstate_size,
@@ -303,7 +306,7 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
     goto cleanup;
   }
 
-  print("\n[[TrustedApp]][initPVRA]: Enclave State initialized and sealed, quote generated.\n");
+  print("[eiPVRA]: Enclave State initialized and sealed, quote generated.\n");
   ret = SGX_SUCCESS;
 
 cleanup:
@@ -311,16 +314,13 @@ cleanup:
   if (p_ecc_handle_e != NULL) {
     sgx_ecc256_close_context(p_ecc_handle_e);
   }
-    printf("GOTHERE :D!\n");
   if (p_ecc_handle_s != NULL) {
     sgx_ecc256_close_context(p_ecc_handle_s);
   }
-    printf("GOTHERE :D!\n");
   if (p_ecc_handle_sign != NULL) {
     sgx_ecc256_close_context(p_ecc_handle_sign);
-  }  printf("GOTHERE :D!\n");
+  }
 
-  ocallrdtsc();
-    printf("GOTHERE :D!\n");
+  //ocallrdtsc();
   return ret;
 }
