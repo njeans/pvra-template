@@ -241,6 +241,10 @@ typedef struct ms_ocall_print_string_t {
 	const char* ms_str;
 } ms_ocall_print_string_t;
 
+typedef struct ms_ocallbuf_t {
+	int ms_size;
+} ms_ocallbuf_t;
+
 static sgx_status_t SGX_CDECL enclave_ocall_print_string(void* pms)
 {
 	ms_ocall_print_string_t* ms = SGX_CAST(ms_ocall_print_string_t*, pms);
@@ -256,14 +260,23 @@ static sgx_status_t SGX_CDECL enclave_ocall_rdtsc(void* pms)
 	return SGX_SUCCESS;
 }
 
+static sgx_status_t SGX_CDECL enclave_ocallbuf(void* pms)
+{
+	ms_ocallbuf_t* ms = SGX_CAST(ms_ocallbuf_t*, pms);
+	ocallbuf(ms->ms_size);
+
+	return SGX_SUCCESS;
+}
+
 static const struct {
 	size_t nr_ocall;
-	void * table[2];
+	void * table[3];
 } ocall_table_enclave = {
-	2,
+	3,
 	{
 		(void*)enclave_ocall_print_string,
 		(void*)enclave_ocall_rdtsc,
+		(void*)enclave_ocallbuf,
 	}
 };
 sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_report_t* report, sgx_target_info_t* target_info, char* sealedstate, size_t sealedstate_size, char* enckey_signature, size_t signature_size, char* pub_enckey, size_t enckey_size)

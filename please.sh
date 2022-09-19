@@ -12,7 +12,9 @@ cd ./test_sgx
 rm -f *
 
 
-printf "\nINIT PVRA Attempt 5,525,910...\n"
+
+
+printf "\n[biPVRA] INITPVRA LAUNCH\n"
 ../app/app --initPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
   --sealedState sealedState.bin \
   --quotefile quote.bin \
@@ -23,10 +25,36 @@ echo "\nRunning Auditee to Extract PVRA_signing_key\n"
 
 #openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
 
+
+
+cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
+cp /home/azureuser/mbehnia/pvra-template/scratch/aes128gcm.pem .
+
+openssl rsautl -encrypt -pubin -inkey enckey.dat -in aes128gcm.pem > eAESkey.bin
+cp /home/azureuser/mbehnia/pvra-template/scratch/eCMD.bin .
+
+
+
+#eCMD.bin
+
+
+
+printf "\n[bcPVRA] COMMANDPVRA LAUNCH\n"
+../app/app --commandPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
+  --sealedState sealedState.bin \
+  --signedFT signedFT.txt \
+  --eCMD eCMD.bin \
+  --eAESkey eAESkey.bin \
+  --cResponse cResponse.txt \
+  #--sealedOut sealedStateO.bin
+
+exit
+
+
+cp /home/azureuser/mbehnia/pvra-template/scratch/sealedState.bin .
 cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
 touch eCMD.bin
 touch eAESkey.bin
-
 
 printf "\nCOMMAND PVRA Attempt 2,425,129...\n"
 ../app/app --commandPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \

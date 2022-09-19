@@ -17,6 +17,17 @@
 #include <sgx_tseal.h>
 #include <sgx_utils.h>
 
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/bignum.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/rsa.h>
+
+#define BUFLEN 2048
+#define KEY_SIZE 2048
+#define MBED_TLS_KEY_SIZE 2049
+#define EXPONENT 65537
+
 /**
  * This function generates a key pair and then seals the private key.
  *
@@ -55,8 +66,100 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
     goto cleanup;
   }
 
-  enclave_state.enclavekeys.encrypt_prikey = p_private_e;
-  enclave_state.enclavekeys.encrypt_pubkey = p_public_e;
+  size_t pri_len = 2048;
+  size_t pub_len = 2048;
+  const char *pers = "rsa_genkey";
+
+  uint8_t signature[MBEDTLS_MPI_MAX_SIZE];
+  
+  mbedtls_pk_context pk;    
+  mbedtls_rsa_context rsa;
+  mbedtls_entropy_context entropy;
+  mbedtls_ctr_drbg_context ctr_drbg;
+  mbedtls_mpi N, P, Q, D, E, DP, DQ, QP;
+  
+  mbedtls_ctr_drbg_init( &ctr_drbg );
+  mbedtls_rsa_init( &rsa, MBEDTLS_RSA_PKCS_V15, 0 );
+  mbedtls_mpi_init( &N ); mbedtls_mpi_init( &P ); mbedtls_mpi_init( &Q );
+  mbedtls_mpi_init( &D ); mbedtls_mpi_init( &E ); mbedtls_mpi_init( &DP );
+  mbedtls_mpi_init( &DQ ); mbedtls_mpi_init( &QP );
+  mbedtls_entropy_init( &entropy );
+  
+  if((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers))) != 0) {
+    mbedtls_rsa_free( &rsa );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E ); mbedtls_mpi_free( &DP );
+    mbedtls_mpi_free( &DQ ); mbedtls_mpi_free( &QP );
+    print("\nTrustedApp: mbedtls_ctr_drbg_seed returned an error!\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    return ret;
+  }
+
+
+  if((ret = mbedtls_rsa_gen_key(&rsa, mbedtls_ctr_drbg_random, &ctr_drbg, KEY_SIZE, EXPONENT)) != 0) {
+    mbedtls_rsa_free( &rsa );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E ); mbedtls_mpi_free( &DP );
+    mbedtls_mpi_free( &DQ ); mbedtls_mpi_free( &QP );
+    print("\nTrustedApp: mbedtls_rsa_gen_key returned an error!\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    return ret;
+  }
+
+  mbedtls_pk_init( &pk );
+
+  if((ret = mbedtls_pk_setup( &pk, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA) )) != 0) {
+    mbedtls_rsa_free( &rsa );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E ); mbedtls_mpi_free( &DP );
+    mbedtls_mpi_free( &DQ ); mbedtls_mpi_free( &QP );
+    mbedtls_entropy_free( &entropy );
+    print("\nTrustedApp: mbedtls_pk_setup returned an error!\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    return ret;
+  }
+  
+  memcpy(mbedtls_pk_rsa(pk),  &rsa, sizeof(mbedtls_rsa_context));
+
+  if((ret = mbedtls_pk_write_key_pem( &pk, enclave_state.enclavekeys.priv_key_buffer, pri_len )) != 0) {
+    mbedtls_rsa_free( &rsa );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E ); mbedtls_mpi_free( &DP );
+    mbedtls_mpi_free( &DQ ); mbedtls_mpi_free( &QP );
+    mbedtls_entropy_free( &entropy );
+    print("\nTrustedApp: mbedtls_pk_write_key_pem returned an error!\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    return ret;
+  }
+  
+  if((ret = mbedtls_pk_write_pubkey_pem ( &pk, enclave_state.enclavekeys.pub_key_buffer, pub_len )) != 0) {
+    mbedtls_rsa_free( &rsa );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E ); mbedtls_mpi_free( &DP );
+    mbedtls_mpi_free( &DQ ); mbedtls_mpi_free( &QP );
+    mbedtls_entropy_free( &entropy );
+    print("\nTrustedApp: mbedtls_pk_write_pubkey_pem returned an error!\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    return ret;
+  }
+
+  //print_hexstring(&enclave_state.enclavekeys.pub_key_buffer, pub_len);
+  //print_hexstring(&enclave_state.enclavekeys.priv_key_buffer, pri_len);
+
+  printf("%d %d %s\n", strlen(&enclave_state.enclavekeys.pub_key_buffer), MBED_TLS_KEY_SIZE, &enclave_state.enclavekeys.pub_key_buffer);
+  printf("%d %s\n", strlen(&enclave_state.enclavekeys.priv_key_buffer), &enclave_state.enclavekeys.priv_key_buffer);
+
+  
+  mbedtls_rsa_free( &rsa );
+  mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+  mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E ); mbedtls_mpi_free( &DP );
+  mbedtls_mpi_free( &DQ ); mbedtls_mpi_free( &QP );
+
+
+
+
+  //enclave_state.enclavekeys.encrypt_prikey = p_private_e;
+  //enclave_state.enclavekeys.encrypt_pubkey = p_public_e;
 
 
 
@@ -109,8 +212,8 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   };
 
 
-  enclave_state.enclavekeys.encrypt_prikey = hpri_key;
-  enclave_state.enclavekeys.encrypt_pubkey = hpub_key;
+  //enclave_state.enclavekeys.encrypt_prikey = hpri_key;
+  //enclave_state.enclavekeys.encrypt_pubkey = hpub_key;
   //enclave_state.enclavekeys.sign_prikey = hpri_key;
   //enclave_state.enclavekeys.sign_pubkey = hpub_key;
 
@@ -122,21 +225,23 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
     goto cleanup;
   }
 
-  // Reverse Endianess
+  // Reverse Endianess 
+  /*
   sgx_ec256_public_t bigendian_encrypt_pubkey;
   for(int i = 0; i < SGX_ECP256_KEY_SIZE; i++) {
     bigendian_encrypt_pubkey.gx[i] = enclave_state.enclavekeys.encrypt_pubkey.gx[SGX_ECP256_KEY_SIZE-i-1];
     bigendian_encrypt_pubkey.gy[i] = enclave_state.enclavekeys.encrypt_pubkey.gy[SGX_ECP256_KEY_SIZE-i-1];
-  }
+  }*/
 
 
-  if ((ret = sgx_ecdsa_sign(&bigendian_encrypt_pubkey, sizeof(sgx_ec256_public_t), &enclave_state.enclavekeys.sign_prikey, (sgx_ec256_signature_t *)enckey_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
+  if ((ret = sgx_ecdsa_sign(&enclave_state.enclavekeys.pub_key_buffer, strlen(&enclave_state.enclavekeys.pub_key_buffer), &enclave_state.enclavekeys.sign_prikey, (sgx_ec256_signature_t *)enckey_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
     printf("\n[Enclave]: sgx_ecdsa_sign() failed !\n");
   }
 
   //printf("%p %p %d %d\n", pub_enckey, &p_public_e, sizeof(p_public_e),  signature_size);
-  
-  memcpy(pub_enckey, &bigendian_encrypt_pubkey, sizeof(sgx_ec256_public_t));
+  //ocallbuf(strlen(&enclave_state.enclavekeys.pub_key_buffer));
+  memcpy(pub_enckey, &enclave_state.enclavekeys.pub_key_buffer, strlen(&enclave_state.enclavekeys.pub_key_buffer));
+
   //print_hexstring(&p_public_e, sizeof(p_public_e));
   //print_hexstring(&hpub_key, sizeof(hpub_key));
 

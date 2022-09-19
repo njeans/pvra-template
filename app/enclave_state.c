@@ -81,7 +81,7 @@ bool load_sealedpubkey(const char *const sealedpubkey_file) {
 }
 
 bool load_seal(const char *const sealedstate_file) {
-  printf("[Gateway]: Loading sealed state\n");
+  printf("[hcPVRA]: Loading sealed state\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -102,7 +102,7 @@ bool load_seal(const char *const sealedstate_file) {
 }
 
 bool load_sig(const char *const signedFT_file) {
-  printf("[Gateway]: Loading sealed state\n");
+  printf("[hcPVRA]: Loading signedFT\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -124,7 +124,7 @@ bool load_sig(const char *const signedFT_file) {
 
 
 bool load_cmd(const char *const eCMD_file) {
-  printf("[Gateway]: Loading sealed state\n");
+  printf("[hcPVRA]: Loading eCMD\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -145,7 +145,7 @@ bool load_cmd(const char *const eCMD_file) {
 }
 
 bool load_key(const char *const eAESkey_file) {
-  printf("[Gateway]: Loading sealed state\n");
+  printf("[hcPVRA]: Loading eAESkey\n");
   void *new_buffer;
   size_t new_buffer_size;
 

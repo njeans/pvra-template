@@ -29,7 +29,7 @@ printf "\nGenerating the ECDSA key pair ...\n"
     --public-ecdsa-key ecdsa_pub_key.pem \
     --private-ecdsa-key ecdsa_priv_key.pem
 
-exit
+
 
 
 printf "\nGenerating an encrypted client input ...\n"

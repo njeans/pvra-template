@@ -1,12 +1,17 @@
 #include <sgx_tcrypto.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/bignum.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/rsa.h>
 
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
 
 struct EK
 {
-	sgx_ec256_private_t encrypt_prikey;
-	sgx_ec256_public_t encrypt_pubkey;
+  	uint8_t priv_key_buffer[2049];
+  	uint8_t pub_key_buffer[2049];
 	sgx_ec256_private_t sign_prikey;
 	sgx_ec256_public_t sign_pubkey;
 

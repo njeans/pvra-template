@@ -38,6 +38,11 @@ sgx_status_t ecall_encrypt_aes(uint8_t aes_key[AES_128_KEY_SIZE], char decMessag
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
   sgx_ecc_state_handle_t p_ecc_handle = NULL;
 
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        print_hexstring(aes_key, AES_128_KEY_SIZE);
+        printf("\n%d\n", AES_128_KEY_SIZE);
+        printf("%d %d %s", lenIn, strlen(decMessageIn), decMessageIn);
+
   size_t lenOutExpected = SGX_AESGCM_MAC_SIZE + SGX_AESGCM_IV_SIZE + lenIn;
   if (lenOutExpected >= BUFLEN) {
     print("\nTrustedApp: Decrypted message is too large! !\n");
@@ -68,6 +73,7 @@ sgx_status_t ecall_encrypt_aes(uint8_t aes_key[AES_128_KEY_SIZE], char decMessag
     );
     memcpy(encMessageOut, p_dst, lenOutExpected);
     print("\nTrustedApp: Successfully encrypted message!\n");
+
   } else {
     print("\nTrustedApp: Key length (len_key) not valid! !\n");
   }

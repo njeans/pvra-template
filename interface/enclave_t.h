@@ -44,6 +44,7 @@ sgx_status_t ecall_report_gen(sgx_report_t* report, sgx_target_info_t* target_in
 
 sgx_status_t SGX_CDECL ocall_print_string(const char* str);
 sgx_status_t SGX_CDECL ocall_rdtsc(void);
+sgx_status_t SGX_CDECL ocallbuf(int size);
 
 #ifdef __cplusplus
 }

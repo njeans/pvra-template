@@ -23,10 +23,10 @@ bool allocate_buffers() {
 
 
 
-  sealed_state_buffer_size = 924;
+  sealed_state_buffer_size = 4928;
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
-  pub_enckey_buffer_size = 64;
+  pub_enckey_buffer_size = 451;
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 
 /*void *signedFT_buffer;

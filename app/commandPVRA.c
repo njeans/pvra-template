@@ -17,7 +17,7 @@
 
 bool commandPVRA() {
 
-  printf("[GatewayApp][commandPVRA]: Calling COMMANDPVRA enclave\n");
+  printf("[hcPVRA]: Calling ecall_commandPVRA\n\n");
 
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
@@ -41,7 +41,7 @@ bool commandPVRA() {
   
    t = clock() - t;
    double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-   printf("[GatewayApp][commandPVRA]: Simple clock took %f seconds to execute\n", time_taken);
+   printf("\n[hcPVRA]: ecall_commandPVRA took %f seconds\n", time_taken);
    
   return (sgx_lasterr == SGX_SUCCESS);
 

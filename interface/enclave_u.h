@@ -25,6 +25,10 @@ void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_string, (const char* str));
 #define OCALL_RDTSC_DEFINED__
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_rdtsc, (void));
 #endif
+#ifndef OCALLBUF_DEFINED__
+#define OCALLBUF_DEFINED__
+void SGX_UBRIDGE(SGX_NOCONVENTION, ocallbuf, (int size));
+#endif
 
 sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_report_t* report, sgx_target_info_t* target_info, char* sealedstate, size_t sealedstate_size, char* enckey_signature, size_t signature_size, char* pub_enckey, size_t enckey_size);
 sgx_status_t ecall_commandPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, char* sealedstate, size_t sealedstate_size, char* signedFT, size_t signedFT_size, char* eCMD, size_t eCMD_size, char* eAESkey, size_t eAESkey_size, char* cResponse, size_t cResponse_size);
