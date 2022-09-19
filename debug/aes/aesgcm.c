@@ -70,8 +70,14 @@ static const unsigned char gcm_tag[] = {
 	0x8e,0x09,0x02,0xcb
 };
 
+#define AESGCM_128_KEY_SIZE 16
+#define AESGCM_128_MAC_SIZE 16
+#define AESGCM_128_IV_SIZE 12
+
 void aes_gcm_encrypt(char* pt)
 	{
+
+	uint8_t eCMD_full[2048] = {0};
 
 		printf("%s %d\n", pt, strlen(pt));
 	EVP_CIPHER_CTX *ctx;
@@ -96,6 +102,19 @@ void aes_gcm_encrypt(char* pt)
 	/* Output encrypted block */
 	printf("Ciphertext:\n");
 	BIO_dump_fp(stdout, outbuf, outlen);
+
+
+  uint8_t *ct_src = &eCMD_full[AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE];
+  uint8_t *iv_src = &eCMD_full[AESGCM_128_MAC_SIZE];
+  uint8_t *tag_src = eCMD_full;
+
+
+  memcpy(eCMD_full + AESGCM_128_MAC_SIZE, gcm_iv, AESGCM_128_IV_SIZE);
+  memcpy(eCMD_full + AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE, outbuf, outlen);
+
+  int ct_len = outlen;
+
+
 	/* Finalise: note get no output for GCM */
 	EVP_EncryptFinal_ex(ctx, outbuf, &outlen);
 	/* Get tag */
@@ -103,11 +122,34 @@ void aes_gcm_encrypt(char* pt)
 	/* Output tag */
 	printf("Tag:\n");
 	BIO_dump_fp(stdout, outbuf, 16);
+
+  memcpy(eCMD_full, outbuf, AESGCM_128_MAC_SIZE);
+  print_hexstring(eCMD_full, AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + ct_len);
+
+FILE *file = fopen("eCMD.bin", "wb");
+fwrite(&eCMD_full, sizeof(char), AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + ct_len, file);
+fclose(file);
+
+
+
 	EVP_CIPHER_CTX_free(ctx);
 	}
 
+void print_hexstring(const void *vsrc, size_t len) {
+  const unsigned char *sp = (const unsigned char *)vsrc;
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    printf("%02x", sp[i]);
+  }
+  printf("\n");
+}
+
 void aes_gcm_encrypt128(void)
 	{
+
+	uint8_t eCMD_full[2048] = {0x0a};
+
+
 	EVP_CIPHER_CTX *ctx;
 	int outlen, tmplen;
 	unsigned char outbuf[1024];
@@ -128,6 +170,15 @@ void aes_gcm_encrypt128(void)
 	/* Output encrypted block */
 	printf("Ciphertext:\n");
 	BIO_dump_fp(stdout, outbuf, outlen);
+
+  uint8_t *ct_src = &eCMD_full[AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE];
+  uint8_t *iv_src = &eCMD_full[AESGCM_128_MAC_SIZE];
+  uint8_t *tag_src = eCMD_full;
+
+
+  memcpy(eCMD_full + AESGCM_128_MAC_SIZE, gcm_iv, AESGCM_128_IV_SIZE);
+  memcpy(eCMD_full + AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE, outbuf, outlen);
+
 	/* Finalise: note get no output for GCM */
 	EVP_EncryptFinal_ex(ctx, outbuf, &outlen);
 	/* Get tag */
@@ -135,6 +186,10 @@ void aes_gcm_encrypt128(void)
 	/* Output tag */
 	printf("Tag:\n");
 	BIO_dump_fp(stdout, outbuf, 16);
+
+  memcpy(eCMD_full, outbuf, AESGCM_128_MAC_SIZE);
+  print_hexstring(eCMD_full, AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + outlen);
+
 	EVP_CIPHER_CTX_free(ctx);
 	}
 
@@ -179,5 +234,5 @@ void aes_gcm_decrypt(void)
 int main(int argc, char **argv)
 	{
 	aes_gcm_encrypt(argv[1]);
-	aes_gcm_decrypt();
+	//aes_gcm_decrypt();
 	}

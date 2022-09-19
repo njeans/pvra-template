@@ -37,7 +37,9 @@ bool commandPVRA() {
       (char *)signedFT_buffer, signedFT_buffer_size, 
       (char *)eCMD_buffer, eCMD_buffer_size, 
       (char *)eAESkey_buffer, eAESkey_buffer_size, 
-      (char *)cResponse_buffer, cResponse_buffer_size);
+      (char *)cResponse_buffer, cResponse_buffer_size,
+      (char *)cRsig_buffer, cRsig_buffer_size,
+      (char *)sealed_out_buffer, sealed_out_buffer_size);
   
    t = clock() - t;
    double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time

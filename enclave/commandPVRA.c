@@ -50,12 +50,30 @@
 
 
 
+int cmd0(struct ES *enclave_state)
+{
+  enclave_state->appdata.i = 10;
+  printf("[ecPVRA]: Ran CMD0 appdata set to %d\n", enclave_state->appdata.i);
+  return 1;
+}
+
+int cmd1(struct ES *enclave_state)
+{
+  enclave_state->appdata.i = 20;
+  printf("[ecPVRA]: Ran CMD1 appdata set to %d\n", enclave_state->appdata.i);
+  return 2;
+}
+
+
+
 sgx_status_t ecall_commandPVRA(
       char *sealedstate, size_t sealedstate_size, 
       char *signedFT, size_t signedFT_size, 
       char *eCMD, size_t eCMD_size, 
       char *eAESkey, size_t eAESkey_size, 
-      char *cResponse, size_t cResponse_size) {
+      char *cResponse, size_t cResponse_size,
+      char *cResponse_signature, size_t cResponse_signature_size,
+      char *sealedout, size_t sealedout_size) {
 
 
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
@@ -169,6 +187,8 @@ sgx_status_t ecall_commandPVRA(
 
   //print_hexstring(signature, sizeof(signature));
   char *msg = "hello"; 
+  // msg = Hash( enclave_state->counter.freshness_tag || Hash(sealedstate || eCMD))
+
   unsigned char msg_hash[32];
 
   ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)msg, strlen(msg), msg_hash);
@@ -391,24 +411,75 @@ sgx_status_t ecall_commandPVRA(
 
 
 
+  int cType = (plain_dst[1]-'0');
+  //cInput =
+  //seqNO =
+  //clientID =
+  //printf("CT = %d\n", cType);
+
+
   /*   (5) SEQNO VERIFICATION    */
 
 
   /*   (6) PROCESS COMMAND    */
 
+  int cRet = 0;
 
+  switch(cType) {
+    case 0:
+      cRet = cmd0(enclave_state);
+      break;
+    case 1:
+      cRet = cmd1(enclave_state);
+      break;
+    default:
+      break;
+  }
+
+  char cResponse_raw = '0' + cRet;
 
   /*   (7) FT UPDATE    */
-
+  //memcpy(&enclave_state->counter.freshness_tag, msg, strlen(msg));
 
 
   /*   (8) SIGN CRESPONSE   */
+  // Sign Encryption Key + Publish
+  sgx_ecc_state_handle_t p_ecc_handle_sign = NULL;
+  if ((ret = sgx_ecc256_open_context(&p_ecc_handle_sign)) != SGX_SUCCESS) {
+    print("\nTrustedApp: sgx_ecc256_open_context() failed !\n");
+    goto cleanup;
+  }
+
+
+  memcpy(cResponse, &cResponse_raw, 1);
+
+  if ((ret = sgx_ecdsa_sign(&cResponse_raw, 1, &enclave_state->enclavekeys.sign_prikey, (sgx_ec256_signature_t *)cResponse_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
+    printf("\n[Enclave]: sgx_ecdsa_sign() failed !\n");
+  }
+
 
 
 
 
   /*   (9) SEAL STATE    */
+  /*printf("[ecPVRA]: sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
+  if (sealedout_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
+    if ((ret = sgx_seal_data(0U, NULL, sizeof(enclave_state), (uint8_t *)&enclave_state,
+                             (uint32_t)sealedout_size,
+                             (sgx_sealed_data_t *)sealedout)) !=
+        SGX_SUCCESS) {
+      print("\n[[TrustedApp]][initPVRA]: sgx_seal_data() failed !\n");
+      goto cleanup;
+    }
+  } else {
+    print("\n[[TrustedApp]][initPVRA]: Size allocated for sealedprivkey by untrusted app "
+          "is less than the required size !\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
 
+  print("[eiPVRA]: Enclave State initialized and sealed, quote generated.\n");
+  ret = SGX_SUCCESS;*/
 
 
   ret = SGX_SUCCESS;

@@ -69,7 +69,7 @@ static struct option long_options[] = {
     {"eCMD", required_argument, 0, 0},
     {"eAESkey", required_argument, 0, 0},
     {"cResponse", required_argument, 0, 0},
-
+    {"cRsig", required_argument, 0, 0},
 
     {0, 0, 0, 0}};
 
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
   const char *opt_eCMD_file = NULL;
   const char *opt_eAESkey_file = NULL;
   const char *opt_cResponse_file = NULL;
-
+  const char *opt_cRsig_file = NULL;
 
 
   int option_index = -1;
@@ -298,6 +298,9 @@ int main(int argc, char **argv) {
     case 51:
       opt_cResponse_file = optarg;
       break;
+    case 52:
+      opt_cRsig_file = optarg;
+      break;
     }
   }
 
@@ -324,7 +327,7 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  if (opt_commandPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_signedFT_file) && (!opt_eCMD_file) && (!opt_eAESkey_file) && (!opt_cResponse_file)) {
+  if (opt_commandPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_signedFT_file) && (!opt_eCMD_file) && (!opt_eAESkey_file) && (!opt_cResponse_file) && (!opt_cRsig_file)) {
     fprintf(stderr, "Error Usage:\n");
     fprintf(stderr,
             "  %s --commandPVRA --enclave-path /path/to/enclave.signed.so\n",
@@ -576,8 +579,10 @@ int main(int argc, char **argv) {
       (opt_commandPVRA ? load_cmd(opt_eCMD_file) : true) &&
       (opt_commandPVRA ? load_key(opt_eAESkey_file) : true) &&
       (opt_commandPVRA ? commandPVRA() : true) &&
-      //(opt_commandPVRA ? save_sealed_state(opt_sealedstate_file) : true) &&
-      //(opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
+      (opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
+      (opt_commandPVRA ? save_cRsig(opt_cRsig_file) : true) &&
+      (opt_commandPVRA ? save_sealedout_state(opt_sealedstate_file) : true) &&
+
 
 
       (opt_keygen ? enclave_generate_key() : true) &&

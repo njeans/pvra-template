@@ -26,8 +26,19 @@ bool allocate_buffers() {
   sealed_state_buffer_size = 6912;
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
+  sealed_out_buffer_size = 6912;
+  sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
+
   pub_enckey_buffer_size = 451;
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
+
+  cResponse_buffer_size = 1;
+  cResponse_buffer = calloc(cResponse_buffer_size, 1);
+
+  cRsig_buffer_size = signature_buffer_size;
+  cRsig_buffer = calloc(cRsig_buffer_size, 1);
+
+
 
 /*void *signedFT_buffer;
 size_t signedFT_buffer_size;
@@ -52,11 +63,9 @@ size_t sealed_out_buffer_size;
       decrypted_message_buffer == NULL || json_student_buffer == NULL ||
       json_enclave_state_buffer == NULL || pub_enckey_buffer == NULL || 
       sealed_state_buffer == NULL
-      || signedFT_buffer
-      || eCMD_buffer
-      || eAESkey_buffer
-      || cResponse_buffer
-      || sealed_out_buffer
+      || cResponse_buffer == NULL
+      || sealed_out_buffer == NULL
+      || cRsig_buffer == NULL
       ) {
     fprintf(stderr,
             "[GatewayApp]: allocate_buffers() memory allocation failure\n");
@@ -147,6 +156,11 @@ void cleanup_buffers() {
   if (cResponse_buffer != NULL) {
     free(cResponse_buffer);
     cResponse_buffer = NULL;
+  }
+
+  if (cRsig_buffer != NULL) {
+    free(cRsig_buffer);
+    cRsig_buffer = NULL;
   }
 
   if (sealed_out_buffer != NULL) {

@@ -147,7 +147,7 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   //print_hexstring(&enclave_state.enclavekeys.priv_key_buffer, pri_len);
 
   printf("[eiPVRA]: Public Enclave Encryption Key (PEM RSA2048)\n%s\n", &enclave_state.enclavekeys.pub_key_buffer);
-  printf("%d %s\n", strlen(&enclave_state.enclavekeys.priv_key_buffer), &enclave_state.enclavekeys.priv_key_buffer);
+  //printf("%d %s\n", strlen(&enclave_state.enclavekeys.priv_key_buffer), &enclave_state.enclavekeys.priv_key_buffer);
 
   
   mbedtls_rsa_free( &rsa );

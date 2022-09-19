@@ -59,6 +59,9 @@ size_t eAESkey_buffer_size;
 void *cResponse_buffer;
 size_t cResponse_buffer_size;
 
+void *cRsig_buffer;
+size_t cRsig_buffer_size;
+
 void *sealed_out_buffer;
 size_t sealed_out_buffer_size;
 

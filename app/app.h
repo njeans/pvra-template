@@ -62,6 +62,9 @@ extern size_t eAESkey_buffer_size;
 
 extern void *cResponse_buffer;
 extern size_t cResponse_buffer_size;
+extern void *cRsig_buffer;
+extern size_t cRsig_buffer_size;
+
 
 extern void *sealed_out_buffer;
 extern size_t sealed_out_buffer_size;

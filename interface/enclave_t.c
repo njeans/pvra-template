@@ -51,6 +51,10 @@ typedef struct ms_ecall_commandPVRA_t {
 	size_t ms_eAESkey_size;
 	char* ms_cResponse;
 	size_t ms_cResponse_size;
+	char* ms_cRsig;
+	size_t ms_cRsig_size;
+	char* ms_sealedout;
+	size_t ms_sealedout_size;
 } ms_ecall_commandPVRA_t;
 
 typedef struct ms_ecall_key_gen_and_seal_t {
@@ -435,12 +439,22 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 	size_t _tmp_cResponse_size = ms->ms_cResponse_size;
 	size_t _len_cResponse = _tmp_cResponse_size;
 	char* _in_cResponse = NULL;
+	char* _tmp_cRsig = ms->ms_cRsig;
+	size_t _tmp_cRsig_size = ms->ms_cRsig_size;
+	size_t _len_cRsig = _tmp_cRsig_size;
+	char* _in_cRsig = NULL;
+	char* _tmp_sealedout = ms->ms_sealedout;
+	size_t _tmp_sealedout_size = ms->ms_sealedout_size;
+	size_t _len_sealedout = _tmp_sealedout_size;
+	char* _in_sealedout = NULL;
 
 	CHECK_UNIQUE_POINTER(_tmp_sealedstate, _len_sealedstate);
 	CHECK_UNIQUE_POINTER(_tmp_signedFT, _len_signedFT);
 	CHECK_UNIQUE_POINTER(_tmp_eCMD, _len_eCMD);
 	CHECK_UNIQUE_POINTER(_tmp_eAESkey, _len_eAESkey);
 	CHECK_UNIQUE_POINTER(_tmp_cResponse, _len_cResponse);
+	CHECK_UNIQUE_POINTER(_tmp_cRsig, _len_cRsig);
+	CHECK_UNIQUE_POINTER(_tmp_sealedout, _len_sealedout);
 
 	//
 	// fence after pointer checks
@@ -532,10 +546,48 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 
 		memset((void*)_in_cResponse, 0, _len_cResponse);
 	}
+	if (_tmp_cRsig != NULL && _len_cRsig != 0) {
+		if ( _len_cRsig % sizeof(*_tmp_cRsig) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_cRsig = (char*)malloc(_len_cRsig)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
-	ms->ms_retval = ecall_commandPVRA(_in_sealedstate, _tmp_sealedstate_size, _in_signedFT, _tmp_signedFT_size, _in_eCMD, _tmp_eCMD_size, _in_eAESkey, _tmp_eAESkey_size, _in_cResponse, _tmp_cResponse_size);
+		memset((void*)_in_cRsig, 0, _len_cRsig);
+	}
+	if (_tmp_sealedout != NULL && _len_sealedout != 0) {
+		if ( _len_sealedout % sizeof(*_tmp_sealedout) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_sealedout = (char*)malloc(_len_sealedout)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		memset((void*)_in_sealedout, 0, _len_sealedout);
+	}
+
+	ms->ms_retval = ecall_commandPVRA(_in_sealedstate, _tmp_sealedstate_size, _in_signedFT, _tmp_signedFT_size, _in_eCMD, _tmp_eCMD_size, _in_eAESkey, _tmp_eAESkey_size, _in_cResponse, _tmp_cResponse_size, _in_cRsig, _tmp_cRsig_size, _in_sealedout, _tmp_sealedout_size);
 	if (_in_cResponse) {
 		if (memcpy_s(_tmp_cResponse, _len_cResponse, _in_cResponse, _len_cResponse)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
+	if (_in_cRsig) {
+		if (memcpy_s(_tmp_cRsig, _len_cRsig, _in_cRsig, _len_cRsig)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
+	if (_in_sealedout) {
+		if (memcpy_s(_tmp_sealedout, _len_sealedout, _in_sealedout, _len_sealedout)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
@@ -547,6 +599,8 @@ err:
 	if (_in_eCMD) free(_in_eCMD);
 	if (_in_eAESkey) free(_in_eAESkey);
 	if (_in_cResponse) free(_in_cResponse);
+	if (_in_cRsig) free(_in_cRsig);
+	if (_in_sealedout) free(_in_sealedout);
 	return status;
 }
 
