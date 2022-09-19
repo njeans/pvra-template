@@ -6,44 +6,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-
-test -d test_sgx || mkdir test_sgx
 cd ./test_sgx
-rm -f *
 
 
-### 0.0 INITIALIZE FRAMEWORK COMPONENTS ###
-
-### SCS INIT ###
-#curl https://127.0.0.1:8000/app/scs/request -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary '{"id": "4", "init": "0000000000000000000000000000000000000000000000000000000000000000"}'
-
-### BulletinBoard INIT ###
-
-
-
-### 1.0 INITIALIZE PVRA ENCLAVE ###
-
-printf "\n[biPVRA] INITPVRA LAUNCH\n"
-../app/app --initPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
-  --sealedState sealedState.bin \
-  --quotefile quote.bin \
-  --signature enckey.sig
-  
-echo "\n[biPVRA] Running Auditee to Extract PVRA_signing_key\n"
-
-#source ~/.venvs/auditee/bin/activate
-python3.7 ../auditee_extract.py
-#ias_report.json ready to be posted to BulletinBoard
-
-
-
-
-### 2.0 RUNNING PVRA APPLICATION ###
-
-openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
-
-
-
+### ONLY RUNNING A COMMAND ###
 
 
 printf "[bcPVRA] Client generating AES session key\n"
@@ -86,9 +52,3 @@ printf "\n[bcPVRA] Host COMMANDPVRA LAUNCH\n"
 printf "[bcPVRA] Host->Client cResponse sent\n"
 #python3.7 ../extract_verify.py
 openssl dgst -sha256 -verify signingkey.pem -signature cResponse.sig cResponse.txt
-
-
-
-#mv sealedOut.bin sealedState.bin
-
-exit

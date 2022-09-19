@@ -193,12 +193,12 @@ bool save_sealed_state(const char *const sealedstate_file) {
   return ret_status;
 }
 
-bool save_sealedout_state(const char *const sealedstate_file) {
+bool save_sealedout_state(const char *const sealedout_file) {
 
   bool ret_status = true;
-  printf("[Gateway]: saving sealed enclave state.\n");
+  printf("[Gateway]: saving sealed out enclave state.\n");
 
-  FILE *sk_file = open_file(sealedstate_file, "wb");
+  FILE *sk_file = open_file(sealedout_file, "wb");
 
   if (sk_file == NULL) {
     fprintf(stderr, "[Gateway]: save_enclave_state() fopen failed.\n");

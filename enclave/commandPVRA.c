@@ -100,10 +100,9 @@ sgx_status_t ecall_commandPVRA(
     return ret;
   }
 
-  struct ES *enclave_state;
-  enclave_state = malloc(sizeof(struct ES));
-  memcpy(enclave_state, unsealed_data, sizeof(struct ES));
-  //print_hexstring(&enclave_state->enclavekeys.encrypt_pubkey, sizeof(sgx_ec256_public_t));
+  struct ES enclave_state;
+  memcpy(&enclave_state, unsealed_data, sizeof(struct ES));
+  //print_hexstring(&enclave_state.enclavekeys.encrypt_pubkey, sizeof(sgx_ec256_public_t));
 
 
 
@@ -134,7 +133,7 @@ sgx_status_t ecall_commandPVRA(
   mbedtls_mpi_init( &DQ ); mbedtls_mpi_init( &QP );
   mbedtls_pk_init(&pks);
   
-  if((ret = mbedtls_pk_parse_key(&pks, (const unsigned char *)&enclave_state->enclavekeys.priv_key_buffer, strlen(&enclave_state->enclavekeys.priv_key_buffer)+1, 0, 0)) != 0) {
+  if((ret = mbedtls_pk_parse_key(&pks, (const unsigned char *)&enclave_state.enclavekeys.priv_key_buffer, strlen(&enclave_state.enclavekeys.priv_key_buffer)+1, 0, 0)) != 0) {
       print("\nTrustedApp: mbedtls_pk_parse_key returned an error!\n");
       ret = SGX_ERROR_INVALID_PARAMETER;
       return ret;
@@ -187,7 +186,7 @@ sgx_status_t ecall_commandPVRA(
 
   //print_hexstring(signature, sizeof(signature));
   char *msg = "hello"; 
-  // msg = Hash( enclave_state->counter.freshness_tag || Hash(sealedstate || eCMD))
+  // msg = Hash( enclave_state.counter.freshness_tag || Hash(sealedstate || eCMD))
 
   unsigned char msg_hash[32];
 
@@ -202,7 +201,7 @@ sgx_status_t ecall_commandPVRA(
   mbedtls_pk_context pk_pub_key;
   mbedtls_pk_init(&pk_pub_key);
 
-  ret = mbedtls_pk_parse_public_key(&pk_pub_key, (const unsigned char *)&enclave_state->counter.CCF_key, strlen(&enclave_state->counter.CCF_key)+1);
+  ret = mbedtls_pk_parse_public_key(&pk_pub_key, (const unsigned char *)&enclave_state.counter.CCF_key, strlen(&enclave_state.counter.CCF_key)+1);
   if(ret != 0) 
   {
     printf("[ecPVRA]: mbedtls_pk_parse_public_key failed, returned -0x%04x\n", -ret);
@@ -255,7 +254,7 @@ sgx_status_t ecall_commandPVRA(
   }
 
   
-  ret = mbedtls_pk_parse_key(&pk, (const unsigned char *)&enclave_state->enclavekeys.priv_key_buffer, strlen(&enclave_state->enclavekeys.priv_key_buffer)+1, 0, 0);
+  ret = mbedtls_pk_parse_key(&pk, (const unsigned char *)&enclave_state.enclavekeys.priv_key_buffer, strlen(&enclave_state.enclavekeys.priv_key_buffer)+1, 0, 0);
   if(ret != 0)
   {
     printf("[ecPVRA]: mbedtls_pk_parse_key failed, returned -0x%04x\n", -ret);
@@ -427,10 +426,10 @@ sgx_status_t ecall_commandPVRA(
 
   switch(cType) {
     case 0:
-      cRet = cmd0(enclave_state);
+      cRet = cmd0(&enclave_state);
       break;
     case 1:
-      cRet = cmd1(enclave_state);
+      cRet = cmd1(&enclave_state);
       break;
     default:
       break;
@@ -439,7 +438,7 @@ sgx_status_t ecall_commandPVRA(
   char cResponse_raw = '0' + cRet;
 
   /*   (7) FT UPDATE    */
-  //memcpy(&enclave_state->counter.freshness_tag, msg, strlen(msg));
+  //memcpy(&enclave_state.counter.freshness_tag, msg, strlen(msg));
 
 
   /*   (8) SIGN CRESPONSE   */
@@ -453,7 +452,7 @@ sgx_status_t ecall_commandPVRA(
 
   memcpy(cResponse, &cResponse_raw, 1);
 
-  if ((ret = sgx_ecdsa_sign(&cResponse_raw, 1, &enclave_state->enclavekeys.sign_prikey, (sgx_ec256_signature_t *)cResponse_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
+  if ((ret = sgx_ecdsa_sign(&cResponse_raw, 1, &enclave_state.enclavekeys.sign_prikey, (sgx_ec256_signature_t *)cResponse_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
     printf("\n[Enclave]: sgx_ecdsa_sign() failed !\n");
   }
 
@@ -462,7 +461,7 @@ sgx_status_t ecall_commandPVRA(
 
 
   /*   (9) SEAL STATE    */
-  /*printf("[ecPVRA]: sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
+  printf("[ecPVRA]: sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
   if (sealedout_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
     if ((ret = sgx_seal_data(0U, NULL, sizeof(enclave_state), (uint8_t *)&enclave_state,
                              (uint32_t)sealedout_size,
@@ -479,7 +478,7 @@ sgx_status_t ecall_commandPVRA(
   }
 
   print("[eiPVRA]: Enclave State initialized and sealed, quote generated.\n");
-  ret = SGX_SUCCESS;*/
+  ret = SGX_SUCCESS;
 
 
   ret = SGX_SUCCESS;

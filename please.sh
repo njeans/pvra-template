@@ -79,48 +79,16 @@ printf "\n[bcPVRA] Host COMMANDPVRA LAUNCH\n"
   --eCMD eCMD.bin \
   --eAESkey eAESkey.bin \
   --cResponse cResponse.txt \
-  --cRsig cResponse.sig
-  #--sealedOut sealedStateO.bin
+  --cRsig cResponse.sig \
+  --sealedOut sealedOut.bin
 
+
+printf "[bcPVRA] Host->Client cResponse sent\n"
 #python3.7 ../extract_verify.py
 openssl dgst -sha256 -verify signingkey.pem -signature cResponse.sig cResponse.txt
 
-exit
 
 
-cp /home/azureuser/mbehnia/pvra-template/scratch/sealedState.bin .
-cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
-touch eCMD.bin
-touch eAESkey.bin
-
-printf "\nCOMMAND PVRA Attempt 2,425,129...\n"
-../app/app --commandPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
-  --sealedState sealedState.bin \
-  --signedFT signedFT.txt \
-  --eCMD eCMD.bin \
-  --eAESkey eAESkey.bin \
-  --cResponse cResponse.txt \
-  #--sealedOut sealedStateO.bin
+#mv sealedOut.bin sealedState.bin
 
 exit
-
-# hello post sleep mohammad
-# look a bit into ECDH otherwise change encryptkey to RSA
-# write client enc(AESKey) enc(CMD) -> requires cmd_formatter based on CMD.h 
-# verify(signedFT) using RSA calls so thats why
-
-# test_sgx/ias_report.json ready to be published to bulletin board
-
-echo "\nVerifying Signature to Extract PVRA_encryption_key\n"
-openssl dgst -sha256 -verify p256-pkey.pem -signature enckey.sig ekey.dat
-
-
-cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
-
-
-
-  
-#  --signedFT signedFT.txt \
-#  --sealedState sealedState.txt \
-#  --eCMD eCMD.txt \
-#  --eKey eKey.txt

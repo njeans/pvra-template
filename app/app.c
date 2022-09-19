@@ -70,6 +70,7 @@ static struct option long_options[] = {
     {"eAESkey", required_argument, 0, 0},
     {"cResponse", required_argument, 0, 0},
     {"cRsig", required_argument, 0, 0},
+    {"sealedOut", required_argument, 0, 0},
 
     {0, 0, 0, 0}};
 
@@ -134,6 +135,7 @@ int main(int argc, char **argv) {
   const char *opt_eAESkey_file = NULL;
   const char *opt_cResponse_file = NULL;
   const char *opt_cRsig_file = NULL;
+  const char *opt_sealedout_file = NULL;
 
 
   int option_index = -1;
@@ -300,6 +302,9 @@ int main(int argc, char **argv) {
       break;
     case 52:
       opt_cRsig_file = optarg;
+      break;
+    case 53:
+      opt_sealedout_file = optarg;
       break;
     }
   }
@@ -581,7 +586,7 @@ int main(int argc, char **argv) {
       (opt_commandPVRA ? commandPVRA() : true) &&
       (opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
       (opt_commandPVRA ? save_cRsig(opt_cRsig_file) : true) &&
-      (opt_commandPVRA ? save_sealedout_state(opt_sealedstate_file) : true) &&
+      (opt_commandPVRA ? save_sealedout_state(opt_sealedout_file) : true) &&
 
 
 
