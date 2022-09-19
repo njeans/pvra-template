@@ -232,6 +232,61 @@ sgx_status_t ecall_commandPVRA(
 
 
 
+  unsigned char bigbuf[10000];
+  memcpy(bigbuf, sealedstate, sealedstate_size);
+  memcpy(bigbuf+sealedstate_size, eCMD, eCMD_size);
+  unsigned char sealcmd_hash[32];
+
+  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)bigbuf, sealedstate_size+eCMD_size, sealcmd_hash);
+  if(ret != 0) 
+  {
+    printf("[ecPVRA]: mbedtls_md failed, returned -0x%04x\n", -ret);
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    return ret;
+  }
+
+  //printf("[ecPVRA]: Enclave Computed sealcmd\n");
+  //print_hexstring(sealcmd_hash, 32);
+
+
+  unsigned char ftold_hash[32];
+  for(int i = 0; i < 32; i++) {
+    ftold_hash[i] = 0;
+  }
+
+
+  unsigned char merge[64];
+  memcpy(merge, ftold_hash, 32);
+  memcpy(merge+32, sealcmd_hash, 32);
+
+  unsigned char merge_hexstring[128];
+
+  const char *hex = "0123456789abcdef";
+  for (int i = 0; i < 64; i++) {
+    merge_hexstring[2*i+1] = hex[merge[i] & 0xF];
+    merge_hexstring[2*i] = hex[(merge[i]>>4) & 0xF];
+  }
+
+
+  unsigned char ft_hash[32];
+
+
+
+  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)merge_hexstring, 128, ft_hash);
+  if(ret != 0) 
+  {
+    printf("[ecPVRA]: mbedtls_md failed, returned -0x%04x\n", -ret);
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    return ret;
+  }
+
+
+
+  printf("[ecPVRA]: Enclave Computed newFT: ");
+  print_hexstring(ft_hash, 32);
+
+
+
 
 
   /*   (4) COMMAND DECRYPTION    */
