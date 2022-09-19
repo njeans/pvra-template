@@ -27,7 +27,7 @@ echo "\nRunning Auditee to Extract PVRA_signing_key\n"
 
 
 
-cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.txt .
+cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.bin .
 cp /home/azureuser/mbehnia/pvra-template/scratch/aes128gcm.pem .
 
 
@@ -44,7 +44,7 @@ cp /home/azureuser/mbehnia/pvra-template/scratch/eCMD.bin .
 printf "\n[bcPVRA] COMMANDPVRA LAUNCH\n"
 ../app/app --commandPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
   --sealedState sealedState.bin \
-  --signedFT signedFT.txt \
+  --signedFT signedFT.bin \
   --eCMD eCMD.bin \
   --eAESkey eAESkey.bin \
   --cResponse cResponse.txt \

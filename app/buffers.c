@@ -23,7 +23,7 @@ bool allocate_buffers() {
 
 
 
-  sealed_state_buffer_size = 4928;
+  sealed_state_buffer_size = 6912;
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
   pub_enckey_buffer_size = 451;
