@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "enclavestate.h"
+#include "command.h"
 
 #include "enclave.h"
 #include <enclave_t.h>
@@ -24,6 +25,21 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 
+
+
+struct cResponse statusQuery1(struct ES *enclave_state, struct cInputs *CI)
+{
+  struct cResponse ret;
+  printf("[ecPVRA]: SQ\n");
+  return ret;
+}
+
+struct cResponse statusUpdate1(struct ES *enclave_state, struct cInputs *CI)
+{
+  struct cResponse ret;
+  printf("[ecPVRA]: SU\n");
+  return ret;
+}
 
 
 /**
@@ -47,22 +63,6 @@
 #define AESGCM_128_MAC_SIZE 16
 #define AESGCM_128_IV_SIZE 12
 #define EXPECTEDINPUT 16
-
-
-
-int cmd0(struct ES *enclave_state)
-{
-  enclave_state->appdata.i = 10;
-  printf("[ecPVRA]: Ran CMD0 appdata set to %d\n", enclave_state->appdata.i);
-  return 1;
-}
-
-int cmd1(struct ES *enclave_state)
-{
-  enclave_state->appdata.i = 20;
-  printf("[ecPVRA]: Ran CMD1 appdata set to %d\n", enclave_state->appdata.i);
-  return 2;
-}
 
 
 
@@ -374,6 +374,10 @@ sgx_status_t ecall_commandPVRA(
 
   char *pt = "{user_data}";
   size_t pt_len = strlen(pt);
+
+  pt_len = sizeof(struct clientCommand);
+
+
   size_t ct_len = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + pt_len;
   //ct_len check
 
@@ -456,14 +460,25 @@ sgx_status_t ecall_commandPVRA(
     printf("[ecPVRA]: Failed to Decrypt Command\n");
   }
 
-  printf("[ecPVRA]: Decrypted eCMD: %s\n", plain_dst);
+  //printf("[ecPVRA]: Decrypted eCMD: %s\n", plain_dst);
+
+
+  struct clientCommand CC;
+
+  //printf("[ecPVRA]: Decrypted eCMD hex: ");
+  //print_hexstring(plain_dst, sizeof(struct clientCommand));
+
+  if (ct_src_len != sizeof(struct clientCommand)) {
+    printf("[ecPVRA]: BAD eCMD\n");
+    return ret;
+  }
 
 
 
 
+  memcpy(&CC, plain_dst, sizeof(struct clientCommand));
 
-
-
+  printf("[ecPVRA]: Decrypted eCMD: [CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d\n", CC.CT.tid, CC.CI.uid, CC.CI.test_result, CC.seqNo, CC.cid);
 
   int cType = (plain_dst[1]-'0');
   //cInput =
@@ -477,20 +492,22 @@ sgx_status_t ecall_commandPVRA(
 
   /*   (6) PROCESS COMMAND    */
 
-  int cRet = 0;
-
-  switch(cType) {
-    case 0:
-      cRet = cmd0(&enclave_state);
-      break;
-    case 1:
-      cRet = cmd1(&enclave_state);
-      break;
-    default:
-      break;
+  struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*);
+  int init_ret = init(functions);
+  if(init_ret != 0) {
+    printf("[ecPVRA]: Init Function Pointers Failed\n");
+    return ret;
   }
 
-  char cResponse_raw = '0' + cRet;
+  struct cResponse cRet;
+
+  /* APPLICATION KERNEL INVOKED */
+  cRet = (*functions[CC.CT.tid])(&enclave_state, &CC.CI);
+
+  //char cRstring[2] = "0";
+  char* cRstring = cRet.message;
+
+  //printf("[%d] %s\n", strlen(cRstring), cRstring);
 
   /*   (7) FT UPDATE    */
   //memcpy(&enclave_state.counter.freshness_tag, msg, strlen(msg));
@@ -505,9 +522,9 @@ sgx_status_t ecall_commandPVRA(
   }
 
 
-  memcpy(cResponse, &cResponse_raw, 1);
+  memcpy(cResponse, cRstring, strlen(cRstring));
 
-  if ((ret = sgx_ecdsa_sign(&cResponse_raw, 1, &enclave_state.enclavekeys.sign_prikey, (sgx_ec256_signature_t *)cResponse_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
+  if ((ret = sgx_ecdsa_sign(cRstring, strlen(cRstring), &enclave_state.enclavekeys.sign_prikey, (sgx_ec256_signature_t *)cResponse_signature, p_ecc_handle_sign)) != SGX_SUCCESS) {
     printf("\n[Enclave]: sgx_ecdsa_sign() failed !\n");
   }
 

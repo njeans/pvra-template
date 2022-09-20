@@ -23,16 +23,16 @@ bool allocate_buffers() {
 
 
 
-  sealed_state_buffer_size = 6912;
+  sealed_state_buffer_size = 7124;
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
-  sealed_out_buffer_size = 6912;
+  sealed_out_buffer_size = 7124;
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
 
   pub_enckey_buffer_size = 451;
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 
-  cResponse_buffer_size = 1;
+  cResponse_buffer_size = 100;
   cResponse_buffer = calloc(cResponse_buffer_size, 1);
 
   cRsig_buffer_size = signature_buffer_size;

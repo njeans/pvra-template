@@ -5,6 +5,8 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 
+#include "command.h"
+
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
 
@@ -32,10 +34,7 @@ struct AR
 	int seqno[10];
 };
 
-struct AD
-{
-	int i;
-};
+
 
 
 

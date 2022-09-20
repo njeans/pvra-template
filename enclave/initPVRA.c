@@ -251,7 +251,7 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
 
 
   // Initialize Application Data
-  enclave_state.appdata.i = 42;
+  //enclave_state.appdata.i = 42;
 
 
 

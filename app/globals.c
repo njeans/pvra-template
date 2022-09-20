@@ -6,6 +6,7 @@
 
 #include "app.h"
 
+
 /* Globals */
 
 sgx_enclave_id_t enclave_id;
@@ -64,5 +65,7 @@ size_t cRsig_buffer_size;
 
 void *sealed_out_buffer;
 size_t sealed_out_buffer_size;
+
+
 
 

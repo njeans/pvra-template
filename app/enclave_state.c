@@ -229,7 +229,7 @@ bool save_cResponse(const char *const cResponse_file) {
     return false;
   }
 
-  if (fwrite(cResponse_buffer, cResponse_buffer_size, 1, sk_file) != 1) {
+  if (fwrite(cResponse_buffer, strlen(cResponse_buffer), 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: cResponse only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;

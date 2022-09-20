@@ -4,6 +4,35 @@
 #include <stdio.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
+#include <string.h>
+
+
+#define NUM_COMMANDS 2
+
+typedef enum { COMMAND0, COMMAND1 } eType;
+
+
+struct cType 
+{
+	int tid;
+};
+
+
+struct cInputs
+{
+	int uid;
+	int test_result;
+};
+
+struct clientCommand
+{
+	struct cType CT;
+	struct cInputs CI;
+	int seqNo;
+	int cid;
+};
+
+
 
 /* AES-GCM test data from NIST public test vectors */
 
@@ -74,12 +103,21 @@ static const unsigned char gcm_tag[] = {
 #define AESGCM_128_MAC_SIZE 16
 #define AESGCM_128_IV_SIZE 12
 
-void aes_gcm_encrypt(char* pt)
+void aes_gcm_encrypt(char* tid, char* uid, char* res, char* sno, char* cid)
 	{
+
+	struct clientCommand CC;
+	CC.CT.tid = atoi(tid);
+	CC.CI.uid = atoi(uid);
+	CC.CI.test_result = (char) (atoi(res) && 0xF);
+	CC.seqNo = atoi(sno);
+	CC.cid = atoi(cid);
+
+  	char* pt = &CC;
 
 	uint8_t eCMD_full[2048] = {0};
 
-		printf("%s %d\n", pt, strlen(pt));
+	//printf("%s %d\n", pt, strlen(pt));
 	EVP_CIPHER_CTX *ctx;
 	int outlen, tmplen;
 	unsigned char outbuf[1024];
@@ -98,7 +136,7 @@ void aes_gcm_encrypt(char* pt)
 	/* Zero or more calls to specify any AAD */
 	//printf("%d\n", EVP_EncryptUpdate(ctx, NULL, &outlen, gcm_aad, sizeof(gcm_aad)));
 	/* Encrypt plaintext */
-	printf("%d\n", EVP_EncryptUpdate(ctx, outbuf, &outlen, pt, strlen(pt)));
+	printf("%d\n", EVP_EncryptUpdate(ctx, outbuf, &outlen, pt, sizeof(struct clientCommand)));
 	/* Output encrypted block */
 	printf("Ciphertext:\n");
 	BIO_dump_fp(stdout, outbuf, outlen);
@@ -233,6 +271,6 @@ void aes_gcm_decrypt(void)
 
 int main(int argc, char **argv)
 	{
-	aes_gcm_encrypt(argv[1]);
+	aes_gcm_encrypt(argv[1], argv[2], argv[3], argv[4], argv[5]);
 	//aes_gcm_decrypt();
 	}
