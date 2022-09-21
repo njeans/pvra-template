@@ -19,6 +19,8 @@ typedef struct ms_ecall_commandPVRA_t {
 	size_t ms_sealedstate_size;
 	char* ms_signedFT;
 	size_t ms_signedFT_size;
+	char* ms_FT;
+	size_t ms_FT_size;
 	char* ms_eCMD;
 	size_t ms_eCMD_size;
 	char* ms_eAESkey;
@@ -300,7 +302,7 @@ sgx_status_t ecall_initPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, sgx_repo
 	return status;
 }
 
-sgx_status_t ecall_commandPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, char* sealedstate, size_t sealedstate_size, char* signedFT, size_t signedFT_size, char* eCMD, size_t eCMD_size, char* eAESkey, size_t eAESkey_size, char* cResponse, size_t cResponse_size, char* cRsig, size_t cRsig_size, char* sealedout, size_t sealedout_size)
+sgx_status_t ecall_commandPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, char* sealedstate, size_t sealedstate_size, char* signedFT, size_t signedFT_size, char* FT, size_t FT_size, char* eCMD, size_t eCMD_size, char* eAESkey, size_t eAESkey_size, char* cResponse, size_t cResponse_size, char* cRsig, size_t cRsig_size, char* sealedout, size_t sealedout_size)
 {
 	sgx_status_t status;
 	ms_ecall_commandPVRA_t ms;
@@ -308,6 +310,8 @@ sgx_status_t ecall_commandPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, char*
 	ms.ms_sealedstate_size = sealedstate_size;
 	ms.ms_signedFT = signedFT;
 	ms.ms_signedFT_size = signedFT_size;
+	ms.ms_FT = FT;
+	ms.ms_FT_size = FT_size;
 	ms.ms_eCMD = eCMD;
 	ms.ms_eCMD_size = eCMD_size;
 	ms.ms_eAESkey = eAESkey;

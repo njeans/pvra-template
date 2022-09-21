@@ -45,6 +45,8 @@ typedef struct ms_ecall_commandPVRA_t {
 	size_t ms_sealedstate_size;
 	char* ms_signedFT;
 	size_t ms_signedFT_size;
+	char* ms_FT;
+	size_t ms_FT_size;
 	char* ms_eCMD;
 	size_t ms_eCMD_size;
 	char* ms_eAESkey;
@@ -427,6 +429,10 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 	size_t _tmp_signedFT_size = ms->ms_signedFT_size;
 	size_t _len_signedFT = _tmp_signedFT_size;
 	char* _in_signedFT = NULL;
+	char* _tmp_FT = ms->ms_FT;
+	size_t _tmp_FT_size = ms->ms_FT_size;
+	size_t _len_FT = _tmp_FT_size;
+	char* _in_FT = NULL;
 	char* _tmp_eCMD = ms->ms_eCMD;
 	size_t _tmp_eCMD_size = ms->ms_eCMD_size;
 	size_t _len_eCMD = _tmp_eCMD_size;
@@ -450,6 +456,7 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 
 	CHECK_UNIQUE_POINTER(_tmp_sealedstate, _len_sealedstate);
 	CHECK_UNIQUE_POINTER(_tmp_signedFT, _len_signedFT);
+	CHECK_UNIQUE_POINTER(_tmp_FT, _len_FT);
 	CHECK_UNIQUE_POINTER(_tmp_eCMD, _len_eCMD);
 	CHECK_UNIQUE_POINTER(_tmp_eAESkey, _len_eAESkey);
 	CHECK_UNIQUE_POINTER(_tmp_cResponse, _len_cResponse);
@@ -492,6 +499,24 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 		}
 
 		if (memcpy_s(_in_signedFT, _len_signedFT, _tmp_signedFT, _len_signedFT)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_FT != NULL && _len_FT != 0) {
+		if ( _len_FT % sizeof(*_tmp_FT) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_FT = (char*)malloc(_len_FT);
+		if (_in_FT == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_FT, _len_FT, _tmp_FT, _len_FT)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
@@ -573,7 +598,7 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 		memset((void*)_in_sealedout, 0, _len_sealedout);
 	}
 
-	ms->ms_retval = ecall_commandPVRA(_in_sealedstate, _tmp_sealedstate_size, _in_signedFT, _tmp_signedFT_size, _in_eCMD, _tmp_eCMD_size, _in_eAESkey, _tmp_eAESkey_size, _in_cResponse, _tmp_cResponse_size, _in_cRsig, _tmp_cRsig_size, _in_sealedout, _tmp_sealedout_size);
+	ms->ms_retval = ecall_commandPVRA(_in_sealedstate, _tmp_sealedstate_size, _in_signedFT, _tmp_signedFT_size, _in_FT, _tmp_FT_size, _in_eCMD, _tmp_eCMD_size, _in_eAESkey, _tmp_eAESkey_size, _in_cResponse, _tmp_cResponse_size, _in_cRsig, _tmp_cRsig_size, _in_sealedout, _tmp_sealedout_size);
 	if (_in_cResponse) {
 		if (memcpy_s(_tmp_cResponse, _len_cResponse, _in_cResponse, _len_cResponse)) {
 			status = SGX_ERROR_UNEXPECTED;
@@ -596,6 +621,7 @@ static sgx_status_t SGX_CDECL sgx_ecall_commandPVRA(void* pms)
 err:
 	if (_in_sealedstate) free(_in_sealedstate);
 	if (_in_signedFT) free(_in_signedFT);
+	if (_in_FT) free(_in_FT);
 	if (_in_eCMD) free(_in_eCMD);
 	if (_in_eAESkey) free(_in_eAESkey);
 	if (_in_cResponse) free(_in_cResponse);

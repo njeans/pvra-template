@@ -23,10 +23,10 @@ bool allocate_buffers() {
 
 
 
-  sealed_state_buffer_size = 7124;
+  sealed_state_buffer_size = 7092;
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
-  sealed_out_buffer_size = 7124;
+  sealed_out_buffer_size = 7092;
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
 
   pub_enckey_buffer_size = 451;
@@ -37,6 +37,9 @@ bool allocate_buffers() {
 
   cRsig_buffer_size = signature_buffer_size;
   cRsig_buffer = calloc(cRsig_buffer_size, 1);
+
+  FT_buffer_size = 64;
+  FT_buffer = calloc(FT_buffer_size, 1);
 
 
 
@@ -66,6 +69,7 @@ size_t sealed_out_buffer_size;
       || cResponse_buffer == NULL
       || sealed_out_buffer == NULL
       || cRsig_buffer == NULL
+      || FT_buffer == NULL
       ) {
     fprintf(stderr,
             "[GatewayApp]: allocate_buffers() memory allocation failure\n");
@@ -166,6 +170,11 @@ void cleanup_buffers() {
   if (sealed_out_buffer != NULL) {
     free(sealed_out_buffer);
     sealed_out_buffer = NULL;
+  }
+
+  if (FT_buffer != NULL) {
+    free(FT_buffer);
+    FT_buffer = NULL;
   }
 
 }

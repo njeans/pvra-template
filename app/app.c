@@ -71,6 +71,7 @@ static struct option long_options[] = {
     {"cResponse", required_argument, 0, 0},
     {"cRsig", required_argument, 0, 0},
     {"sealedOut", required_argument, 0, 0},
+    {"FT", required_argument, 0, 0},
 
     {0, 0, 0, 0}};
 
@@ -136,6 +137,7 @@ int main(int argc, char **argv) {
   const char *opt_cResponse_file = NULL;
   const char *opt_cRsig_file = NULL;
   const char *opt_sealedout_file = NULL;
+  const char *opt_FT_file = NULL;
 
 
   int option_index = -1;
@@ -305,6 +307,9 @@ int main(int argc, char **argv) {
       break;
     case 53:
       opt_sealedout_file = optarg;
+      break;
+    case 54:
+      opt_FT_file = optarg;
       break;
     }
   }
@@ -580,6 +585,7 @@ int main(int argc, char **argv) {
       (opt_initPVRA ? save_message() : true) &&
 
       (opt_commandPVRA ? load_seal(opt_sealedstate_file) : true) &&
+      (opt_commandPVRA ? load_ft(opt_FT_file) : true) &&
       (opt_commandPVRA ? load_sig(opt_signedFT_file) : true) &&
       (opt_commandPVRA ? load_cmd(opt_eCMD_file) : true) &&
       (opt_commandPVRA ? load_key(opt_eAESkey_file) : true) &&

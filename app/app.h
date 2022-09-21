@@ -69,6 +69,9 @@ extern size_t cRsig_buffer_size;
 extern void *sealed_out_buffer;
 extern size_t sealed_out_buffer_size;
 
+extern void *FT_buffer;
+extern size_t FT_buffer_size;
+
 
 
 /* Function prototypes */

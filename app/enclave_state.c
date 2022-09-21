@@ -127,6 +127,27 @@ bool load_sig(const char *const signedFT_file) {
   return ret_status;
 }
 
+bool load_ft(const char *const FT_file) {
+  printf("[hcPVRA]: Loading FT\n");
+  void *new_buffer;
+  size_t new_buffer_size;
+
+  bool ret_status = read_file_into_memory(FT_file, &new_buffer, &new_buffer_size);
+
+  /* If we previously allocated a buffer, free it before putting new one in
+   * its place */
+  if (FT_buffer != NULL) {
+    free(FT_buffer);
+    FT_buffer = NULL;
+  }
+
+  /* Put new buffer into context */
+  FT_buffer = new_buffer;
+  FT_buffer_size = new_buffer_size;
+
+  return ret_status;
+}
+
 
 bool load_cmd(const char *const eCMD_file) {
   printf("[hcPVRA]: Loading eCMD\n");

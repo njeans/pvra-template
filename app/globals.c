@@ -67,5 +67,6 @@ void *sealed_out_buffer;
 size_t sealed_out_buffer_size;
 
 
-
+void *FT_buffer;
+size_t FT_buffer_size;
 

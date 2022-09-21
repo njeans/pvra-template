@@ -11,15 +11,6 @@ cd ./test_sgx
 ./encrypt_command 0 0 1 0 0 > /dev/null
 ../command.sh
 
-./encrypt_command 0 0 1 0 0 > /dev/null
-../command.sh
 
-./encrypt_command 0 0 0 0 0 > /dev/null
-../command.sh
-
-./encrypt_command 0 0 0 0 0 > /dev/null
-../command.sh
-
-
-./encrypt_command 1 0 1 0 0 > /dev/null
+./encrypt_command 1 0 1 1 0 > /dev/null
 ../command.sh

@@ -35,6 +35,7 @@ bool commandPVRA() {
       enclave_id, &ecall_retval, 
       (char *)sealed_state_buffer, sealed_state_buffer_size, 
       (char *)signedFT_buffer, signedFT_buffer_size, 
+      (char *)FT_buffer, FT_buffer_size,
       (char *)eCMD_buffer, eCMD_buffer_size, 
       (char *)eAESkey_buffer, eAESkey_buffer_size, 
       (char *)cResponse_buffer, cResponse_buffer_size,

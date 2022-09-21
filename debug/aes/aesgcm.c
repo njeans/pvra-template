@@ -112,6 +112,7 @@ void aes_gcm_encrypt(char* tid, char* uid, char* res, char* sno, char* cid)
 	CC.CI.test_result = (char) (atoi(res) && 0xF);
 	CC.seqNo = atoi(sno);
 	CC.cid = atoi(cid);
+  printf("[ecPVRA]: Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d}\n", CC.CT.tid, CC.CI.uid, CC.CI.test_result, CC.seqNo, CC.cid);
 
   	char* pt = &CC;
 

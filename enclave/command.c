@@ -136,16 +136,41 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
 
 
 
-int init(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*)) 
+int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*)) 
 {
-    //printf(": Initialized Application Ecalls\n");
+    //printf("Initialized Application Kernels\n");
     (functions[0]) = &statusUpdate;
     (functions[1]) = &statusQuery;
     return 0;
 }
 
 
+int initES(struct ES* enclave_state)
+{
+    for(int i = 0; i < NUM_USERS; i++) {
+        enclave_state->appdata.query_counter[i] = 0; 
+        enclave_state->appdata.num_tests[i] = 0;
+        for(int j = 0; j < NUM_TESTS; j++) {
+            enclave_state->appdata.test_history[i][j] = -1;
+        }
+    }
+    printf("Initialized Application State\n");
+    return 0;
+
+}
+
+    char test_history[NUM_USERS][NUM_TESTS];
+    int num_tests[NUM_USERS];
+    int query_counter[NUM_USERS];
+
+
+
 char *format_cResponse(struct cResponse cRet) {
     char cRstring[2] = "0";
     return cRstring;
 }
+
+void print_clientCommand(struct clientCommand *CC){
+  printf("[ecPVRA]: Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.test_result, CC->seqNo, CC->cid);
+}
+

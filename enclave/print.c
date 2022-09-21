@@ -34,6 +34,15 @@ void print_hexstring(const void *vsrc, size_t len) {
   printf("\n");
 }
 
+void print_hexstring_n(const void *vsrc, size_t len) {
+  const unsigned char *sp = (const unsigned char *)vsrc;
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    printf("%02x", sp[i]);
+  }
+  //printf("\n");
+}
+
 void ocallrdtsc(void) {
     ocall_rdtsc();
 }

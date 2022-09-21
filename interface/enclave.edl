@@ -27,6 +27,7 @@ enclave
         public sgx_status_t ecall_commandPVRA(
             [in, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
             [in, size=signedFT_size] char *signedFT, size_t signedFT_size,
+            [in, size=FT_size] char *FT, size_t FT_size,
             [in, size=eCMD_size] char *eCMD, size_t eCMD_size,
             [in, size=eAESkey_size] char *eAESkey, size_t eAESkey_size,
             [out, size=cResponse_size] char *cResponse, size_t cResponse_size, 

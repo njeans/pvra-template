@@ -76,5 +76,5 @@ printf "[bcPVRA] Client->Host eCMD+eAESkey sent\n"
 ../command.sh
 
 
-./encrypt_command 1 0 1 0 0 > /dev/null
+./encrypt_command 1 0 1 1 0 > /dev/null
 ../command.sh
