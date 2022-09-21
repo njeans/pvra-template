@@ -33,6 +33,7 @@ echo "\n[biPVRA] Running Auditee to Extract PVRA_signing_key\n"
 
 #source ~/.venvs/auditee/bin/activate
 python3.7 ../auditee_extract.py
+# TODO: get auditee to pull current project 
 #ias_report.json ready to be posted to BulletinBoard
 
 
@@ -44,37 +45,21 @@ openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
 
 
 
-### ONLY RUNNING A COMMAND ###
-
-
-
-printf "[bcPVRA] Client generating AES session key\n"
 #pre-generated AES key for debug
 cp /home/azureuser/mbehnia/pvra-template/scratch/aes128gcm.pem .
-
-printf "[bcPVRA] Client encrypting AES session key\n"
+# one-time
 openssl rsautl -encrypt -pubin -inkey enckey.dat -in aes128gcm.pem > eAESkey.bin
 cp /home/azureuser/mbehnia/pvra-template/debug/aes/encrypt_command .
-printf "[bcPVRA] Client encrypting command\n"
 
 
+# OLD
 #cType uid test_result seqNo client_id
 #echo -en '\xde\xad\xbe\xef' > CMD.bin
-
 #./encrypt_command {1,{0},0,0} > /dev/null
 #cp /home/azureuser/mbehnia/pvra-template/scratch/eCMD.bin .
 
 
+echo "\n"
+cd ..
+./light.sh
 
-printf "[bcPVRA] Client->Host eCMD+eAESkey sent\n"
-
-
-
-
-
-./encrypt_command 0 0 1 0 0 > /dev/null
-../command.sh
-
-
-./encrypt_command 1 0 1 1 0 > /dev/null
-../command.sh

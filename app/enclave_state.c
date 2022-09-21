@@ -86,7 +86,7 @@ bool load_sealedpubkey(const char *const sealedpubkey_file) {
 }
 
 bool load_seal(const char *const sealedstate_file) {
-  printf("[hcPVRA]: Loading sealed state\n");
+  //printf("[hcPVRA]: Loading sealed state\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -107,7 +107,7 @@ bool load_seal(const char *const sealedstate_file) {
 }
 
 bool load_sig(const char *const signedFT_file) {
-  printf("[hcPVRA]: Loading signedFT\n");
+  //printf("[hcPVRA]: Loading signedFT\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -128,7 +128,7 @@ bool load_sig(const char *const signedFT_file) {
 }
 
 bool load_ft(const char *const FT_file) {
-  printf("[hcPVRA]: Loading FT\n");
+  //printf("[hcPVRA]: Loading FT\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -150,7 +150,7 @@ bool load_ft(const char *const FT_file) {
 
 
 bool load_cmd(const char *const eCMD_file) {
-  printf("[hcPVRA]: Loading eCMD\n");
+  //printf("[hcPVRA]: Loading eCMD\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -171,7 +171,7 @@ bool load_cmd(const char *const eCMD_file) {
 }
 
 bool load_key(const char *const eAESkey_file) {
-  printf("[hcPVRA]: Loading eAESkey\n");
+  //printf("[hcPVRA]: Loading eAESkey\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -194,7 +194,7 @@ bool load_key(const char *const eAESkey_file) {
 bool save_sealed_state(const char *const sealedstate_file) {
 
   bool ret_status = true;
-  printf("[Gateway]: saving sealed enclave state.\n");
+  //printf("[Gateway]: saving sealed enclave state.\n");
 
   FILE *sk_file = open_file(sealedstate_file, "wb");
 
@@ -217,7 +217,7 @@ bool save_sealed_state(const char *const sealedstate_file) {
 bool save_sealedout_state(const char *const sealedout_file) {
 
   bool ret_status = true;
-  printf("[Gateway]: saving sealed out enclave state.\n");
+  //printf("[hcPVRA]: Persisting enclave state.\n");
 
   FILE *sk_file = open_file(sealedout_file, "wb");
 
@@ -240,7 +240,7 @@ bool save_sealedout_state(const char *const sealedout_file) {
 bool save_cResponse(const char *const cResponse_file) {
 
   bool ret_status = true;
-  printf("[Gateway]: saving cResponse.\n");
+  //printf("[Gateway]: saving cResponse.\n");
 
   FILE *sk_file = open_file(cResponse_file, "wb");
 

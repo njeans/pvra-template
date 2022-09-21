@@ -13,7 +13,7 @@
 bool enclave_get_buffer_sizes() {
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
-  printf("[GatewayApp]: Querying enclave for buffer sizes\n");
+  //printf("[GatewayApp]: Querying enclave for buffer sizes\n");
 
   /*
    * Invoke ECALL, 'ecall_calc_buffer_sizes()', to calculate the sizes of

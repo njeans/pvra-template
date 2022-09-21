@@ -17,7 +17,7 @@
 
 bool commandPVRA() {
 
-  printf("[hcPVRA]: Calling ecall_commandPVRA\n\n");
+  printf("[hcPVRA] Invoking ecall_commandPVRA\n");
 
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
@@ -44,7 +44,7 @@ bool commandPVRA() {
   
    t = clock() - t;
    double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-   printf("\n[hcPVRA]: ecall_commandPVRA took %f seconds\n", time_taken);
+   //printf("\n[hcPVRA] ecall_commandPVRA took %f seconds\n", time_taken);
    
   return (sgx_lasterr == SGX_SUCCESS);
 

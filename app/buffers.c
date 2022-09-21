@@ -10,7 +10,7 @@
 #include "app.h"
 
 bool allocate_buffers() {
-  printf("[GatewayApp]: Allocating buffers\n");
+  //printf("[GatewayApp]: Allocating buffers\n");
   sealed_privkey_buffer = calloc(sealed_privkey_buffer_size, 1);
   public_key_buffer = calloc(public_key_buffer_size, 1);
   sealed_pubkey_buffer = calloc(sealed_pubkey_buffer_size, 1);
@@ -80,7 +80,7 @@ size_t sealed_out_buffer_size;
 }
 
 void cleanup_buffers() {
-  printf("[GatewayApp]: Deallocating buffers\n");
+  //printf("[GatewayApp]: Deallocating buffers\n");
 
   if (sealed_privkey_buffer != NULL) {
     free(sealed_privkey_buffer);

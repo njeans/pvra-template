@@ -59,7 +59,7 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
     struct cResponse ret;
 
     if(CI->uid > NUM_USERS-1) {
-        char *m = "[statusUpdate]: ERROR invalid userID";
+        char *m = "[apPVRA] STATUS_UPDATE ERROR invalid userID";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m));
         ret.error = 1;
@@ -67,7 +67,7 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
     }
 
     if(enclave_state->appdata.num_tests[CI->uid] == NUM_TESTS) {
-        char *m = "[statusUpdate]: ERROR full test_history";
+        char *m = "[apPVRA] STATUS_UPDATE ERROR full test_history";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m));
         ret.error = 2;
@@ -76,7 +76,7 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
 
     if((CI->test_result != 0) && (CI->test_result != 1))
     {
-        char *m = "[statusUpdate]: ERROR invalid test_result";
+        char *m = "[apPVRA] STATUS_UPDATE ERROR invalid test_result";
         printf("%s [%d]\n", m, CI->test_result);
         memcpy(ret.message, m, strlen(m));
         ret.error = 3;
@@ -84,7 +84,7 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
     }
 
     ret.error = 0;
-    char *m = "[statusUpdate]: SAVED test_result";
+    char *m = "[apPVRA] STATUS_UPDATE SAVED test_result";
     printf("%s\n", m);
     memcpy(ret.message, m, strlen(m));
     enclave_state->appdata.test_history[CI->uid][enclave_state->appdata.num_tests[CI->uid]] = CI->test_result;
@@ -100,7 +100,7 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
     enclave_state->appdata.query_counter[CI->uid]++;
 
     if(CI->uid > NUM_USERS-1) {
-        char *m = "[statusQuery]: ERROR invalid userID";
+        char *m = "[apPVRA] STATUS_QUERY ERROR invalid userID";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m));
         ret.error = 1;
@@ -108,7 +108,7 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
     }
 
     if(enclave_state->appdata.num_tests[CI->uid] < 2) {
-        char *m = "[statusQuery]: ERROR insufficient testing";
+        char *m = "[apPVRA] STATUS_QUERY ERROR insufficient testing";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m)+1);
         ret.error = 2;
@@ -119,13 +119,13 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
     if ( (enclave_state->appdata.test_history[CI->uid][enclave_state->appdata.num_tests[CI->uid]-1] == 0) &&
             (enclave_state->appdata.test_history[CI->uid][enclave_state->appdata.num_tests[CI->uid]-2] == 0) ) {
         ret.access = true;
-        char *m = "[statusQuery]: ACCESS GRANTED";
+        char *m = "[apPVRA] STATUS_QUERY ACCESS GRANTED";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m));
     }
     else {
         ret.access = false;
-        char *m = "[statusQuery]: ACCESS DENIED";
+        char *m = "[apPVRA] STATUS_QUERY ACCESS DENIED";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m));
     }
@@ -159,10 +159,6 @@ int initES(struct ES* enclave_state)
 
 }
 
-    char test_history[NUM_USERS][NUM_TESTS];
-    int num_tests[NUM_USERS];
-    int query_counter[NUM_USERS];
-
 
 
 char *format_cResponse(struct cResponse cRet) {
@@ -171,6 +167,6 @@ char *format_cResponse(struct cResponse cRet) {
 }
 
 void print_clientCommand(struct clientCommand *CC){
-  printf("[ecPVRA]: Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.test_result, CC->seqNo, CC->cid);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.test_result, CC->seqNo, CC->cid);
 }
 
