@@ -99,7 +99,7 @@ sgx_status_t ecall_commandPVRA(
 
   mbedtls_mpi N, P, Q, D, E, DP, DQ, QP;
   unsigned char hashbuf[32];
-  char *msg = "hello";
+  char msg[128] = "0000000000000000000000000000000000000000000000000000000000000000a547891be9ed742869b0cdac2644c0ba676ec14da845fb8ab072eea7bc221ca0";
   unsigned char dmsg[32] = {
     0xfc,0x85,0x75,0x32,0xb5,0x57,0x96,0xa4,
     0x6a,0xac,0xe6,0xa5,0x3c,0x33,0x92,0x76,
@@ -129,7 +129,7 @@ sgx_status_t ecall_commandPVRA(
       return ret;
   }
 
-  if((ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)msg, 5, hashbuf)) != 0) {
+  if((ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)msg, 128, hashbuf)) != 0) {
 
       print("\nTrustedApp: mbedtls_md returned an error!\n");
       ret = SGX_ERROR_INVALID_PARAMETER;
@@ -137,14 +137,50 @@ sgx_status_t ecall_commandPVRA(
   }
 
 
-  if((ret = mbedtls_rsa_pkcs1_sign(rsapk, NULL, NULL, MBEDTLS_RSA_PRIVATE, MBEDTLS_MD_SHA256, 64, hashbuf, sigbuf)) != 0) {
+    printf("[ecPVRA] hashbuf = ");
+  print_hexstring(hashbuf, 32);
+
+  //insert extra
+  unsigned char ex_hexstring[65];
+  const char *hex = "0123456789abcdef";
+  for (int i = 0; i < 32; i++) {
+    ex_hexstring[2*i+1] = hex[hashbuf[i] & 0xF];
+    ex_hexstring[2*i] = hex[(hashbuf[i]>>4) & 0xF];
+  }
+  ex_hexstring[64] = 0;
+
+  printf("STRING: %s\n", ex_hexstring);
+
+  unsigned char final_hash[32];
+
+  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)ex_hexstring, 64, final_hash);
+  if(ret != 0) 
+  {
+    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
+
+
+  printf("[ecPVRA] finalHash = ");
+  print_hexstring(final_hash, 32);
+
+
+
+
+
+
+  if((ret = mbedtls_rsa_pkcs1_sign(rsapk, NULL, NULL, MBEDTLS_RSA_PRIVATE, MBEDTLS_MD_SHA256, 64, final_hash, sigbuf)) != 0) {
       print("\nTrustedApp: mbedtls_rsa_pkcs1_sign returned an error!\n");
       ret = SGX_ERROR_INVALID_PARAMETER;
       return ret;
   }
 
-  print_hexstring(sigbuf, sizeof(sigbuf));
-  */
+  print_hexstring(sigbuf, signedFT_size);
+
+  print_hexstring(signedFT, signedFT_size);*/
+  
+  //return ret;
 
   /*
   uint8_t hsignature[MBEDTLS_MPI_MAX_SIZE] = {
@@ -198,6 +234,8 @@ sgx_status_t ecall_commandPVRA(
   memcpy(merge+32, sealcmd_hash, 32);
 
   unsigned char merge_hexstring[128];
+  //printf("MEREGE: %s")
+  //unsigned char merge_hexstring[128] = "0000000000000000000000000000000000000000000000000000000000000000a547891be9ed742869b0cdac2644c0ba676ec14da845fb8ab072eea7bc221ca0";
   // TODO: change hash(hexstring[128]) to hash(bytes[32])
 
   const char *hex = "0123456789abcdef";
@@ -216,24 +254,87 @@ sgx_status_t ecall_commandPVRA(
     goto cleanup;
   }
 
-  printf("[ecPVRA] SCS Expected newFT = ");
-  print_hexstring(ft_hash, 32);
+/*
+  unsigned char final_hexstring[64];
+  const char *hex = "0123456789abcdef";
+  for (int i = 0; i < 32; i++) {
+    final_hexstring[2*i+1] = hex[ft_hash[i] & 0xF];
+    final_hexstring[2*i] = hex[(ft_hash[i]>>4) & 0xF];
+  }
 
 
 
-  //printf("[ecPVRA] SCS Received newFT: %s\n", FT);
-  unsigned char msg_hash[32];
 
-  // TODO: technically unneeded hash, receive hash in FT
-  // TODO: insert comparison between calculated and FT
+  unsigned char final_hash[32];
 
-  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)FT, strlen(FT), msg_hash);
+  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)final_hexstring, 64, final_hash);
   if(ret != 0) 
   {
     printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
+*/
+
+
+
+
+  printf("[ecPVRA] SCS Expected newFT = ");
+  print_hexstring(ft_hash, 32);
+
+
+
+  unsigned char ex_hexstring[65];
+  //const char *hex = "0123456789abcdef";
+  for (int i = 0; i < 32; i++) {
+    ex_hexstring[2*i+1] = hex[ft_hash[i] & 0xF];
+    ex_hexstring[2*i] = hex[(ft_hash[i]>>4) & 0xF];
+  }
+  ex_hexstring[64] = 0;
+
+  int same = 0;
+  for(int i = 0; i < 64; i++) {
+    if(ex_hexstring[i] != FT[i]) {
+      same = 1;
+    }
+  }
+
+  /*
+  if(same == 0) {
+    printf("[ecPVRA] FT Match: success\n");
+  }
+  else {
+    printf("[ecPVRA] FT Match: failure\n");
+  }*/
+
+
+
+
+  //printf("[ecPVRA] SCS Received newFT: %s\n", FT);
+  unsigned char msg_hash[32];
+
+
+
+
+  // TODO: technically unneeded hash, receive hash in FT
+  // TODO: insert comparison between calculated and FT
+
+
+ // printf("[ecPVRA] FT = %s", FT);
+  //print_hexstring(ft_hash, 32);
+
+  //printf("FT[%d]: %s, STRING[%d]: %s\n", strlen(FT), FT, 64, ex_hexstring);
+
+  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)FT, strlen(FT)-1, msg_hash);
+  if(ret != 0) 
+  {
+    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
+
+  //  printf("[ecPVRA] msgHash = ");
+  //print_hexstring(msg_hash, 32);
 
   mbedtls_pk_context pk_pub_key;
   mbedtls_pk_init(&pk_pub_key);
@@ -268,7 +369,8 @@ sgx_status_t ecall_commandPVRA(
   }
 
 
-
+  //enclave_state.enclavekeys.priv_key_buffer
+  //enclave_state.counter.CCF_key
 
 
 

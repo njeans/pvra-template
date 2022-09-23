@@ -56,11 +56,6 @@ struct AD
 	int query_counter[NUM_USERS];
 };
 
-/*
-struct AD
-{
-	int i;
-};*/
 
 
 #endif

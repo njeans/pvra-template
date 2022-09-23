@@ -10,17 +10,26 @@
 
 
 printf "[bcPVRA] Host<-Client eAESkey+eCMD\n"
+
+
 printf "[bcPVRA] Host->SCS updateFT(...)\n"
-#gen FT = Hash(FTold || Hash(sealedstate || eCMD))
-#curl https://127.0.0.1:8000/app/scs/update -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary '{"id": "4", "commit": "a547891be9ed742869b0cdac2644c0ba676ec14da845fb8ab072eea7bc221ca0"}'
-printf "[bcPVRA] Host<-SCS signedFT = fc857532b55796a46aace6a53c3392763b7be4a43f05526888da5a57438b120e\n"
-#sample CCF signature for debug
-# TODO: call CCF with Hash(sealedstate || eCMD), parse resopnse for signedFT.bin and FT.bin
-cp /home/azureuser/mbehnia/pvra-template/scratch/signedFT.bin .
-echo -n "hello" > FT.txt
+
+cat sealedState.bin eCMD.bin > se.bin 
+openssl dgst -r -sha256 se.bin | head -c 64 > se.hash
+value=`cat se.hash`
+final="{\"id\": \"29\", \"commit\": \"${value}\"}"
+
+curl -s https://127.0.0.1:8000/app/scs/update -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary "$final" > scsupdate.txt
+
+cat scsupdate.txt | grep -ioE 'signature":".*}' | cut -d "\"" -f3 | sed 's/\\n/\n/g'  > signedFT.txt
+cat scsupdate.txt | grep -ioE 'signature":".*}' | cut -d "\"" -f7  > FT.txt
+base64 -d signedFT.txt > signedFT.bin
 
 
-#printf "[bcPVRA] Invoking commandPVRA\n"
+printf "[bcPVRA] Host<-SCS signedFT = "
+cat FT.txt
+
+
 ../app/app --commandPVRA --enclave-path `pwd`/../enclave/enclave.signed.so \
   --sealedState sealedState.bin \
   --signedFT signedFT.bin \
@@ -34,8 +43,11 @@ echo -n "hello" > FT.txt
 
 echo "[bcPVRA] Host->Client cResponse"
 
-
-
+if test -e sealedInit.bin; then
+echo ""
+else
+mv sealedState.bin sealedInit.bin
+fi
 
 
 mv sealedOut.bin sealedState.bin

@@ -8,6 +8,17 @@
 
 cd ./test_sgx
 
+#CCF Credentials + SealedState0
+cp /home/azureuser/mbehnia/ccf-2.0.1/build/workspace/sandbox_common/service_cert.pem .
+cp /home/azureuser/mbehnia/ccf-2.0.1/build/workspace/sandbox_common/user0_cert.pem .
+cp /home/azureuser/mbehnia/ccf-2.0.1/build/workspace/sandbox_common/user0_privk.pem .
+
+#cp sealedInit.bin sealedState.bin
+
+
+curl https://127.0.0.1:8000/app/scs/request -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary '{"id": "29", "init": "0000000000000000000000000000000000000000000000000000000000000000"}'
+
+
 
 echo "[client] Generating and encrypting AES session key"
 #cp /home/azureuser/mbehnia/pvra-template/scratch/aes128gcm.pem .

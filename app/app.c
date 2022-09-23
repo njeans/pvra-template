@@ -589,6 +589,7 @@ int main(int argc, char **argv) {
       (opt_commandPVRA ? load_sig(opt_signedFT_file) : true) &&
       (opt_commandPVRA ? load_cmd(opt_eCMD_file) : true) &&
       (opt_commandPVRA ? load_key(opt_eAESkey_file) : true) &&
+      (opt_commandPVRA ? format_sig(opt_signedFT_file) : true) &&      
       (opt_commandPVRA ? commandPVRA() : true) &&
       (opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
       (opt_commandPVRA ? save_cRsig(opt_cRsig_file) : true) &&
