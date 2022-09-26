@@ -61,14 +61,14 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
         if (data.result) {
             int heatmap_index = geo_time_index(data);
             if (heatmap_index > 0) {
-                ret.heatmap[heatmap_index]++;
+                ret.heatmap_data[heatmap_index]++;
             }
         }
     }
 
     for (int i = 0; i < HEATMAP_GRANULARITY*HEATMAP_GRANULARITY; i++) {
-        if (ret.heatmap[i] < HEATMAP_COUNT_THRESHOLD) {
-            ret.heatmap[i] = 0;
+        if (ret.heatmap_data[i] < HEATMAP_COUNT_THRESHOLD) {
+            ret.heatmap_data[i] = 0;
         }
     }
     return ret;
