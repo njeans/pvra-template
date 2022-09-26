@@ -17,7 +17,7 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
     if(CI->uid > NUM_USERS-1) {
         char *m = "[apPVRA] STATUS_UPDATE ERROR invalid userID";
         printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
+        memcpy(ret.error_message, m, strlen(m)+1);
         ret.error = 1;
         return ret;
     }
@@ -25,7 +25,7 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
     ret.error = 0;
     char *m = "[apPVRA] STATUS_UPDATE SAVED location data";
     //printf("%s %d %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid], CI->test_result);
-    memcpy(ret.message, m, strlen(m)+1);
+    memcpy(ret.error_message, m, strlen(m)+1);
 
     int num_data =  enclave_state->appdata.num_data;
     for (int i = 0; i < CI->num_data; i++) {
@@ -57,7 +57,7 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
     struct cResponse ret;
 //    int data_size = sizeof(struct locationData);
     for (int i = 0; i < enclave_state->appdata.num_data; i++) {
-        struct locationData data = enclave_state->appdata.locationData[i];
+        struct locationData data = enclave_state->appdata.user_data[i];
         if (data.result) {
             int heatmap_index = geo_time_index(data);
             if (heatmap_index > 0) {
