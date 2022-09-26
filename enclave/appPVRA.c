@@ -27,7 +27,7 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
     //printf("%s %d %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid], CI->test_result);
     memcpy(ret.message, m, strlen(m)+1);
 
-//    int num_data =  enclave_state->appdata.num_data;
+    int num_data =  enclave_state->appdata.num_data;
 //    for (int i = 0; i < CI->num_data; i++) {
 //        enclave_state->appdata.user_data[num_data+i] = CI->data[i];
 //    }
