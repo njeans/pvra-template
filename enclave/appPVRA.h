@@ -10,7 +10,7 @@
 #define NUM_USERS 2
 #define PUBLIC_KEY_SIZE 64
 
-#define HEATMAP_GRANULARITY 50;
+int HEATMAP_GRANULARITY 50;
 
 struct cInputs
 {

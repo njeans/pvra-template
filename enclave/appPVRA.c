@@ -1,5 +1,5 @@
 #include "enclavestate.h"
-#include "command.h"
+#include "appPVRA.h"
 
 int LAT_MAX;
 int LAT_MIN;
@@ -28,9 +28,8 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
     memcpy(ret.message, m, strlen(m)+1);
 
     int num_data =  enclave_state->appdata.num_data;
-    int data_size = sizeof(locationData);
     for (int i = 0; i < CI->num_data; i++) {
-        enclave_state->appdata.user_data[(num_data+i) * data_size] = CI->data[i];
+        enclave_state->appdata.user_data[num_data+i] = CI->data[i];
     }
     enclave_state->appdata.num_data+=CI->num_data;
 
@@ -59,15 +58,17 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
     int data_size = sizeof(locationData);
     for (int i = 0; i < enclave_state->num_data; i++) {
         locationData data = enclave_state->locationData[i*data_size];
-        if data->result {
-            int heatmap_index = geo_time_index();
-            ret->heatmap[heatmap_index]++;
+        if data.result {
+            int heatmap_index = geo_time_index(data);
+            if heatmap_index > 0 {
+                ret.heatmap[heatmap_index]++;
+            }
         }
     }
 
     for (int i = 0; i < HEATMAP_GRANULARITY*HEATMAP_GRANULARITY; i++) {
-        if ret->heatmap[i] < HEATMAP_COUNT_THRESHOLD {
-            ret->heatmap[i] = 0;
+        if ret.heatmap[i] < HEATMAP_COUNT_THRESHOLD {
+            ret.heatmap[i] = 0;
         }
     }
     return ret;
@@ -88,7 +89,7 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInput
 /* Initializes the Application Data as per expectation */
 int initES(struct ES* enclave_state)
 {
-    enclave_state->num_data = 0;
+    enclave_state->appdata.num_data = 0;
     return 0;
 }
 
