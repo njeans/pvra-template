@@ -58,6 +58,12 @@ struct clientCommand
 	int cid;
 };
 
+struct ADS
+{
+	uint8_t *buffer;
+	int buffer_size;
+};
+
 
 
 #endif
