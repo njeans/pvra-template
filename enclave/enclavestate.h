@@ -5,7 +5,7 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 
-#include "command.h"
+#include "appPVRA.h"
 
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H

@@ -10,7 +10,7 @@
 #define NUM_USERS 2
 #define PUBLIC_KEY_SIZE 64
 
-int HEATMAP_GRANULARITY 50;
+int HEATMAP_GRANULARITY = 5;
 
 struct cInputs
 {
@@ -26,7 +26,7 @@ struct locationData
     int startTs;
     int endTs;
     bool result;
-}
+};
 
 struct cResponse
 {
@@ -40,7 +40,7 @@ struct heatmapEntry
     int latLoc;
     int lngLoc;
     int count;
-}
+};
 
 
 struct AD

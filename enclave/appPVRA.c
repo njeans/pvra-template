@@ -1,11 +1,11 @@
 #include "enclavestate.h"
 #include "appPVRA.h"
 
-int LAT_MAX;
-int LAT_MIN;
-int LONG_MAX;
-int LONG_MIN;
-int HEATMAP_COUNT_THRESHOLD;
+int LAT_MAX = 10;
+int LAT_MIN = 1;
+int LONG_MAX = 5;
+int LONG_MIN = 1;
+int HEATMAP_COUNT_THRESHOLD = 2;
 
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
@@ -29,14 +29,14 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
 
     int num_data =  enclave_state->appdata.num_data;
     for (int i = 0; i < CI->num_data; i++) {
-        enclave_state->appdata.user_data[num_data+i] = CI->data[i];
+        enclave_state->appdata->user_data[num_data+i] = CI->data[i];
     }
     enclave_state->appdata.num_data+=CI->num_data;
 
     return ret;
 }
 
-int geo_time_index(locationData geo_time)
+int geo_time_index(struct locationData geo_time)
 {
 //    println!("geo_time_index geo_time.lat {:?} geo_time.lng {:?}",geo_time.lat,geo_time.lng);
     if geo_time.lat < LAT_MIN || geo_time.lat > LAT_MAX || geo_time.lng < LONG_MIN || geo_time.lng > LONG_MAX {
@@ -55,10 +55,10 @@ int geo_time_index(locationData geo_time)
 struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
 {
     struct cResponse ret;
-    int data_size = sizeof(locationData);
-    for (int i = 0; i < enclave_state->num_data; i++) {
-        locationData data = enclave_state->locationData[i*data_size];
-        if data.result {
+//    int data_size = sizeof(struct locationData);
+    for (int i = 0; i < enclave_state->appdata.num_data; i++) {
+        struct locationData data = enclave_state->appdata.locationData[i];
+        if (data.result) {
             int heatmap_index = geo_time_index(data);
             if heatmap_index > 0 {
                 ret.heatmap[heatmap_index]++;
@@ -67,7 +67,7 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
     }
 
     for (int i = 0; i < HEATMAP_GRANULARITY*HEATMAP_GRANULARITY; i++) {
-        if ret.heatmap[i] < HEATMAP_COUNT_THRESHOLD {
+        if (ret.heatmap[i] < HEATMAP_COUNT_THRESHOLD) {
             ret.heatmap[i] = 0;
         }
     }
