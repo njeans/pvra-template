@@ -5,9 +5,9 @@ How to compile and run a PVRA application:
 Edit enclave/appPVRA.h and enclave/appPVRA.c based on application functionality
 Edit host.sh and client.sh based on host/client behavior model 
 
-Sample Run:
 
 
+```
 make
 ./admin.sh
 
@@ -18,10 +18,13 @@ cd ./test_sgx/host
 Terminal 2:
 cd ./test_sgx/client
 ./client.sh
+```
 
-![alt text](./figures/admin.png)
+Sample Run:
 
-![alt text](./figures/host.png)
+![alt text](./admin.png)
 
-![alt text](./figures/client.png)
+![alt text](./host.png)
+
+![alt text](./client.png)
 
