@@ -182,7 +182,7 @@ void aes_gcm_encrypt(char* pt_path, char* key_path)
 	/* Zero or more calls to specify any AAD */
 	//printf("%d\n", EVP_EncryptUpdate(ctx, NULL, &outlen, gcm_aad, sizeof(gcm_aad)));
 	/* Encrypt plaintext */
-	printf("%d\n", EVP_EncryptUpdate(ctx, outbuf, &outlen, pt, sizeof(struct clientCommand)));
+	printf("%d\n", EVP_EncryptUpdate(ctx, outbuf, &outlen, pt, pt_buffer_size));
 	/* Output encrypted block */
 	printf("Ciphertext:\n");
 	BIO_dump_fp(stdout, outbuf, outlen);

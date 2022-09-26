@@ -531,7 +531,7 @@ sgx_status_t ecall_commandPVRA(
   size_t ct_src_len = ct_len - AESGCM_128_MAC_SIZE - AESGCM_128_IV_SIZE;
   
   if (ct_src_len != sizeof(struct clientCommand)) {
-    printf("[ecPVRA] BAD eCMD\n");
+    printf("[ecPVRA] BAD eCMD %d %d\n", ct_src_len, sizeof(struct clientCommand));
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
