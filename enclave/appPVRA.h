@@ -20,13 +20,13 @@ struct locationData
     int endTs;
     bool result;
 };
-
-struct heatmapEntry
-{
-    int latLoc;
-    int lngLoc;
-    int count;
-};
+//
+//struct heatmapEntry
+//{
+//    int latLoc;
+//    int lngLoc;
+//    int count;
+//};
 
 struct cInputs
 {
@@ -39,13 +39,13 @@ struct cResponse
 {
 	int error;
 	char error_message[100];
-	heatmapEntry heatmap[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
+	int heatmap[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
 };
 
 struct AD
 {
 	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
-	int num_data
+	int num_data;
 	struct locationData *user_data;
 };
 
