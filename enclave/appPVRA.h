@@ -12,13 +12,6 @@
 
 int HEATMAP_GRANULARITY = 5;
 
-struct cInputs
-{
-	int uid;
-	int num_data;
-	locationData[] data;
-};
-
 struct locationData
 {
     float lat;
@@ -28,13 +21,6 @@ struct locationData
     bool result;
 };
 
-struct cResponse
-{
-	int error;
-	char error_message[100];
-	heatmapEntry heatmap[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
-};
-
 struct heatmapEntry
 {
     int latLoc;
@@ -42,12 +28,25 @@ struct heatmapEntry
     int count;
 };
 
+struct cInputs
+{
+	int uid;
+	int num_data;
+	struct locationData *data;
+};
+
+struct cResponse
+{
+	int error;
+	char error_message[100];
+	heatmapEntry heatmap[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
+};
 
 struct AD
 {
 	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
 	int num_data
-	struct locationData * user_data;
+	struct locationData *user_data;
 };
 
 

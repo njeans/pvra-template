@@ -29,7 +29,7 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
 
     int num_data =  enclave_state->appdata.num_data;
     for (int i = 0; i < CI->num_data; i++) {
-        enclave_state->appdata->user_data[num_data+i] = CI->data[i];
+        enclave_state->appdata.user_data[num_data+i] = CI->data[i];
     }
     enclave_state->appdata.num_data+=CI->num_data;
 
@@ -39,7 +39,7 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
 int geo_time_index(struct locationData geo_time)
 {
 //    println!("geo_time_index geo_time.lat {:?} geo_time.lng {:?}",geo_time.lat,geo_time.lng);
-    if geo_time.lat < LAT_MIN || geo_time.lat > LAT_MAX || geo_time.lng < LONG_MIN || geo_time.lng > LONG_MAX {
+    if (geo_time.lat < LAT_MIN || geo_time.lat > LAT_MAX || geo_time.lng < LONG_MIN || geo_time.lng > LONG_MAX ){
         return -1;
     }
     float side_length_lat = HEATMAP_GRANULARITY/(LAT_MAX- LAT_MIN);
@@ -48,7 +48,7 @@ int geo_time_index(struct locationData geo_time)
     int lng = ((geo_time.lng - LONG_MIN)*side_length_long);//.round();//TODO round function?
 //    println!("geo_time_index side_length_lat {:?} side_length_long {:?}",side_length_lat,side_length_long);
 //    println!("geo_time_index lat {:?} lng {:?}",lat,lng);
-   return lat*HEATMAP_GRANULARITY + lng
+   return lat*HEATMAP_GRANULARITY + lng;
 }
 
 /* COMMAND1 Kernel Definition */
@@ -60,7 +60,7 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
         struct locationData data = enclave_state->appdata.locationData[i];
         if (data.result) {
             int heatmap_index = geo_time_index(data);
-            if heatmap_index > 0 {
+            if (heatmap_index > 0) {
                 ret.heatmap[heatmap_index]++;
             }
         }
@@ -96,6 +96,6 @@ int initES(struct ES* enclave_state)
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.test_result, CC->seqNo, CC->cid);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.num_data, CC->seqNo, CC->cid);
 }
 
