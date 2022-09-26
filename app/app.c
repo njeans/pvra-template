@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
     allocate_buffers() && 
 
     (opt_initPVRA ? initPVRA() : true) &&
-    (opt_initPVRA ? save_sealed_state(opt_sealedstate_file) : true) &&
+    (opt_initPVRA ? save_seal(opt_sealedstate_file) : true) &&
     (opt_initPVRA ? save_quote(opt_quote_file) : true) &&
     (opt_initPVRA ? save_signature(opt_signature_file) : true) &&
     (opt_initPVRA ? save_message() : true) &&
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
     (opt_commandPVRA ? commandPVRA() : true) &&
     (opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
     (opt_commandPVRA ? save_cRsig(opt_cRsig_file) : true) &&
-    (opt_commandPVRA ? save_sealedout_state(opt_sealedout_file) : true);
+    (opt_commandPVRA ? save_sealO(opt_sealedout_file) : true);
 
   if (sgx_lasterr != SGX_SUCCESS) {
     fprintf(stderr, "[agPVRA]: ERROR: %s\n", decode_sgx_status(sgx_lasterr));

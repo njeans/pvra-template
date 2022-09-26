@@ -38,9 +38,6 @@ enclave
         
 
         public sgx_status_t ecall_calc_buffer_sizes(
-            [out] size_t* epubkey_size,
-            [out] size_t* esealedpubkey_size,
-            [out] size_t* esealedprivkey_size,
             [out] size_t* esignature_size);
 
 

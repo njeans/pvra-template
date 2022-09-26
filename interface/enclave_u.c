@@ -35,9 +35,6 @@ typedef struct ms_ecall_commandPVRA_t {
 
 typedef struct ms_ecall_calc_buffer_sizes_t {
 	sgx_status_t ms_retval;
-	size_t* ms_epubkey_size;
-	size_t* ms_esealedpubkey_size;
-	size_t* ms_esealedprivkey_size;
 	size_t* ms_esignature_size;
 } ms_ecall_calc_buffer_sizes_t;
 
@@ -125,13 +122,10 @@ sgx_status_t ecall_commandPVRA(sgx_enclave_id_t eid, sgx_status_t* retval, char*
 	return status;
 }
 
-sgx_status_t ecall_calc_buffer_sizes(sgx_enclave_id_t eid, sgx_status_t* retval, size_t* epubkey_size, size_t* esealedpubkey_size, size_t* esealedprivkey_size, size_t* esignature_size)
+sgx_status_t ecall_calc_buffer_sizes(sgx_enclave_id_t eid, sgx_status_t* retval, size_t* esignature_size)
 {
 	sgx_status_t status;
 	ms_ecall_calc_buffer_sizes_t ms;
-	ms.ms_epubkey_size = epubkey_size;
-	ms.ms_esealedpubkey_size = esealedpubkey_size;
-	ms.ms_esealedprivkey_size = esealedprivkey_size;
 	ms.ms_esignature_size = esignature_size;
 	status = sgx_ecall(eid, 2, &ocall_table_enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;

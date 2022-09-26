@@ -61,9 +61,6 @@ typedef struct ms_ecall_commandPVRA_t {
 
 typedef struct ms_ecall_calc_buffer_sizes_t {
 	sgx_status_t ms_retval;
-	size_t* ms_epubkey_size;
-	size_t* ms_esealedpubkey_size;
-	size_t* ms_esealedprivkey_size;
 	size_t* ms_esignature_size;
 } ms_ecall_calc_buffer_sizes_t;
 
@@ -437,22 +434,10 @@ static sgx_status_t SGX_CDECL sgx_ecall_calc_buffer_sizes(void* pms)
 	sgx_lfence();
 	ms_ecall_calc_buffer_sizes_t* ms = SGX_CAST(ms_ecall_calc_buffer_sizes_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
-	size_t* _tmp_epubkey_size = ms->ms_epubkey_size;
-	size_t _len_epubkey_size = sizeof(size_t);
-	size_t* _in_epubkey_size = NULL;
-	size_t* _tmp_esealedpubkey_size = ms->ms_esealedpubkey_size;
-	size_t _len_esealedpubkey_size = sizeof(size_t);
-	size_t* _in_esealedpubkey_size = NULL;
-	size_t* _tmp_esealedprivkey_size = ms->ms_esealedprivkey_size;
-	size_t _len_esealedprivkey_size = sizeof(size_t);
-	size_t* _in_esealedprivkey_size = NULL;
 	size_t* _tmp_esignature_size = ms->ms_esignature_size;
 	size_t _len_esignature_size = sizeof(size_t);
 	size_t* _in_esignature_size = NULL;
 
-	CHECK_UNIQUE_POINTER(_tmp_epubkey_size, _len_epubkey_size);
-	CHECK_UNIQUE_POINTER(_tmp_esealedpubkey_size, _len_esealedpubkey_size);
-	CHECK_UNIQUE_POINTER(_tmp_esealedprivkey_size, _len_esealedprivkey_size);
 	CHECK_UNIQUE_POINTER(_tmp_esignature_size, _len_esignature_size);
 
 	//
@@ -460,45 +445,6 @@ static sgx_status_t SGX_CDECL sgx_ecall_calc_buffer_sizes(void* pms)
 	//
 	sgx_lfence();
 
-	if (_tmp_epubkey_size != NULL && _len_epubkey_size != 0) {
-		if ( _len_epubkey_size % sizeof(*_tmp_epubkey_size) != 0)
-		{
-			status = SGX_ERROR_INVALID_PARAMETER;
-			goto err;
-		}
-		if ((_in_epubkey_size = (size_t*)malloc(_len_epubkey_size)) == NULL) {
-			status = SGX_ERROR_OUT_OF_MEMORY;
-			goto err;
-		}
-
-		memset((void*)_in_epubkey_size, 0, _len_epubkey_size);
-	}
-	if (_tmp_esealedpubkey_size != NULL && _len_esealedpubkey_size != 0) {
-		if ( _len_esealedpubkey_size % sizeof(*_tmp_esealedpubkey_size) != 0)
-		{
-			status = SGX_ERROR_INVALID_PARAMETER;
-			goto err;
-		}
-		if ((_in_esealedpubkey_size = (size_t*)malloc(_len_esealedpubkey_size)) == NULL) {
-			status = SGX_ERROR_OUT_OF_MEMORY;
-			goto err;
-		}
-
-		memset((void*)_in_esealedpubkey_size, 0, _len_esealedpubkey_size);
-	}
-	if (_tmp_esealedprivkey_size != NULL && _len_esealedprivkey_size != 0) {
-		if ( _len_esealedprivkey_size % sizeof(*_tmp_esealedprivkey_size) != 0)
-		{
-			status = SGX_ERROR_INVALID_PARAMETER;
-			goto err;
-		}
-		if ((_in_esealedprivkey_size = (size_t*)malloc(_len_esealedprivkey_size)) == NULL) {
-			status = SGX_ERROR_OUT_OF_MEMORY;
-			goto err;
-		}
-
-		memset((void*)_in_esealedprivkey_size, 0, _len_esealedprivkey_size);
-	}
 	if (_tmp_esignature_size != NULL && _len_esignature_size != 0) {
 		if ( _len_esignature_size % sizeof(*_tmp_esignature_size) != 0)
 		{
@@ -513,25 +459,7 @@ static sgx_status_t SGX_CDECL sgx_ecall_calc_buffer_sizes(void* pms)
 		memset((void*)_in_esignature_size, 0, _len_esignature_size);
 	}
 
-	ms->ms_retval = ecall_calc_buffer_sizes(_in_epubkey_size, _in_esealedpubkey_size, _in_esealedprivkey_size, _in_esignature_size);
-	if (_in_epubkey_size) {
-		if (memcpy_s(_tmp_epubkey_size, _len_epubkey_size, _in_epubkey_size, _len_epubkey_size)) {
-			status = SGX_ERROR_UNEXPECTED;
-			goto err;
-		}
-	}
-	if (_in_esealedpubkey_size) {
-		if (memcpy_s(_tmp_esealedpubkey_size, _len_esealedpubkey_size, _in_esealedpubkey_size, _len_esealedpubkey_size)) {
-			status = SGX_ERROR_UNEXPECTED;
-			goto err;
-		}
-	}
-	if (_in_esealedprivkey_size) {
-		if (memcpy_s(_tmp_esealedprivkey_size, _len_esealedprivkey_size, _in_esealedprivkey_size, _len_esealedprivkey_size)) {
-			status = SGX_ERROR_UNEXPECTED;
-			goto err;
-		}
-	}
+	ms->ms_retval = ecall_calc_buffer_sizes(_in_esignature_size);
 	if (_in_esignature_size) {
 		if (memcpy_s(_tmp_esignature_size, _len_esignature_size, _in_esignature_size, _len_esignature_size)) {
 			status = SGX_ERROR_UNEXPECTED;
@@ -540,9 +468,6 @@ static sgx_status_t SGX_CDECL sgx_ecall_calc_buffer_sizes(void* pms)
 	}
 
 err:
-	if (_in_epubkey_size) free(_in_epubkey_size);
-	if (_in_esealedpubkey_size) free(_in_esealedpubkey_size);
-	if (_in_esealedprivkey_size) free(_in_esealedprivkey_size);
 	if (_in_esignature_size) free(_in_esignature_size);
 	return status;
 }
