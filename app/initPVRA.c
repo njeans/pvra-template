@@ -17,7 +17,7 @@
 
 bool initPVRA() {
 
-  printf("[hiPVRA]: Calling ecall_initPVRA\n");
+  printf("[hiPVRA] Invoking ecall_initPVRA\n");
 
   sgx_status_t ecall_retval = SGX_ERROR_UNEXPECTED;
   sgx_report_t report;
@@ -38,7 +38,7 @@ bool initPVRA() {
 
    t = clock() - t;
    double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-   printf("\n[biPVRA]: ecall_initPVRA took %f seconds\n", time_taken);
+   printf("\n[hiPVRA] ecall_initPVRA took %f seconds\n", time_taken);
 
 
   if (sgx_lasterr == SGX_SUCCESS && (ecall_retval != SGX_SUCCESS)) {
@@ -52,7 +52,7 @@ bool initPVRA() {
   sgx_quote_t *quote;
   uint32_t quote_size = 0;
 
-  printf("[GatewayApp]: Call sgx_calc_quote_size() ...\n");
+  //printf("[GatewayApp]: Call sgx_calc_quote_size() ...\n");
   status = sgx_calc_quote_size(NULL, 0, &quote_size);
   if (status != SGX_SUCCESS) {
     fprintf(stderr, "SGX error while getting quote size: %08x\n", status);
@@ -69,14 +69,14 @@ bool initPVRA() {
   // get quote
   sgx_quote_sign_type_t unlinkable = SGX_UNLINKABLE_SIGNATURE;
 
-  printf("[GatewayApp]: SPID: %s\n", getenv("SGX_SPID"));
+  //printf("[GatewayApp]: SPID: %s\n", getenv("SGX_SPID"));
   from_hexstring((unsigned char *)&spid, (unsigned char *)getenv("SGX_SPID"),
                  16);
-  printf("[GatewayApp]: Call sgx_get_quote() ...\n");
+  //printf("[GatewayApp]: Call sgx_get_quote() ...\n");
   status = sgx_get_quote(&report, unlinkable, &spid, NULL, NULL, 0, NULL, quote,
                          quote_size);
-  fprintf(stdout, "[GatewayApp]: status of sgx_get_quote(): %08x\n", status);
-  printf("[GatewayApp]: status of sgx_get_quote(): %s\n",
+  //fprintf(stdout, "[GatewayApp]: status of sgx_get_quote(): %08x\n", status);
+  printf("[hiPVRA] status of sgx_get_quote(): %s\n",
          status == SGX_SUCCESS ? "success" : "error");
   if (status != SGX_SUCCESS) {
     fprintf(stderr, "[GatewayApp]: sgx_get_quote: %08x\n", status);
@@ -89,16 +89,16 @@ bool initPVRA() {
   memcpy(quote_buffer, quote, quote_size);
   memcpy(&quote_buffer_size, &quote_size, sizeof(quote_size));
 
-  printf("\n[GatewayApp]: MRENCLAVE: \t");
+  printf("\n[hiPVRA] MRENCLAVE: \t");
   print_hexstring(stdout, &quote->report_body.mr_enclave,
                   sizeof(sgx_measurement_t));
-  printf("\n[GatewayApp]: MRSIGNER: \t");
+  printf("\n[hiPVRA] MRSIGNER: \t");
   print_hexstring(stdout, &quote->report_body.mr_signer,
                   sizeof(sgx_measurement_t));
-  printf("\n[GatewayApp]: Report Data: \t");
+  printf("\n[hiPVRA] Report Data: \t");
   print_hexstring(stdout, &quote->report_body.report_data,
                   sizeof(sgx_report_data_t));
-  printf("\n\n");
+  printf("\n");
 
   char *b64quote = NULL;
   b64quote = base64_encode((char *)quote, quote_size);

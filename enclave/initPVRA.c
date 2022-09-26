@@ -146,8 +146,8 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   //print_hexstring(&enclave_state.enclavekeys.pub_key_buffer, pub_len);
   //print_hexstring(&enclave_state.enclavekeys.priv_key_buffer, pri_len);
 
-  printf("[eiPVRA]: Public Enclave Encryption Key (PEM RSA2048)\n%s\n", &enclave_state.enclavekeys.pub_key_buffer);
-  printf("%d %s\n", strlen(&enclave_state.enclavekeys.priv_key_buffer), &enclave_state.enclavekeys.priv_key_buffer);
+  printf("[eiPVRA] Public Enclave Encryption Key (RSA2048.pem)\n%s\n", &enclave_state.enclavekeys.pub_key_buffer);
+  //printf("%d %s\n", strlen(&enclave_state.enclavekeys.priv_key_buffer), &enclave_state.enclavekeys.priv_key_buffer);
 
   
   mbedtls_rsa_free( &rsa );
@@ -184,8 +184,11 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   enclave_state.enclavekeys.sign_prikey = p_private_s;
   enclave_state.enclavekeys.sign_pubkey = p_public_s;
 
-  printf("[eiPVRA]: Public Enclave Signing Key (RAW EC PRIME256V1)\n");
-  print_hexstring(&enclave_state.enclavekeys.sign_pubkey, sizeof(enclave_state.enclavekeys.sign_pubkey));
+  printf("[eiPVRA] Public Enclave Signing Key (PRIME256V1 ECDSA)\n");
+  //print_hexstring(&enclave_state.enclavekeys.sign_pubkey, sizeof(enclave_state.enclavekeys.sign_pubkey));
+  print_hexstring(&enclave_state.enclavekeys.sign_pubkey, sizeof(enclave_state.enclavekeys.sign_pubkey)/2);
+  print_hexstring((char *)(&enclave_state.enclavekeys.sign_pubkey)+32, sizeof(enclave_state.enclavekeys.sign_pubkey)/2);
+  printf("\n");
 
   // Hardcoded Key (duplicate of p256-key.pem)
   static const sgx_ec256_public_t hpub_key = {
@@ -252,8 +255,9 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
 
   // Initialize Application Data
   //enclave_state.appdata.i = 42;
-  initES(&enclave_state);
 
+  initES(&enclave_state);
+  printf("[eiPVRA] Initialized application data state success\n");
 
 
   // Initialize Freshness Tag and CCF Key
@@ -261,12 +265,12 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
     enclave_state.counter.freshness_tag[i] = 0;
   }
   // Either fixed or assign here.
-  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEA68H+LCQ3n2QaTZK57efpx8Sa4TsJuD8KHI5TU0KXyTqUwh4mrWy3\nJtxyfcixYxBnkRJYFKuzIaRApbeSn93pMx73BPpeKpqcK0FxQLpjcp3ioLjClpOZ\nT+ZX3KZPhwtiB/II84cklN7nq1sw8uLcfUtGspD6OqP22e0q9Py6i2dZRg4S/pWX\nzpicxLTEJ92Y0MRRBtlCLYmL3pKFvROpY7M5Kk3PQW2pvgrc8BKCshJd24a29rC2\n+Mf+5a7tJHzPIsrUriuKm6KMWYljenCrK0nCVW4TQ1ELOlvA6YA1EDxlDUUZQKX3\nwb8Mmtr3DjKJ0rKTRQ+imlt5wUHvxpn0zQIDAQAB\n-----END PUBLIC KEY-----\n";
+  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEAvGzqQ8jhSs9C0SAGQc5hhd0uwyezjijzZ4+v+aqH1DjzUZYLGa2H\nO7JIEBQik//fzS3oZC8lArHV5N576jMdxpqlcWy0ooAd7qap7PjI2vRitVhFQAxK\nxBCKlWA7WEAHWhtGB2KPgQ26059jc8BhDMA8EefD45T0Tt+fTiK0ABBzCHMlU0oP\n1DboN4NlCQzLkp4mfG2+FnNUJbR9lCwxYKXgZ0cGF1CpF0uhwa3Y27nwAZwC67T9\nETWcPYBu8UfQllp2okGF/ec4SmedFaubDdMKoJGo1NusO78ryA7X/hAiDIY2jPaX\n96dgdjNCOcRcGNaDehDqGfc+QKZR3WQnywIDAQAB\n-----END PUBLIC KEY-----\n";
 
 
   memcpy(enclave_state.counter.CCF_key, CCF_key, strlen(CCF_key));
 
-  printf("\n[eiPVRA]: Public CCF Signing Key (PEM RSA2048)\n%s\n", &enclave_state.counter.CCF_key);
+  printf("[eiPVRA] Public CCF Signing Key (RSA2048.pem)\n%s\n", &enclave_state.counter.CCF_key);
 
 
   // Initialize Anti Replay
@@ -287,14 +291,14 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   //memcpy((uint8_t *const) (&report_data + sizeof(p_public_s)), (uint8_t *)&p_public_e, sizeof(p_public_e));
 
   // BEGIN WIP --------------------------------------------
-  print("[eiPVRA]: Calling enclave to generate attestation report\n");
+  print("[eiPVRA] Calling enclave to generate attestation report\n");
   ret = sgx_create_report(target_info, &report_data, report);
   // --------------------------------------------- END WIP
-  print("[eiPVRA]: Unsealed the sealed public key and created a report containing the public key in the report data.\n");
+  //print("[eiPVRA]: Unsealed the sealed public key and created a report containing the public key in the report data.\n");
 
 
   // Seal Enclave State
-  printf("[eiPVRA]: sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
+  printf("[eiPVRA] Initial Enclave State seal_size: [%d]\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
   if (sealedstate_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
     if ((ret = sgx_seal_data(0U, NULL, sizeof(enclave_state), (uint8_t *)&enclave_state,
                              (uint32_t)sealedstate_size,
@@ -310,7 +314,7 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
     goto cleanup;
   }
 
-  print("[eiPVRA]: Enclave State initialized and sealed, quote generated.\n");
+  print("[eiPVRA] Quote generated success");
   ret = SGX_SUCCESS;
 
 cleanup:

@@ -141,7 +141,7 @@ bool enclave_gen_quote() {
 bool save_quote(const char *const quote_file) {
   bool ret_status = true;
 
-  printf("[GatewayApp]: Saving quote\n");
+  //printf("[GatewayApp]: Saving quote\n");
 
   FILE *fquote = open_file(quote_file, "wb");
 
@@ -151,7 +151,7 @@ bool save_quote(const char *const quote_file) {
     return false;
   }
 
-  printf("\n[GatewayApp]: MRENCLAVE: \t");
+  //printf("\n[GatewayApp]: MRENCLAVE: \t");
   if (fwrite((char *)quote_buffer, quote_buffer_size, 1, fquote) != 1) {
     fprintf(stderr, "[GatewayApp]: Quote only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;

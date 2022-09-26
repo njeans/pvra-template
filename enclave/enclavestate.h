@@ -36,8 +36,6 @@ struct AR
 
 
 
-
-
 struct ES
 {
 	struct EK enclavekeys;
@@ -45,6 +43,20 @@ struct ES
 	struct AR antireplay;
 	struct AD appdata;
 }; 
+
+
+struct cType 
+{
+	int tid;
+};
+
+struct clientCommand
+{
+	struct cType CT;
+	struct cInputs CI;
+	int seqNo;
+	int cid;
+};
 
 
 

@@ -5,7 +5,12 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <string.h>
+#include <stdbool.h>
 
+
+FILE *open_file(const char *const filename, const char *const mode) {
+  return fopen(filename, mode);
+}
 
 #define NUM_COMMANDS 2
 
@@ -103,7 +108,60 @@ static const unsigned char gcm_tag[] = {
 #define AESGCM_128_MAC_SIZE 16
 #define AESGCM_128_IV_SIZE 12
 
-void aes_gcm_encrypt(char* tid, char* uid, char* res, char* sno, char* cid)
+bool read_file_into_memory(const char *const filename, void **buffer,
+                           size_t *buffer_size) {
+  bool ret_status = true;
+  FILE *file = NULL;
+  long file_len = 0L;
+
+  if (buffer == NULL || buffer_size == NULL) {
+    fprintf(stderr,
+            "[GatewayApp]: read_file_into_memory() invalid parameter\n");
+    ret_status = false;
+    goto cleanup;
+  }
+
+  /* Read sensor data from file */
+  file = open_file(filename, "rb");
+  if (file == NULL) {
+    fprintf(stderr, "[GatewayApp]: read_file_into_memory() fopen failed\n");
+    ret_status = false;
+    goto cleanup;
+  }
+
+  fseek(file, 0, SEEK_END);
+  file_len = ftell(file);
+  if (file_len < 0 || file_len > INT_MAX) {
+    fprintf(stderr, "[GatewayApp]: Invalid input file size\n");
+    ret_status = false;
+    goto cleanup;
+  }
+
+  *buffer_size = (size_t)file_len;
+  *buffer = malloc(*buffer_size);
+  if (*buffer == NULL) {
+    fprintf(stderr,
+            "[GatewayApp]: read_file_into_memory() memory allocation failed\n");
+    ret_status = false;
+    goto cleanup;
+  }
+
+  fseek(file, 0, SEEK_SET);
+  if (fread(*buffer, *buffer_size, 1, file) != 1) {
+    fprintf(stderr, "[GatewayApp]: Input file only partially read.\n");
+    ret_status = false;
+    goto cleanup;
+  }
+
+cleanup:
+  if (file != NULL) {
+    fclose(file);
+  }
+
+  return ret_status;
+}
+
+void aes_gcm_encrypt(char* tid, char* uid, char* res, char* sno, char* cid, char* key_path)
 	{
 
 	struct clientCommand CC;
@@ -133,7 +191,21 @@ void aes_gcm_encrypt(char* tid, char* uid, char* res, char* sno, char* cid)
 	/* Set IV length if default 96 bits is not appropriate */
 	//printf("%d\n", EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, sizeof(gcm_iv), NULL));
 	/* Initialise key and IV */
-	printf("%d\n", EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, aes128_key, gcm_iv));
+
+	void *new_buffer;
+	size_t new_buffer_size;
+	bool ret_status = read_file_into_memory(key_path, &new_buffer, &new_buffer_size);
+
+	print_hexstring(new_buffer, new_buffer_size);
+
+	printf("SIZE OF BUFFER %d\n", new_buffer_size);
+	
+
+
+
+
+
+	printf("%d\n", EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, new_buffer, gcm_iv));
 	/* Zero or more calls to specify any AAD */
 	//printf("%d\n", EVP_EncryptUpdate(ctx, NULL, &outlen, gcm_aad, sizeof(gcm_aad)));
 	/* Encrypt plaintext */
@@ -272,6 +344,6 @@ void aes_gcm_decrypt(void)
 
 int main(int argc, char **argv)
 	{
-	aes_gcm_encrypt(argv[1], argv[2], argv[3], argv[4], argv[5]);
+	aes_gcm_encrypt(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 	//aes_gcm_decrypt();
 	}

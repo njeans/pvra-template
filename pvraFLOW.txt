@@ -1,0 +1,31 @@
+#APPLICATION FLOW
+
+
+
+#CLIENT[0] STATUS_UPDATE TEST_RESULT=0
+./encrypt_command 0 0 0 0 0 sessionAESkey.bin > /dev/null
+
+
+#CLIENT[0] STATUS_QUERY
+./encrypt_command 1 0 0 1 0 sessionAESkey.bin > /dev/null
+
+
+#CLIENT[0] STATUS_UPDATE TEST_RESULT=0
+./encrypt_command 0 0 0 2 0 sessionAESkey.bin > /dev/null
+
+
+#CLIENT[0] STATUS_QUERY
+./encrypt_command 1 0 0 3 0 sessionAESkey.bin > /dev/null
+
+
+
+#CLIENT[1] STATUS_UPDATE TEST_RESULT=0
+./encrypt_command 0 1 0 0 0 sessionAESkey.bin > /dev/null
+
+
+#CLIENT[1] STATUS_UPDATE TEST_RESULT=1
+./encrypt_command 0 1 1 1 0 sessionAESkey.bin > /dev/null
+
+
+#CLIENT[1] STATUS_QUERY
+./encrypt_command 1 1 0 2 0 sessionAESkey.bin > /dev/null

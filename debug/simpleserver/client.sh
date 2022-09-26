@@ -1,0 +1,1 @@
+curl -d '{"Name":"Lorem", "age":"34"}' -H "Content-Type: application/json" -X POST http://<ip>:8080/

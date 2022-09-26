@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #include "enclavestate.h"
-#include "command.h"
+#include "appPVRA.h"
 
 #include "enclave.h"
 #include <enclave_t.h>
@@ -225,15 +225,19 @@ sgx_status_t ecall_commandPVRA(
   unsigned char ftold_hash[32];
   memcpy(ftold_hash, enclave_state.counter.freshness_tag, 32);
 
-  for(int i = 0; i < 32; i++) {
+  //printf("FTOLD: "); print_hexstring(ftold_hash, 32);
+
+  /*for(int i = 0; i < 32; i++) {
     ftold_hash[i] = 0;
-  }
+  }*/
 
   unsigned char merge[64];
   memcpy(merge, ftold_hash, 32);
   memcpy(merge+32, sealcmd_hash, 32);
 
-  unsigned char merge_hexstring[128];
+  //printf("merge: "); print_hexstring(merge, 64);
+
+  unsigned char merge_hexstring[129];
   //printf("MEREGE: %s")
   //unsigned char merge_hexstring[128] = "0000000000000000000000000000000000000000000000000000000000000000a547891be9ed742869b0cdac2644c0ba676ec14da845fb8ab072eea7bc221ca0";
   // TODO: change hash(hexstring[128]) to hash(bytes[32])
@@ -243,6 +247,10 @@ sgx_status_t ecall_commandPVRA(
     merge_hexstring[2*i+1] = hex[merge[i] & 0xF];
     merge_hexstring[2*i] = hex[(merge[i]>>4) & 0xF];
   }
+
+  merge_hexstring[128] = 0;
+
+  //printf("MERGE: %s\n", merge_hexstring);
 
   unsigned char ft_hash[32];
 
@@ -279,9 +287,11 @@ sgx_status_t ecall_commandPVRA(
 
 
 
+  //printf("[ecPVRA] SCS Received newFT = %d %s", FT_size, FT);
+  //print_hexstring(FT, 32);
+
   printf("[ecPVRA] SCS Expected newFT = ");
   print_hexstring(ft_hash, 32);
-
 
 
   unsigned char ex_hexstring[65];
@@ -299,13 +309,13 @@ sgx_status_t ecall_commandPVRA(
     }
   }
 
-  /*
+  
   if(same == 0) {
     printf("[ecPVRA] FT Match: success\n");
   }
   else {
     printf("[ecPVRA] FT Match: failure\n");
-  }*/
+  }
 
 
 
@@ -560,11 +570,11 @@ sgx_status_t ecall_commandPVRA(
 
   /*   (5) SEQNO VERIFICATION    */
   // TODO: bring back for final
-  /*if(CC.seqNo != enclave_state.antireplay.seqno[CC.cid]) {
-    printf("[ecPVRA] BAD SeqNo [%d] =/= [%d]\n", CC.seqNo, enclave_state.antireplay.seqno[CC.cid]);
+  if(CC.seqNo != enclave_state.antireplay.seqno[CC.cid]) {
+    printf("SeqNo failure [%d] =/= [%d]\n", CC.seqNo, enclave_state.antireplay.seqno[CC.cid]);
     return ret;
-  }*/
-  printf("SeqNo [%d] success\n", enclave_state.antireplay.seqno[CC.cid]);
+  }
+  printf("SeqNo success [%d]\n", enclave_state.antireplay.seqno[CC.cid]);
   enclave_state.antireplay.seqno[CC.cid]++;
 
 

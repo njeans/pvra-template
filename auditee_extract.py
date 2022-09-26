@@ -35,14 +35,14 @@ def swap_endians(b, *, length=32, from_byteorder="little", to_byteorder="big"):
 #                          Verify quote with IAS                             #
 #                                                                            #
 ##############################################################################
-print(f"{term.bold}Reading quote from file ...{term.normal}")
+#print(f"{term.bold}Reading quote from file ...{term.normal}")
 time.sleep(0)
 with open(DEMO_DIR.joinpath("quote.bin"), "rb") as f:
     quote_bytes = f.read()
 
 quote_b64 = base64.b64encode(quote_bytes)
 quote_dict = {"isvEnclaveQuote": quote_b64.decode()}
-print(f"{term.blue}{quote_b64.decode()}{term.normal}\n")
+#print(f"{term.blue}{quote_b64.decode()}{term.normal}\n")
 
 # send the quote for verification
 # To send the quote over to Intel, you need your API primary subscription key,
@@ -56,13 +56,13 @@ headers = {
 }
 
 print(
-    f"{term.bold}Sending quote to Intel's Attestation Service for verification ...{term.normal}"
+    f"{term.bold}[biPVRA] Sending quote to Intel's Attestation Service for verification ...{term.normal}"
 )
 time.sleep(4)
 res = requests.post(url, json=quote_dict, headers=headers)
 
 if res.ok:
-    print(f"{term.green}Attestation report verification succeeded!\n{term.normal}")
+    print(f"[biPVRA] {term.green}Attestation report verification succeeded!{term.normal}")
 else:
 
     sys.exit(
@@ -72,8 +72,8 @@ else:
         "See https://github.com/sbellem/sgx-iot#set-environment-variables{term.normal}"
     )
 
-print(f"{term.bold}IAS response is: {term.normal}")
-print(f"{term.blue}{json.dumps(res.json(), indent=4)}")
+#print(f"{term.bold}IAS response is: {term.normal}")
+#print(f"{term.blue}{json.dumps(res.json(), indent=4)}")
 time.sleep(1)
 
 ias_report = {"body": res.json(), "headers": dict(res.headers)}
@@ -87,7 +87,7 @@ with open(DEMO_DIR.joinpath("ias_report.json"), "w") as f:
 #                                                                            #
 ##############################################################################
 print(
-    f"{term.bold}Verify reported MRENCLAVE against trusted source code ...{term.normal}"
+    f"{term.bold}[biPVRA] Verify reported MRENCLAVE against trusted source code ...{term.normal}"
 )
 time.sleep(0)
 
@@ -99,7 +99,7 @@ time.sleep(0)
 #    )
 
 print(
-    f"{term.bold}SKIPPED{term.normal}"
+    f"[biPVRA] {term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
 )
 time.sleep(1)
 
@@ -109,7 +109,7 @@ time.sleep(1)
 #                 Extract Pulic Key from attestation report                  #
 #                                                                            #
 ##############################################################################
-print(f"{term.bold}\nExtracting public key from IAS report ...{term.normal}")
+print(f"{term.bold}[biPVRA] Extracting public key from IAS report ...{term.normal}")
 quote_body = res.json()["isvEnclaveQuoteBody"]
 report_data = base64.b64decode(quote_body)[368:432]
 x_little = report_data[:32]
