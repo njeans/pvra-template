@@ -26,7 +26,7 @@ all: ../interface/libenclave_stub_t.a enclave.signed.so
 
 ../interface/libenclave_stub_t.a: ../trustedLib/mbedtls_SGX-2.6.0/lib/mbedtls_SGX.edl ../interface/enclave.edl
 
-enclave.unsigned.so: ../trustedLib/mbedtls_SGX-2.6.0/lib/libmbedtls_sgx_t.a calcbuffsize.o keygen.o keygen_vsc.o aes_encrypt_decrypt.o enclave_state_vsc.o print.o sign.o quote.o vsc_ecdsa.o map.o initPVRA.o commandPVRA.o appPVRA.o
+enclave.unsigned.so: ../trustedLib/mbedtls_SGX-2.6.0/lib/libmbedtls_sgx_t.a calcbuffsize.o print.o initPVRA.o commandPVRA.o appPVRA.o
 
 enclave.signed.so: enclave.key.pem
 

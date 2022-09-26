@@ -1,5 +1,5 @@
 #include "enclavestate.h"
-#include "command.h"
+#include "appPVRA.h"
 
 
 /* COMMAND0 Kernel Definition */

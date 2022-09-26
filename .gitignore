@@ -54,6 +54,9 @@ demo_sgx/
 test_sgx/
 scratch/
 trash/
+enclave/trash/
+enclave/enclave.key.pem
+app/trash/
 
 # user-specific configuration (e.g. SGX_SPID, IAS_PRIMARY_KEY)
 .env
