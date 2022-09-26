@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### PVRA CLIENT BEHAVIOR ###
-
+#"1 0 0 1 0" is a VSC command: readable as commandType=1 (query), userID=0, test_result=0, seqNo=1, clientID=0 
 
 
 

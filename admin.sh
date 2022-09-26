@@ -40,11 +40,11 @@ fi
 
 
 ### BulletinBoard INIT ###
+# [TODO][BULLETIN]: Setup Bulletin Board
 
 
-#curl https://127.0.0.1:8000/app/scs/read -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary '{"id": "4", "nonce": "test"}' | grep -ioE 'signature":".*","value' | cut -d "\"" -f3  > test.txt
 
-#curl https://127.0.0.1:8000/app/scs/update -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary '{"id": "4", "commit": "a547891be9ed742869b0cdac2644c0ba676ec14da845fb8ab072eea7bc221ca0"}' | grep -ioE 'signature":".*","value' | cut -d "\"" -f3  > test.txt
+
 
 
 ### 1.0 INITIALIZE PVRA ENCLAVE ###
@@ -62,8 +62,7 @@ echo "[biPVRA] Running Auditee to Extract PVRA signing_key"
 
 source ~/.venvs/auditee/bin/activate
 python3.7 ../auditee_extract.py
-# TODO: get auditee to pull current project 
-#ias_report.json ready to be posted to BulletinBoard
+# [TODO][BULLETIN]: ias_report.json posted to Bulletin Board
 
 
 
@@ -74,18 +73,6 @@ openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
 
 
 
-#pre-generated AES key for debug
-cp /home/azureuser/mbehnia/pvra-template/scratch/aes128gcm.pem .
-# one-time
-openssl rsautl -encrypt -pubin -inkey enckey.dat -in aes128gcm.pem > eAESkey.bin
-cp /home/azureuser/mbehnia/pvra-template/debug/aes/encrypt_command .
-cp /home/azureuser/mbehnia/pvra-template/debug/aes/format_command .
-
-# OLD
-#cType uid test_result seqNo client_id
-#echo -en '\xde\xad\xbe\xef' > CMD.bin
-#./encrypt_command {1,{0},0,0} > /dev/null
-#cp /home/azureuser/mbehnia/pvra-template/scratch/eCMD.bin .
 
 
 
@@ -96,8 +83,11 @@ mkdir client
 cp ../client.sh ./client
 cp ../pvraClientCommand.sh ./client
 cp ./enckey.dat ./client
+cp /home/azureuser/mbehnia/pvra-template/debug/aes/encrypt_command .
+cp /home/azureuser/mbehnia/pvra-template/debug/aes/format_command .
 cp ./encrypt_command ./client
 cp ./format_command ./client
+
 
 
 # SETUP HOST ENVIRONMENT
@@ -113,6 +103,4 @@ cp ./sealedState0.bin ./host/sealedState0.bin
 
 exit 
 
-cd ..
-./light.sh
 
