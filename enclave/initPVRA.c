@@ -265,7 +265,7 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
     enclave_state.counter.freshness_tag[i] = 0;
   }
   // Either fixed or assign here.
-  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEAvGzqQ8jhSs9C0SAGQc5hhd0uwyezjijzZ4+v+aqH1DjzUZYLGa2H\nO7JIEBQik//fzS3oZC8lArHV5N576jMdxpqlcWy0ooAd7qap7PjI2vRitVhFQAxK\nxBCKlWA7WEAHWhtGB2KPgQ26059jc8BhDMA8EefD45T0Tt+fTiK0ABBzCHMlU0oP\n1DboN4NlCQzLkp4mfG2+FnNUJbR9lCwxYKXgZ0cGF1CpF0uhwa3Y27nwAZwC67T9\nETWcPYBu8UfQllp2okGF/ec4SmedFaubDdMKoJGo1NusO78ryA7X/hAiDIY2jPaX\n96dgdjNCOcRcGNaDehDqGfc+QKZR3WQnywIDAQAB\n-----END PUBLIC KEY-----\n";
+  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEArjJTm5uu0Q8zDOY1Txz1rejDe2NY7JjuJ6ZgvCJSi+CO1gHT2cp4\nmsl3rQcNJhsZVzQGtcHzK7p7SjSQKN8w86IdebDL2MTfhbUlf1mxp3EzfTGZaPuA\nKpXuha311YLclfwttWa8vTgjPC2j0prFexf31auYijrvJAdzKO190P0h8eWWRBv6\nME6bABM0MKYwUArAHEINagEoqJDPNcSUPP2cN5XvRCulsFudxEi5ErcgmIFEbdHT\nwCGCaVzLxdtDsNqLW+2CYOAXGVtrcqvDwKYfrsEmNXAx92zU8vC6Y3L1shkl5OWg\nq+YDwLIpd7DnymSlupHWDs5yrN0LlG9KnQIDAQAB\n-----END PUBLIC KEY-----\n";
 
 
   memcpy(enclave_state.counter.CCF_key, CCF_key, strlen(CCF_key));
