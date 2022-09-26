@@ -71,7 +71,7 @@ bool initPVRA() {
 
   //printf("[GatewayApp]: SPID: %s\n", getenv("SGX_SPID"));
   from_hexstring((unsigned char *)&spid, (unsigned char *)getenv("SGX_SPID"),
-                 16);
+                 16); 
   //printf("[GatewayApp]: Call sgx_get_quote() ...\n");
   status = sgx_get_quote(&report, unlinkable, &spid, NULL, NULL, 0, NULL, quote,
                          quote_size);

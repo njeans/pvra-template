@@ -5,7 +5,7 @@ How to compile and run a PVRA application:
 Edit enclave/appPVRA.h and enclave/appPVRA.c based on application functionality
 Edit host.sh and client.sh based on host/client behavior model 
 
-
+Note: ./format_command program also needs to be rewritten based on application command format
 
 ```
 make

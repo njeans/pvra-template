@@ -134,6 +134,6 @@ with open('signingkey.pem', 'w') as f:
 time.sleep(1)
 
 
-import ecdsa
+
 
 

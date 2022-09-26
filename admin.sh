@@ -70,7 +70,7 @@ python3.7 ../auditee_extract.py
 
 ### 2.0 RUNNING PVRA APPLICATION ###
 
-#openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
+openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
 
 
 
