@@ -22,9 +22,9 @@ cd ./test_sgx/client
 
 Sample Run:
 
-![alt text](./admin.png)
+![alt text](./readme/admin.png)
 
-![alt text](./host.png)
+![alt text](./readme/host.png)
 
-![alt text](./client.png)
+![alt text](./readme/client.png)
 

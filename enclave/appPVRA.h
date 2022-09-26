@@ -23,6 +23,7 @@ struct cResponse
 	bool access;
 	int error;
 	char message[100];
+	struct ADS dynamic_data;
 };
 
 

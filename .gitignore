@@ -18,6 +18,7 @@
 
 # Libraries
 *.lib
+*.a
 *.la
 *.lo
 
@@ -52,6 +53,7 @@ dkms.conf
 demo_sgx/
 test_sgx/
 scratch/
+trash/
 
 # user-specific configuration (e.g. SGX_SPID, IAS_PRIMARY_KEY)
 .env
