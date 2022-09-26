@@ -8,29 +8,46 @@
 
 #define NUM_COMMANDS 2
 #define NUM_USERS 2
-#define NUM_TESTS 100
+#define PUBLIC_KEY_SIZE 64
 
+#define HEATMAP_GRANULARITY 50;
 
 struct cInputs
 {
 	int uid;
-	int test_result;
+	int num_data;
+	locationData[] data;
 };
 
+struct locationData
+{
+    float lat;
+    float lng;
+    int startTs;
+    int endTs;
+    bool result;
+}
 
 struct cResponse
 {
-	bool access;
 	int error;
-	char message[100];
+	char error_message[100];
+	heatmapEntry heatmap[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
 };
+
+struct heatmapEntry
+{
+    int latLoc;
+    int lngLoc;
+    int count;
+}
 
 
 struct AD
 {
-	char test_history[NUM_USERS*NUM_TESTS];
-	int num_tests[NUM_USERS];
-	int query_counter[NUM_USERS];
+	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
+	int num_data
+	struct locationData * user_data;
 };
 
 
