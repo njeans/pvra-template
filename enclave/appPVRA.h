@@ -10,7 +10,7 @@
 #define NUM_USERS 2
 #define PUBLIC_KEY_SIZE 64
 
-#define  HEATMAP_GRANULARITY 5;
+#define  HEATMAP_GRANULARITY 5
 
 struct locationData
 {
@@ -31,14 +31,13 @@ struct locationData
 struct cInputs
 {
 	int uid;
-	int num_data;
-	struct locationData *data;
+	struct locationData data;
 };
 
 struct cResponse
 {
 	int error;
-	char error_message[100];
+	char message[100];
 	int heatmap_data[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
 };
 
