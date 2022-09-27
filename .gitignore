@@ -58,6 +58,13 @@ enclave/trash/
 enclave/enclave.key.pem
 app/trash/
 
+interface/enclave_t.h
+interface/enclave_t.c
+interface/enclave_u.h
+interface/enclave_u.c
+interface/libenclave_stub_u.a
+interface/libenclave_stub_t.a
+
 # user-specific configuration (e.g. SGX_SPID, IAS_PRIMARY_KEY)
 .env
 
