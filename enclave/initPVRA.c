@@ -78,12 +78,18 @@ sgx_status_t ecall_initPVRA(sgx_report_t *report, sgx_target_info_t *target_info
   mbedtls_ctr_drbg_context ctr_drbg;
   mbedtls_mpi N, P, Q, D, E, DP, DQ, QP;
   
-  mbedtls_ctr_drbg_init( &ctr_drbg );
   mbedtls_rsa_init( &rsa, MBEDTLS_RSA_PKCS_V15, 0 );
-  mbedtls_mpi_init( &N ); mbedtls_mpi_init( &P ); mbedtls_mpi_init( &Q );
-  mbedtls_mpi_init( &D ); mbedtls_mpi_init( &E ); mbedtls_mpi_init( &DP );
-  mbedtls_mpi_init( &DQ ); mbedtls_mpi_init( &QP );
+  mbedtls_ctr_drbg_init( &ctr_drbg );
   mbedtls_entropy_init( &entropy );
+  mbedtls_mpi_init( &N ); 
+  mbedtls_mpi_init( &P ); 
+  mbedtls_mpi_init( &Q );
+  mbedtls_mpi_init( &D ); 
+  mbedtls_mpi_init( &E ); 
+  mbedtls_mpi_init( &DP );
+  mbedtls_mpi_init( &DQ ); 
+  mbedtls_mpi_init( &QP );
+
   
   if((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers))) != 0) {
     mbedtls_rsa_free( &rsa );
