@@ -10,7 +10,7 @@
 #include "app.h"
 
 bool allocate_buffers() {
-  //printf("[agPVRA] Allocating buffers\n");
+  printf("[agPVRA] Allocating buffers\n");
 
   signature_buffer = calloc(signature_buffer_size, 1);
 

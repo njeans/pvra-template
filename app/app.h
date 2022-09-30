@@ -24,6 +24,10 @@ extern sgx_launch_token_t launch_token;
 extern int launch_token_updated;
 extern sgx_status_t sgx_lasterr;
 
+extern uint64_t tsc_dump[50];
+extern int tsc_idx;
+
+
 extern void *public_key_buffer;          /* unused for signing */
 extern size_t public_key_buffer_size;    /* unused for signing */
 extern void *sealed_pubkey_buffer;       /* unused for signing */

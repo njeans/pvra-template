@@ -30,6 +30,7 @@ bool commandPVRA() {
 
   clock_t t;
   t = clock();
+  tsc_idx = 0;
 
   sgx_lasterr = ecall_commandPVRA(
       enclave_id, &ecall_retval, 
@@ -42,10 +43,15 @@ bool commandPVRA() {
       (char *)cRsig_buffer, cRsig_buffer_size,
       (char *)sealed_out_buffer, sealed_out_buffer_size);
   
-   t = clock() - t;
-   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-   //printf("\n[hcPVRA] ecall_commandPVRA took %f seconds\n", time_taken);
+  t = clock() - t;
+  double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
+  printf("[hcPVRA] ecall_commandPVRA took %f seconds\n", time_taken);
    
+
+  for(int i = 0; i < tsc_idx; i++)
+    printf("%lu\n", tsc_dump[i]);
+
+
   return (sgx_lasterr == SGX_SUCCESS);
 
 

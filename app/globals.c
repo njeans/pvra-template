@@ -9,6 +9,9 @@
 
 /* Globals */
 
+uint64_t tsc_dump[50];
+int tsc_idx;
+
 sgx_enclave_id_t enclave_id;
 sgx_launch_token_t launch_token;
 int launch_token_updated;

@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 init_colorama()
 term = Terminal()
 
-SOURCE_CODE = pathlib.Path("/home/azureuser/mbehnia/pvra-template")
+SOURCE_CODE = pathlib.Path("../")
 SIGNED_ENCLAVE = SOURCE_CODE.joinpath("enclave", "enclave.signed.so")
 DEMO_DIR = SOURCE_CODE.joinpath("test_sgx")
 IAS_REPORT = SOURCE_CODE.joinpath("test_sgx/ias_report.json")
