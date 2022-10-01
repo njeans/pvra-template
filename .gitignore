@@ -65,6 +65,18 @@ interface/enclave_u.c
 interface/libenclave_stub_u.a
 interface/libenclave_stub_t.a
 
+service_cert.pem
+user0_cert.pem
+user0_privk.pem
+format_command
+encrypt_command
+
+enclave/appPVRA.h
+enclave/appPVRA.c
+client.sh
+host.sh
+
+
 # user-specific configuration (e.g. SGX_SPID, IAS_PRIMARY_KEY)
 .env
 
