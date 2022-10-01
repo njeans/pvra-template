@@ -86,6 +86,7 @@ python3.7 ../auditee_extract.py
 
 ### 2.1 Verify signed enclave encryption key using signingkey.pem (extracted enclave signing key) ###
 
+echo -n "[biPVRA] Verifying signed enclave_enc_key using extracted enclave_sign_key: "
 openssl dgst -sha256 -verify signingkey.pem -signature enckey.sig enckey.dat
 
 ### 2.2 SETUP CLIENT ENVIRONMENT ###

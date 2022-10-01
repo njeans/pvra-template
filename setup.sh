@@ -54,6 +54,18 @@ while [[ $# -gt 0 ]]; do
       CCF_PATH=$DEFAULT_CCF_PATH
       shift # past argument
       ;;
+    --clean)
+      echo "Removing ALL setup.sh application-specific and CCF-specific files"
+      rm ./enclave/appPVRA.*
+      rm ./client.sh
+      rm ./host.sh
+      rm ./encrypt_command
+      rm ./format_command
+      rm ./service_cert.pem
+      rm ./user0_cert.pem
+      rm ./user0_privk.pem
+      exit 0
+      ;;
     -*|--*)
       echo "Unknown argument $1"
       exit 1
