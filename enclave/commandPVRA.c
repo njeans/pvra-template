@@ -46,7 +46,8 @@
 #define AESGCM_128_IV_SIZE 12
 #define EXPECTEDINPUT 16
 
-
+#define C_DEBUGPRINT 1
+#define C_DEBUGRDTSC 0 
 
 sgx_status_t ecall_commandPVRA(
     char *sealedstate, size_t sealedstate_size, 
@@ -59,6 +60,8 @@ sgx_status_t ecall_commandPVRA(
     char *sealedout, size_t sealedout_size) {
 
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
+
+
 
 
 

@@ -29,7 +29,8 @@
 #define EXPONENT 65537
 
 
-
+#define I_DEBUGPRINT 1
+#define I_DEBUGRDTSC 0
 
 /**
  * This function initializes a PVRA enclave.
@@ -240,7 +241,7 @@ sgx_status_t ecall_initPVRA(
   for(int i = 0; i < 32; i++) {
     enclave_state.counter.freshness_tag[i] = 0;
   }
-  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEAy6fCCoxvReC8VjI4mrOqE4xDvuRxiunqApuG13qt0eqFLjtqaAX9\nj9vyuOtpos9GZMFTzov2FywqjrYNAQce5FD8zPslLSz4OVUkkqr7SRPJwR2nQs26\neZVW+uFvliGLpst47aBebDOX4AKYu4G0vEvt9bTY5nn6LTlZ9xyLZaXGCmKCZfB+\n/mT5u/yRqd7IFsKtLaMWwRkd2xt7FNlad0qfXxfGMUY7GBznyWfJExiQgM8SCgBX\nyr4IZ7SAGr6MwzrQQ/xfESyubADV7gH+4KcabTQJ7xJhv+HOku1/4rj0zP/zLqe+\nUdO9d9ugju+m/mBI2W8pMKONobFkbBkysQIDAQAB\n-----END PUBLIC KEY-----\n";
+  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEA1GRVvxgWQVOg/Yq8t0T6CXaO/uP1o2HDDdSrEv0x0aN+CSHsofik\nKRAU3QebEsmswtkiMhKIUzALb8CUSz+OGCw3a0bS9Ja03RFMRqR9wRw5HENqIvTh\npztmjfQUFSyYaq3sB4JpVTDEkOJE/LnMyNQL0r+y65vrXa1a2/nqNzd+RPbsgLG9\nwVVQLvuWVOUjfAntfCkq6jig/Q96c0vWu3UBNQeXSTDpxHRsaL2zpb5ynsPdiqu5\np3jsVNiXua7DtG/iHsF8oujsxYHPAJPhjt4dyh5iCPTJ36hyPUnhK1DPwLTnaDhk\n/zTfwoumpjMqw7Q9w5UECpwwfhjDJ1jL/wIDAQAB\n-----END PUBLIC KEY-----\n";
   memcpy(enclave_state.counter.CCF_key, CCF_key, strlen(CCF_key));
   if(I_DEBUGPRINT) printf("[eiPVRA] Public CCF Signing Key (RSA2048.pem)\n%s\n", &enclave_state.counter.CCF_key);
 

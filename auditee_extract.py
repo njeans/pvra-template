@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 init_colorama()
 term = Terminal()
 
-SOURCE_CODE = pathlib.Path("../")
+SOURCE_CODE = pathlib.Path("/home/azureuser/mbehnia/pvra-template/")
 SIGNED_ENCLAVE = SOURCE_CODE.joinpath("enclave", "enclave.signed.so")
 DEMO_DIR = SOURCE_CODE.joinpath("test_sgx")
 IAS_REPORT = SOURCE_CODE.joinpath("test_sgx/ias_report.json")
@@ -91,16 +91,16 @@ print(
 )
 time.sleep(0)
 
-#match = auditee.verify_mrenclave(SOURCE_CODE, SIGNED_ENCLAVE, ias_report=IAS_REPORT,)
+match = auditee.verify_mrenclave(SOURCE_CODE, SIGNED_ENCLAVE, ias_report=IAS_REPORT,)
 
-#if not match:
-#    sys.exit(
-#        f"{term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
-#    )
+if not match:
+    #sys.exit(
+    f"{term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
+    #)
 
-print(
-    f"[biPVRA] {term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
-)
+#print(
+#    f"[biPVRA] {term.red}MRENCLAVE of remote attestation report does not match trusted source code.{term.normal}"
+#)
 time.sleep(1)
 
 
@@ -126,7 +126,7 @@ pubkey_pem = pubkey.public_bytes(
 print(f"{term.blue}{pubkey_pem.decode()}{term.normal}")
 
 original_stdout = sys.stdout
-with open('signingkey.pem', 'w') as f:
+with open('/home/azureuser/mbehnia/pvra-template/test_sgx/signingkey.pem', 'w') as f:
     sys.stdout = f # Change the standard output to the file we created.
     print(f"{pubkey_pem.decode()}")
     sys.stdout = original_stdout

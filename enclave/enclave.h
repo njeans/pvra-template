@@ -29,10 +29,8 @@ int printf(const char* fmt, ...);
 #endif
 
 
-#define C_DEBUGPRINT 1
-#define C_DEBUGRDTSC 1
 
-#define I_DEBUGPRINT 1
-#define I_DEBUGRDTSC 0
+
+
 
 #endif /* !_ENCLAVE_H_ */
