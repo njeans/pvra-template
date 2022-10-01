@@ -149,7 +149,7 @@ void aes_gcm_encrypt(char* pt_path, char* key_path)
 
 	uint8_t eCMD_full[2048] = {0};
 
-	//printf("%s %d\n", pt, strlen(pt));
+	printf("%s %d %d\n", pt, strlen(pt), pt_buffer_size);
 	EVP_CIPHER_CTX *ctx;
 	int outlen, tmplen;
 	unsigned char outbuf[1024];

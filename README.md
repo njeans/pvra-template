@@ -24,6 +24,7 @@ In order to run an existing application pass the APP_NAME to ./setup.sh script
 ```
 Terminal 1:
 ./setup.sh -a|--app <APP_NAME> -c|--ccf <CCF_PATH>
+make clean
 make
 export SGX_SPID=<SGX_SPID>
 export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>

@@ -1,6 +1,6 @@
 #include <stdbool.h>
 
-#define INITSEALSIZE 7024
+
 
 #ifndef COMMAND_H
 #define COMMAND_H
@@ -11,8 +11,6 @@
 #define PUBLIC_KEY_SIZE 64
 
 #define  HEATMAP_GRANULARITY 5
-
-
 
 struct locationData
 {

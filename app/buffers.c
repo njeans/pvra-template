@@ -9,15 +9,18 @@
 
 #include "app.h"
 
+#define INITSEALSIZE 7092
+//#define INITSEALSIZE 7024
+
 bool allocate_buffers() {
   //printf("[agPVRA] Allocating buffers\n");
 
   signature_buffer = calloc(signature_buffer_size, 1);
 
-  sealed_state_buffer_size = 7092;
+  sealed_state_buffer_size = INITSEALSIZE;
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
-  sealed_out_buffer_size = 7092;
+  sealed_out_buffer_size = INITSEALSIZE;
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
 
   pub_enckey_buffer_size = 451;
