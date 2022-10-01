@@ -1,5 +1,7 @@
 #include <stdbool.h>
 
+#define INITSEALSIZE 7092
+
 #ifndef COMMAND_H
 #define COMMAND_H
 
