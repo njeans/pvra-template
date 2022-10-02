@@ -6,17 +6,17 @@ pkgs.stdenv.mkDerivation {
   name = "sgx-iot";
   # FIXME not sure why but the build is non-deterministic if using src = ./.;
   # Possibly some untracked file(s) causing the problem ...?
-  #src = ./.;
+  src = ./.;
   # NOTE The commit (rev) cannot include this file, and therefore will, at the very
   # best, be one commit behind the commit including this file.
-  src = pkgs.fetchFromGitHub {
-    owner = "sbellem";
-    repo = "sgx-iot";
-    rev = "045bfa2fc7f8b2a22d32c76ad8962bdef27596c3";
+  #src = pkgs.fetchFromGitHub {
+  #  owner = "sbellem";
+  #  repo = "sgx-iot";
+  #  rev = "045bfa2fc7f8b2a22d32c76ad8962bdef27596c3";
     # Command to get the sha256 hash:
     # nix run -f '<nixpkgs>' nix-prefetch-github -c nix-prefetch-github --rev 045bfa2fc7f8b2a22d32c76ad8962bdef27596c3 sbellem sgx-iot
-    sha256 = "06f151k8fn3pgbs1piiakws8y1x0ga947k4gk3bl2nvq76vbpyyb";
-  };
+  #  sha256 = "06f151k8fn3pgbs1piiakws8y1x0ga947k4gk3bl2nvq76vbpyyb";
+  #};
   preConfigure = ''
     export SGX_SDK=${pkgs.sgx-sdk}/sgxsdk
     export PATH=$PATH:$SGX_SDK/bin:$SGX_SDK/bin/x64

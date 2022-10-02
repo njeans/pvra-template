@@ -12,6 +12,11 @@ Cyan='\033[0;36m'         # Cyan
 White='\033[0;37m'        # White
 NC='\033[0m'
 
+if [[ -z "${CCF_ENABLE}" ]]; 
+then
+  echo "Error: environment variable CCF_ENABLE not set."
+  exit
+fi
 
 echo "[server] Received Command: HTTP/1.1 200 OK" | nc -l -p 8080 -q 0 > command.bin;
 dd count=256 if=command.bin of=eAESkey.bin bs=1 >/dev/null 2>&1
@@ -27,18 +32,20 @@ openssl dgst -r -sha256 se.bin | head -c 64 > se.hash
 value=`cat se.hash`
 final="{\"id\": \"28\", \"commit\": \"${value}\"}"
 
+if [ ! ${CCF_ENABLE} ];
+then 
+  retry_scs=1
+  while [ $retry_scs == 1 ]
+  do
 
-retry_scs=1
-while [ $retry_scs == 1 ]
-do
+    curl -s https://127.0.0.1:8000/app/scs/update -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary "$final" -o scsupdate.txt
 
-  curl -s https://127.0.0.1:8000/app/scs/update -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary "$final" -o scsupdate.txt
+    if [[ ! $(grep -e "error" scsupdate.txt) ]]; then
+      retry_scs=0
+    fi
 
-  if [[ ! $(grep -e "error" scsupdate.txt) ]]; then
-    retry_scs=0
-  fi
+  done
 
-done
 
 : '
 retry_scs=1
@@ -58,6 +65,10 @@ cat scsupdate.txt | grep -ioE 'signature":".*}' | cut -d "\"" -f3 | sed 's/\\n/\
 cat scsupdate.txt | grep -ioE 'signature":".*}' | cut -d "\"" -f7  > FT.txt
 base64 -d signedFT.txt > signedFT.bin
 
+else
+  cp ../../sampleFT.txt FT.txt
+  cp ../../samplesignedFT.txt signedFT.txt
+fi
 
 printf "[bcPVRA] Host<-SCS signedFT = "
 cat FT.txt

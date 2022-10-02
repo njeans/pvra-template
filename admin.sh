@@ -7,6 +7,12 @@
 #
 
 
+if [[ -z "${CCF_ENABLE}" ]]; 
+then
+  echo "Error: environment variable CCF_ENABLE not set."
+  exit
+fi
+
 
 if [[ -z "${SGX_SPID}" ]]; 
 then
@@ -34,18 +40,21 @@ rm -rf ./host/
 
 ### 0.1 SCS INIT: Request Freshness Tag for newly initialized PVRA-enclave (sets FT = 256b'00...00') ###
 
-cp ../service_cert.pem .
-cp ../user0_cert.pem .
-cp ../user0_privk.pem .
-echo -n "[biPVRA] INITSCS Freshness Tag: "
-curl -s https://127.0.0.1:8000/app/scs/request -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary '{"id": "4", "init": "0000000000000000000000000000000000000000000000000000000000000000"}' > init.txt
+if [ ! ${CCF_ENABLE} ];
+then 
+  cp ../service_cert.pem .
+  cp ../user0_cert.pem .
+  cp ../user0_privk.pem .
+  echo -n "[biPVRA] INITSCS Freshness Tag: "
+  curl -s https://127.0.0.1:8000/app/scs/request -X POST --cacert service_cert.pem --cert user0_cert.pem --key user0_privk.pem -H "Content-Type: application/json" --data-binary '{"id": "4", "init": "0000000000000000000000000000000000000000000000000000000000000000"}' > init.txt
 
-if [[ $(grep init.txt -e "true") ]] 
-then
-  echo "success"
-else
-  echo "Error: CCF NOT RUNNING LOCALLY."
-  exit
+  if [[ $(grep init.txt -e "true") ]] 
+  then
+    echo "success"
+  else
+    echo "Error: CCF NOT RUNNING LOCALLY."
+    exit
+  fi
 fi
 
 

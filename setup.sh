@@ -9,6 +9,13 @@
 
 # This script is run before make to prepare application files and CCF credentials
 
+if [[ -z "${CCF_ENABLE}" ]]; 
+then
+  echo "Error: environment variable CCF_ENABLE not set."
+  exit
+fi
+
+
 POSITIONAL_ARGS=()
 
 DEFAULT_APP_NAME=vsc
@@ -102,9 +109,12 @@ fi
 
 if [ -d "$CCF_PATH"  ] 
 then
-  cp $CCF_PATH/service_cert.pem .
-  cp $CCF_PATH/user0_cert.pem .
-  cp $CCF_PATH/user0_privk.pem .
+  if [ ! ${CCF_ENABLE} ];
+  then
+    cp $CCF_PATH/service_cert.pem .
+    cp $CCF_PATH/user0_cert.pem .
+    cp $CCF_PATH/user0_privk.pem .
+  fi
 else
   echo "Error: CCF Credentials Directory $CCF_PATH does not exist."
 fi

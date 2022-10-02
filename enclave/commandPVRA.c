@@ -202,7 +202,8 @@ sgx_status_t ecall_commandPVRA(
   {
     printf("[ecPVRA] mbedtls_rsa_pkcs1_verify failed, returned -0x%04x\n", -ret);
     ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
+    //goto cleanup;
+    if(C_DEBUGPRINT) printf("[ecPVRA] SCS Signature verification failed\n");
   }
   else {
     if(C_DEBUGPRINT) printf("[ecPVRA] SCS Signature verification success\n");
