@@ -58,10 +58,16 @@ struct clientCommand
 	int cid;
 };
 
-struct ADS
+struct dynamicDS
 {
 	uint8_t *buffer;
-	int buffer_size;
+	size_t buffer_size;
+};
+
+struct dAppData
+{
+	struct dynamicDS **dDS;
+	int num_dDS;
 };
 
 

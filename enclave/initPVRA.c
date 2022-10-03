@@ -233,7 +233,16 @@ sgx_status_t ecall_initPVRA(
   /*    Initialize Enclave State    */
 
   /*    Initialize Application Data    */
-  initES(&enclave_state);
+  struct dAppData dAD;
+  int initES_ret = initES(&enclave_state, &dAD);
+
+  if(initES_ret != 0) {
+    printf("[eiPVRA] initES() memory allocation failure.\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
+
+
   if(I_DEBUGPRINT) printf("[eiPVRA] Initialized application data state success\n");
 
 
@@ -252,6 +261,12 @@ sgx_status_t ecall_initPVRA(
   }
 
 
+  /*    Initialize USER pubkeys    */
+  //[TODO]
+
+
+  /*    Sign all USER pubkeys    */
+  //[TODO]
 
 
 
@@ -274,17 +289,59 @@ sgx_status_t ecall_initPVRA(
   if(I_DEBUGRDTSC) ocall_rdtsc();
   /*    Seal Enclave State    */
 
-  uint32_t init_seal_size = sgx_calc_sealed_data_size(0U, sizeof(enclave_state));
-  if(I_DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%d]\n", init_seal_size);
-  if(sealedstate_size < init_seal_size) {
-    printf("[eiPVRA] Size allocated for seal is insufficient.\n");
+  uint32_t unsealed_data_size = sizeof(struct ES) + sizeof(struct dAppData);
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    unsealed_data_size += sizeof(struct dynamicDS);
+    unsealed_data_size += dAD.dDS[i]->buffer_size;
+  }
+  uint8_t *const unsealed_data = (uint8_t *)malloc(unsealed_data_size); 
+
+  int unsealed_offset = 0;
+  memcpy(unsealed_data + unsealed_offset, &enclave_state, sizeof(struct ES));
+  unsealed_offset += sizeof(struct ES);
+
+  memcpy(unsealed_data + unsealed_offset, &dAD, sizeof(struct dAppData));
+  unsealed_offset += sizeof(struct dAppData);
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    memcpy(unsealed_data + unsealed_offset, dAD.dDS[i], sizeof(struct dynamicDS));
+    unsealed_offset += sizeof(struct dynamicDS);
+  }
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    memcpy(unsealed_data + unsealed_offset, dAD.dDS[i]->buffer, dAD.dDS[i]->buffer_size);
+    unsealed_offset += dAD.dDS[i]->buffer_size;
+  }
+
+  if(unsealed_offset != unsealed_data_size) {
+    printf("[eiPVRA] creating unsealed_data blob error.\n");
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
 
-  ret = sgx_seal_data(0U, NULL, sizeof(enclave_state), (uint8_t *)&enclave_state, (uint32_t)sealedstate_size, (sgx_sealed_data_t *)sealedstate);
+
+  // FREE metadata structs
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    if(dAD.dDS[i] != NULL)
+      free(dAD.dDS[i]);
+  }
+  if(dAD.dDS != NULL)
+    free(dAD.dDS);
+
+  
+  uint32_t init_seal_size = sgx_calc_sealed_data_size(0U, unsealed_data_size);
+  if(I_DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%d]\n", init_seal_size);
+
+
+  /*if(sealedstate_size < init_seal_size) {
+    printf("[eiPVRA] Size allocated for seal is insufficient.\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }*/
+
+  ret = sgx_seal_data(0U, NULL, unsealed_data_size, unsealed_data, init_seal_size, (sgx_sealed_data_t *)sealedstate);
   if(ret != SGX_SUCCESS) {
-    printf("[eiPVRA] sgx_seal_data() failed.\n");
+    printf("[eiPVRA] sgx_seal_data() failed. %d\n", ret);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }

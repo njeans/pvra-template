@@ -9,6 +9,9 @@
 #define NUM_USERS 2
 #define NUM_TESTS 100
 
+#define INIT_NUM_USERS 2
+#define INIT_NUM_TESTS 100
+
 struct cInputs
 {
 	int uid;
@@ -20,13 +23,27 @@ struct cResponse
 	bool access;
 	int error;
 	char message[100];
+
 };
 
+/*
 struct AD
 {
 	char test_history[NUM_USERS*NUM_TESTS];
 	int num_tests[NUM_USERS];
 	int query_counter[NUM_USERS];
+};*/
+
+
+
+struct AD
+{
+	char *test_history;
+	int *num_tests;
+	int *query_counter;
 };
+
+
+
 
 #endif

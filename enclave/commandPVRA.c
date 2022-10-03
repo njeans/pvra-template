@@ -85,9 +85,47 @@ sgx_status_t ecall_commandPVRA(
     goto cleanup;
   }
 
-  /*    Load unsealed blob into struct    */
+  /*    Load unsealed blob into structs    */
+
+
+
   struct ES enclave_state;
+  struct dAppData dAD;
+
+
   memcpy(&enclave_state, unsealed_data, sizeof(struct ES));
+  int offset = sizeof(struct ES);
+
+  memcpy(&dAD, unsealed_data + offset, sizeof(struct dAppData));
+  offset += sizeof(struct dAppData);
+
+  struct dynamicDS **dDS = (struct dynamicDS **)calloc(dAD.num_dDS, sizeof(struct dynamicDS *));
+  dAD.dDS = dDS;
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    struct dynamicDS *tDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
+    memcpy(tDS, unsealed_data + offset, sizeof(struct dynamicDS));
+    offset += sizeof(struct dynamicDS);
+    dAD.dDS[i] = tDS;
+  }
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    dAD.dDS[i]->buffer = unsealed_data + offset;
+    offset += dAD.dDS[i]->buffer_size;
+  }
+
+  initAD(&enclave_state, &dAD);
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -370,20 +408,67 @@ sgx_status_t ecall_commandPVRA(
   if(C_DEBUGRDTSC) ocall_rdtsc();
   /*   (9) SEAL STATE    */
 
+
+
+  uint32_t new_unsealed_data_size = sizeof(enclave_state) + sizeof(struct dAppData);
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    new_unsealed_data_size += sizeof(struct dynamicDS);
+    new_unsealed_data_size += dAD.dDS[i]->buffer_size;
+  }
+  uint8_t *const new_unsealed_data = (uint8_t *)malloc(new_unsealed_data_size); 
+
+  int new_unsealed_offset = 0;
+  memcpy(new_unsealed_data + new_unsealed_offset, &enclave_state, sizeof(struct ES));
+  new_unsealed_offset += sizeof(struct ES);
+
+  memcpy(new_unsealed_data + new_unsealed_offset, &dAD, sizeof(struct dAppData));
+  new_unsealed_offset += sizeof(struct dAppData);
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i], sizeof(struct dynamicDS));
+    new_unsealed_offset += sizeof(struct dynamicDS);
+  }
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i]->buffer, dAD.dDS[i]->buffer_size);
+    new_unsealed_offset += dAD.dDS[i]->buffer_size;
+  }
+
+  if(new_unsealed_offset != new_unsealed_data_size) {
+    printf("[ecPVRA] creating new_unsealed_data blob error.\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
+
+  // FREE metadata structs
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    if(dAD.dDS[i] != NULL)
+      free(dAD.dDS[i]);
+  }
+  if(dAD.dDS != NULL)
+    free(dAD.dDS);
+
+
+  uint32_t seal_size = sgx_calc_sealed_data_size(0U, new_unsealed_data_size);
+  if(C_DEBUGPRINT) printf("[ecPVRA] New seal_size: [%d]\n", seal_size);
+
+
+
+
   //printf("[ecPVRA] sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
-  if(sealedout_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
-    ret = sgx_seal_data(0U, NULL, sizeof(enclave_state), (uint8_t *)&enclave_state, (uint32_t)sealedout_size, (sgx_sealed_data_t *)sealedout);
+  //if(sealedout_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
+    ret = sgx_seal_data(0U, NULL, new_unsealed_data_size, new_unsealed_data, seal_size, (sgx_sealed_data_t *)sealedout);
     if(ret !=SGX_SUCCESS) {
       print("[ecPVRA] sgx_seal_data() failed!\n");
       ret = SGX_ERROR_INVALID_PARAMETER;
       goto cleanup;
     }
-  } 
-  else {
-    printf("[ecPVRA] Size allocated is less than the required size!\n");
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
-  }
+  //} 
+  //else {
+  //  printf("[ecPVRA] Size allocated is less than the required size!\n");
+  //  ret = SGX_ERROR_INVALID_PARAMETER;
+  //  goto cleanup;
+  //}
 
   if(C_DEBUGPRINT) printf("[ecPVRA] Enclave State sealed success\n");
   ret = SGX_SUCCESS;

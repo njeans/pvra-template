@@ -38,7 +38,8 @@ enclave
         
 
         public sgx_status_t ecall_calc_buffer_sizes(
-            [out] size_t* esignature_size);
+            [out] size_t* esignature_size,
+            [out] size_t* esealed_state_size);
 
 
         #undef BUFLEN
@@ -51,6 +52,7 @@ enclave
         void ocall_print_string([in, string] const char *str);
         void ocall_rdtsc(void);
         void ocallbuf(int size);
+        void ocall_allocate_seal(uint32_t initseal_size);
         //void ocall_print_int([in, int] const int num);
     };
 };

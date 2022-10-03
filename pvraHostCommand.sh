@@ -68,6 +68,7 @@ base64 -d signedFT.txt > signedFT.bin
 else
   cp ../../sampleFT.txt FT.txt
   cp ../../samplesignedFT.txt signedFT.txt
+  base64 -d signedFT.txt > signedFT.bin
 fi
 
 printf "[bcPVRA] Host<-SCS signedFT = "

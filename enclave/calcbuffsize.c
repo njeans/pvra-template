@@ -14,6 +14,8 @@
 #include <sgx_tseal.h>
 #include <sgx_utils.h>
 
+#include "enclavestate.h"
+
 /**
  * This function calculates the sizes of buffers needed for the untrusted app to
  * store data (public key, sealed private key and signature) from the enclave.
@@ -27,7 +29,23 @@
  * some other appropriate sgx_status_t value upon failure.
  */
 
-sgx_status_t ecall_calc_buffer_sizes(size_t *esignature_size) {
+sgx_status_t ecall_calc_buffer_sizes(size_t *esignature_size, size_t *esealed_state_size) {
   *esignature_size = sizeof(sgx_ec256_signature_t);
+
+  struct ES enclave_state;
+  struct dAppData dAD;
+  int initES_ret = initES(&enclave_state, &dAD);
+
+  uint32_t unsealed_data_size = sizeof(struct ES) + sizeof(struct dAppData);
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    unsealed_data_size += sizeof(struct dynamicDS);
+    unsealed_data_size += dAD.dDS[i]->buffer_size;
+  }
+  uint32_t init_seal_size = sgx_calc_sealed_data_size(0U, unsealed_data_size);
+
+  *esealed_state_size = init_seal_size;
+
+  //printf("SAMPLED SIZE %d\n",init_seal_size);
+
   return SGX_SUCCESS;
 }
