@@ -26,6 +26,7 @@ Terminal 1:
 ./setup.sh -a|--app <APP_NAME> -c|--ccf <CCF_PATH>
 make clean
 make
+export CCF_ENABLE=<0 or 1>
 export SGX_SPID=<SGX_SPID>
 export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>
 ./admin.sh
