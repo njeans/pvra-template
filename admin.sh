@@ -111,11 +111,14 @@ cp ../format_command ./client
 mkdir host
 cp ../host.sh ./host
 cp ../pvraHostCommand.sh ./host
-cp ../service_cert.pem ./host
-cp ../user0_cert.pem ./host
-cp ../user0_privk.pem ./host
-cp ./sealedState0.bin ./host
 
+if [ ! ${CCF_ENABLE} ];
+then
+  cp ../service_cert.pem ./host
+  cp ../user0_cert.pem ./host
+  cp ../user0_privk.pem ./host
+fi
+cp ./sealedState0.bin ./host
 
 exit 
 
