@@ -1,9 +1,14 @@
 #include "enclavestate.h"
 #include "appPVRA.h"
 
+int LAT_HEATMAP_MAX = 10;
+int LAT_HEATMAP_MIN = 1;
+int LONG_HEATMAP_MAX = 5;
+int LONG_HEATMAP_MIN = 1;
+int HEATMAP_COUNT_THRESHOLD = 2;
 
 /* COMMAND0 Kernel Definition */
-struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
 {
     struct cResponse ret;
 
@@ -16,76 +21,68 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
         ret.error = 1;
         return ret;
     }
-
-    if(enclave_state->appdata.num_tests[CI->uid] == NUM_TESTS) {
-        char *m = "[apPVRA] STATUS_UPDATE ERROR full test_history";
+    if (enclave_state->appdata.num_data > 1024) {
+        ret.error = 1;
+        char *m = "[apPVRA] STATUS_UPDATE ERROR data buffer already full";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m)+1);
-        ret.error = 2;
         return ret;
     }
 
-    if((CI->test_result != 0) && (CI->test_result != 1))
-    {
-        char *m = "[apPVRA] STATUS_UPDATE ERROR invalid test_result";
-        printf("%s [%d]\n", m, CI->test_result);
-        memcpy(ret.message, m, strlen(m)+1);
-        ret.error = 3;
-        return ret;
-    }
+
+    int num_data =  enclave_state->appdata.num_data;
+//    for (int i = 0; i < CI->num_data; i++) {
+//        enclave_state->appdata.user_data[num_data+i] = CI->data[i];
+//    }
+
+    printf("accessing user_data[%d] enclave_state struct %p CI struct %p\n",num_data, enclave_state->appdata.user_data, CI->data);
+    memcpy(enclave_state->appdata.user_data, CI->data,sizeof(struct locationData));
+    //enclave_state->appdata.user_data[num_data] = CI->data;//[i];
+    printf("succesfully set appdata.user_data[]");
+    enclave_state->appdata.num_data+=1;//CI->num_data;
+    printf("succesfully set appdata.num_data %d ",enclave_state->appdata.num_data);
 
     ret.error = 0;
-    char *m = "[apPVRA] STATUS_UPDATE SAVED test_result";
-    //printf("%s %d %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid], CI->test_result);
+    char *m = "[apPVRA] STATUS_UPDATE SAVED location data";
     memcpy(ret.message, m, strlen(m)+1);
-    enclave_state->appdata.test_history[(CI->uid)*NUM_TESTS + (enclave_state->appdata.num_tests[CI->uid])] = CI->test_result;
-    enclave_state->appdata.num_tests[CI->uid]++;
-    enclave_state->appdata.query_counter[CI->uid]++;
-
-    //printf("%s %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid]);
-
     return ret;
 }
 
+int geo_time_index(struct locationData geo_time)
+{
+//    println!("geo_time_index geo_time.lat {:?} geo_time.lng {:?}",geo_time.lat,geo_time.lng);
+    if (geo_time.lat < LAT_HEATMAP_MIN || geo_time.lat > LAT_HEATMAP_MAX || geo_time.lng < LONG_HEATMAP_MIN || geo_time.lng > LONG_HEATMAP_MAX ){
+        return -1;
+    }
+    float side_length_lat = HEATMAP_GRANULARITY/(LAT_HEATMAP_MAX- LAT_HEATMAP_MIN);
+    float side_length_long = HEATMAP_GRANULARITY/(LONG_HEATMAP_MAX- LONG_HEATMAP_MIN);
+    int lat = ((geo_time.lat - LAT_HEATMAP_MIN)*side_length_lat);//.round();//TODO round function?
+    int lng = ((geo_time.lng - LONG_HEATMAP_MIN)*side_length_long);//.round();//TODO round function?
+//    println!("geo_time_index side_length_lat {:?} side_length_long {:?}",side_length_lat,side_length_long);
+//    println!("geo_time_index lat {:?} lng {:?}",lat,lng);
+   return lat*HEATMAP_GRANULARITY + lng;
+}
 
 /* COMMAND1 Kernel Definition */
-struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
 {
     struct cResponse ret;
-
-    enclave_state->appdata.query_counter[CI->uid]++;
-
-    if(CI->uid > NUM_USERS-1) {
-        char *m = "[apPVRA] STATUS_QUERY ERROR invalid userID";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
-        ret.error = 1;
-        return ret;
+//    int data_size = sizeof(struct locationData);
+    for (int i = 0; i < enclave_state->appdata.num_data; i++) {
+        struct locationData data = enclave_state->appdata.user_data[i];
+        if (data.result) {
+            int heatmap_index = geo_time_index(data);
+            if (heatmap_index > 0) {
+                ret.heatmap_data[heatmap_index]++;
+            }
+        }
     }
 
-    if(enclave_state->appdata.num_tests[CI->uid] < 2) {
-        char *m = "[apPVRA] STATUS_QUERY ERROR insufficient testing";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
-        ret.error = 2;
-        return ret;
+    for (int i = 0; i < HEATMAP_GRANULARITY*HEATMAP_GRANULARITY; i++) {
+        if (ret.heatmap_data[i] < HEATMAP_COUNT_THRESHOLD) {
+            ret.heatmap_data[i] = 0;
+        }
     }
-
-    ret.error = 0;
-    if ( (enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1] == 0) &&
-            (enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-2] == 0) ) {
-        ret.access = true;
-        char *m = "[apPVRA] STATUS_QUERY ACCESS GRANTED";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
-    }
-    else {
-        ret.access = false;
-        char *m = "[apPVRA] STATUS_QUERY ACCESS DENIED";
-        printf("%s LAST TEST RESULTS:[%d,%d]\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-2], enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1]);
-        memcpy(ret.message, m, strlen(m)+1);
-    }
-
     return ret;
 }
 
@@ -94,8 +91,8 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
 /* Initializes the Function Pointers to Function Names Above */
 int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*)) 
 {
-    (functions[0]) = &statusUpdate;
-    (functions[1]) = &statusQuery;
+    (functions[0]) = &addPersonalData;
+    (functions[1]) = &getHeatMap;
     //printf("Initialized Application Kernels\n");
     return 0;
 }
@@ -104,20 +101,18 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInput
 /* Initializes the Application Data as per expectation */
 int initES(struct ES* enclave_state)
 {
-    for(int i = 0; i < NUM_USERS; i++) {
-        enclave_state->appdata.query_counter[i] = 0; 
-        enclave_state->appdata.num_tests[i] = 0;
-        for(int j = 0; j < NUM_TESTS; j++) {
-            enclave_state->appdata.test_history[i*NUM_TESTS + j] = -1;
-        }
+    enclave_state->appdata.num_data = 0;
+    struct locationData * new_buffer = calloc(1024,sizeof(struct locationData));
+    if (new_buffer == NULL) {
+        printf("calloc locationData return null\n");
     }
-    //printf("Initialized Application State\n");
+    enclave_state->appdata.user_data = new_buffer;
     return 0;
 }
 
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.test_result, CC->seqNo, CC->cid);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.data.lat, CC->CI.data.lng, CC->CI.data.startTs, CC->CI.data.endTs, CC->CI.data.result, CC->seqNo, CC->cid);
 }
 

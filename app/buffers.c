@@ -9,8 +9,8 @@
 
 #include "app.h"
 
-#define INITSEALSIZE 7092
-//#define INITSEALSIZE 7024
+//#define INITSEALSIZE 7092
+#define INITSEALSIZE 7024
 
 bool allocate_buffers() {
   //printf("[agPVRA] Allocating buffers\n");

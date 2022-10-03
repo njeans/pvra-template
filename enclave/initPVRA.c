@@ -241,7 +241,7 @@ sgx_status_t ecall_initPVRA(
   for(int i = 0; i < 32; i++) {
     enclave_state.counter.freshness_tag[i] = 0;
   }
-  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEA1GRVvxgWQVOg/Yq8t0T6CXaO/uP1o2HDDdSrEv0x0aN+CSHsofik\nKRAU3QebEsmswtkiMhKIUzALb8CUSz+OGCw3a0bS9Ja03RFMRqR9wRw5HENqIvTh\npztmjfQUFSyYaq3sB4JpVTDEkOJE/LnMyNQL0r+y65vrXa1a2/nqNzd+RPbsgLG9\nwVVQLvuWVOUjfAntfCkq6jig/Q96c0vWu3UBNQeXSTDpxHRsaL2zpb5ynsPdiqu5\np3jsVNiXua7DtG/iHsF8oujsxYHPAJPhjt4dyh5iCPTJ36hyPUnhK1DPwLTnaDhk\n/zTfwoumpjMqw7Q9w5UECpwwfhjDJ1jL/wIDAQAB\n-----END PUBLIC KEY-----\n";
+  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEA2d1e7uo8bMaWhhh4AfSc7K3fbmR2i9j5C0MWUTLSJZ+Wp/2FSj3R\nxWtg2MPsr+OyKUIeXJZ5udSuOt97uT9knf59Am0S82sK7wmAwzScnb8QQffqXnzd\nTJkY7t/dELnvWiZDNv9tWS8nbJ1uknwY1zvWln0mKrI5dDyC8YLcP0ZX9CR9InGi\nCFALHy6lfQUZEakO6srWUqj1IYkMbJErRFMCmahTHq7vtf9A8ypHjwU13+zZSpPN\nYee6VPphUaEg6XL2gY/IuQFH8wogHZw1nXFHT8uTcp0Wfm/7XtrklokcM9UmEf0R\nhWdGT13JZoxIvrYSjB5yOX2CGlI1DQwLJwIDAQAB\n-----END PUBLIC KEY-----\n";
   memcpy(enclave_state.counter.CCF_key, CCF_key, strlen(CCF_key));
   if(I_DEBUGPRINT) printf("[eiPVRA] Public CCF Signing Key (RSA2048.pem)\n%s\n", &enclave_state.counter.CCF_key);
 

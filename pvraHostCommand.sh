@@ -32,7 +32,7 @@ openssl dgst -r -sha256 se.bin | head -c 64 > se.hash
 value=`cat se.hash`
 final="{\"id\": \"28\", \"commit\": \"${value}\"}"
 
-if [ ! ${CCF_ENABLE} ];
+if [[ ${CCF_ENABLE} == "1" ]];
 then 
   retry_scs=1
   while [ $retry_scs == 1 ]

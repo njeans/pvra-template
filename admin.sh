@@ -7,6 +7,7 @@
 #
 
 
+
 if [[ -z "${CCF_ENABLE}" ]]; 
 then
   echo "Error: environment variable CCF_ENABLE not set."
@@ -40,7 +41,7 @@ rm -rf ./host/
 
 ### 0.1 SCS INIT: Request Freshness Tag for newly initialized PVRA-enclave (sets FT = 256b'00...00') ###
 
-if [ ! ${CCF_ENABLE} ];
+if [[ ${CCF_ENABLE} == "1" ]];
 then 
   cp ../service_cert.pem .
   cp ../user0_cert.pem .
@@ -111,14 +112,13 @@ cp ../format_command ./client
 mkdir host
 cp ../host.sh ./host
 cp ../pvraHostCommand.sh ./host
-
-if [ ! ${CCF_ENABLE} ];
+cp ./sealedState0.bin ./host
+if [[ ${CCF_ENABLE} == "1" ]];
 then
   cp ../service_cert.pem ./host
   cp ../user0_cert.pem ./host
   cp ../user0_privk.pem ./host
 fi
-cp ./sealedState0.bin ./host
 
 exit 
 

@@ -109,7 +109,7 @@ fi
 
 if [ -d "$CCF_PATH"  ] 
 then
-  if [ ! ${CCF_ENABLE} ];
+  if [[ ${CCF_ENABLE} == "1" ]];
   then
     cp $CCF_PATH/service_cert.pem .
     cp $CCF_PATH/user0_cert.pem .
