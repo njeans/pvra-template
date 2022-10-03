@@ -23,6 +23,10 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 
+//#include <secp256k1.h>
+//#include <secp256k1_ecdh.h>
+
+
 #define BUFLEN 2048
 #define KEY_SIZE 2048
 #define MBED_TLS_KEY_SIZE 2049
@@ -53,6 +57,9 @@ sgx_status_t ecall_initPVRA(
 
 
 
+  //unsigned char randomize[32];
+  //secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+  //sgx_read_rand(randomize, sizeof(randomize));
 
 
 
@@ -250,7 +257,8 @@ sgx_status_t ecall_initPVRA(
   for(int i = 0; i < 32; i++) {
     enclave_state.counter.freshness_tag[i] = 0;
   }
-  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEA2d1e7uo8bMaWhhh4AfSc7K3fbmR2i9j5C0MWUTLSJZ+Wp/2FSj3R\nxWtg2MPsr+OyKUIeXJZ5udSuOt97uT9knf59Am0S82sK7wmAwzScnb8QQffqXnzd\nTJkY7t/dELnvWiZDNv9tWS8nbJ1uknwY1zvWln0mKrI5dDyC8YLcP0ZX9CR9InGi\nCFALHy6lfQUZEakO6srWUqj1IYkMbJErRFMCmahTHq7vtf9A8ypHjwU13+zZSpPN\nYee6VPphUaEg6XL2gY/IuQFH8wogHZw1nXFHT8uTcp0Wfm/7XtrklokcM9UmEf0R\nhWdGT13JZoxIvrYSjB5yOX2CGlI1DQwLJwIDAQAB\n-----END PUBLIC KEY-----\n";
+  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEA22K4KWhmw4IggNWUqtU+yY3C65QgtmVWWFTcTrTUBQwAHC7aqmBK\nBaLM4gAuqAx5nqj0nbfJyaRLzDZImZtI0jF810DJYiQSbArzU7BsTaPAypGC/qB2\ntiRPH+UYNGbFaKhPw/ymdSlqixd0D5YBMMLY6V+GieYNrlkKIQyLEQ7Odwg9UEtf\nyW++Jhdp2BHl5U5c6ZfpOPxpG7vb5tH22z1R6vzYulZ1h6WI+vl92d3REs+Yh9N0\nZMZ/x4J0+4m1T3PmEL1lTKuXxrpYtswYRdfY4+IlVIjzVUDyWv4D9QlcjI3QPxP7\neOtjNcPmGsculftOn70ghJtcvKuUjHAzNQIDAQAB\n-----END PUBLIC KEY-----\n";
+
   memcpy(enclave_state.counter.CCF_key, CCF_key, strlen(CCF_key));
   if(I_DEBUGPRINT) printf("[eiPVRA] Public CCF Signing Key (RSA2048.pem)\n%s\n", &enclave_state.counter.CCF_key);
 
@@ -328,7 +336,7 @@ sgx_status_t ecall_initPVRA(
   if(dAD.dDS != NULL)
     free(dAD.dDS);
 
-  
+
   uint32_t init_seal_size = sgx_calc_sealed_data_size(0U, unsealed_data_size);
   if(I_DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%d]\n", init_seal_size);
 

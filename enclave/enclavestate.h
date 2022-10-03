@@ -10,6 +10,8 @@
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
 
+#define SHA256_HASHLEN
+
 struct EK
 {
   	uint8_t priv_key_buffer[2049];
@@ -17,7 +19,39 @@ struct EK
 	sgx_ec256_private_t sign_prikey;
 	sgx_ec256_public_t sign_pubkey;
 
+	uint8_t k1pubkey[64];
+	uint8_t k1prikey[32];
+
 };
+
+
+
+typedef struct _sha256_hash_t
+{
+    uint8_t bytes[32];
+} sha256_hash_t;
+
+
+struct AL
+{
+	sgx_ec256_public_t user_pubkeys[10];
+	sha256_hash_t command_hashes[10];
+};
+
+
+
+struct AUD
+{
+	sgx_ec256_public_t master_user_pubkeys[5];
+	struct AL auditlog;
+	int audit_offset;
+	int audit_version_no;
+};
+
+
+
+
+
 
 struct SCS
 {
@@ -35,13 +69,13 @@ struct AR
 };
 
 
-
 struct ES
 {
 	struct EK enclavekeys;
 	struct SCS counter;
 	struct AR antireplay;
 	struct AD appdata;
+	struct AUD auditmetadata;
 }; 
 
 

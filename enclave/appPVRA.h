@@ -1,64 +1,48 @@
 #include <stdbool.h>
 
-#define INITSEALSIZE 7024
+#define INITSEALSIZE 7092
 
 #ifndef COMMAND_H
 #define COMMAND_H
 
-
 #define NUM_COMMANDS 2
 #define NUM_USERS 2
-#define MAX_DATA 10
-#define PUBLIC_KEY_SIZE 64
+#define NUM_TESTS 100
 
-#define  HEATMAP_GRANULARITY 5
-
-
-
-struct locationData
-{
-    float lat;
-    float lng;
-    int startTs;
-    int endTs;
-    bool result;
-};
-//
-//struct heatmapEntry
-//{
-//    int latLoc;
-//    int lngLoc;
-//    int count;
-//};
+#define INIT_NUM_USERS 2
+#define INIT_NUM_TESTS 100
 
 struct cInputs
 {
 	int uid;
-	struct locationData data;
+	int test_result;
 };
 
 struct cResponse
 {
+	bool access;
 	int error;
 	char message[100];
-	int heatmap_data[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
+
 };
 
 /*
 struct AD
 {
-	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
-	int num_data;
-	struct locationData user_data[NUM_USERS*MAX_DATA];
+	char test_history[NUM_USERS*NUM_TESTS];
+	int num_tests[NUM_USERS];
+	int query_counter[NUM_USERS];
 };*/
+
 
 
 struct AD
 {
-	char *user_info;
-	int num_data;
-	struct locationData *user_data;
+	char *test_history;
+	int *num_tests;
+	int *query_counter;
 };
+
 
 
 
