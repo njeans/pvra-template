@@ -75,7 +75,7 @@ printf "[bcPVRA] Host<-SCS signedFT = "
 cat FT.txt
 
 
-/home/azureuser/mbehnia/pvra-template/app/app --commandPVRA --enclave-path `pwd`/../../enclave/enclave.signed.so \
+../../app/app --commandPVRA --enclave-path `pwd`/../../enclave/enclave.signed.so \
   --sealedState sealedState.bin \
   --signedFT signedFT.bin \
   --FT FT.txt \
