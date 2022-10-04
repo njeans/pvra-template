@@ -36,20 +36,23 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 
 - [ ] Add python requirements, make, gcc, etc.
 
+	```
+	export CCF_ENABLE=<0 or 1>
+	export SGX_SPID=<SGX_SPID>
+	export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>	
+	```
+
 
 #### Usage
 
 * Build the application and initialize the enclave + client/host environments. 
 	```
-	export CCF_ENABLE=<0 or 1>
-	./setup.sh -a|--app <APP_NAME> -c|--ccf <CCF_PATH>
+	./setup.sh -a|--app <APP_NAME>
 	make clean
 	make
-	export SGX_SPID=<SGX_SPID>
-	export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>
 	./admin.sh
 	```
-	_```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the application directory and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```-clean``` undoes the effects of the script._
+	_```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the application directory and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
 
 	_CCF public key is hardcoded in the enclave image as a root of trust and must be updated in initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
 
