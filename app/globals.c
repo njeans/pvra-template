@@ -55,3 +55,24 @@ size_t sealed_out_buffer_size;
 void *FT_buffer;
 size_t FT_buffer_size;
 
+
+void *pubkeys_buffer;
+size_t pubkeys_buffer_size;
+
+void *sigpubkeys_buffer;
+size_t sigpubkeys_buffer_size;
+
+
+void *sigpubkeys_buffer;
+size_t sigpubkeys_buffer_size;
+
+
+void *auditlog_buffer;
+size_t auditlog_buffer_size;
+
+void *auditlog_signature_buffer;
+size_t auditlog_signature_buffer_size;
+
+
+int actual_auditlog_size;
+

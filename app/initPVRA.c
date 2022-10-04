@@ -34,12 +34,18 @@ bool initPVRA() {
 
   tsc_idx = 0;
   sgx_lasterr = ecall_initPVRA(
-      enclave_id, &ecall_retval, &report, &target_info, (char *)sealed_state_buffer,
-      sealed_state_buffer_size, (char *)signature_buffer, signature_buffer_size, (char *)pub_enckey_buffer, pub_enckey_buffer_size);
+      enclave_id, &ecall_retval, 
+      &report, &target_info, 
+      (char *)sealed_state_buffer, sealed_state_buffer_size, 
+      (char *)pub_enckey_buffer, pub_enckey_buffer_size, 
+      (char *)signature_buffer, signature_buffer_size, 
+      (char *)pubkeys_buffer, pubkeys_buffer_size, 
+      (char *)sigpubkeys_buffer, sigpubkeys_buffer_size);
 
-   t = clock() - t;
-   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-  printf("[hiPVRA] ecall_initPVRA took %f seconds\n", time_taken);
+  t = clock() - t;
+  double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
+  //printf("[hiPVRA] ecall_initPVRA took %f seconds\n", time_taken);
+  printf("\n");
   for(int i = 0; i < tsc_idx; i++)
     printf("%lu\n", tsc_dump[i]);
 
@@ -78,8 +84,7 @@ bool initPVRA() {
   status = sgx_get_quote(&report, unlinkable, &spid, NULL, NULL, 0, NULL, quote,
                          quote_size);
   //fprintf(stdout, "[GatewayApp]: status of sgx_get_quote(): %08x\n", status);
-  printf("[hiPVRA] status of sgx_get_quote(): %s\n",
-         status == SGX_SUCCESS ? "success" : "error");
+  //printf("[hiPVRA] status of sgx_get_quote(): %s\n", status == SGX_SUCCESS ? "success" : "error");
   if (status != SGX_SUCCESS) {
     fprintf(stderr, "[GatewayApp]: sgx_get_quote: %08x\n", status);
     return 1;

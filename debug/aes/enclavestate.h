@@ -11,22 +11,18 @@
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
 
-#define MAX_USERS 5
-#define MAX_LOG_SIZE 20
-// [TODO]: make these parameters dynamic? not sure if it is worth it right now
-
+#define SHA256_HASHLEN
 
 typedef struct {
     unsigned char data[32];
 } secp256k1_prikey;
 
-
 struct EK
 {
-  	//uint8_t priv_key_buffer[2049];
-  	//uint8_t pub_key_buffer[2049];
-	//sgx_ec256_private_t sign_prikey;
-	//sgx_ec256_public_t sign_pubkey;
+  	uint8_t priv_key_buffer[2049];
+  	uint8_t pub_key_buffer[2049];
+	sgx_ec256_private_t sign_prikey;
+	sgx_ec256_public_t sign_pubkey;
 
 
 	secp256k1_pubkey sig_pubkey;
@@ -47,17 +43,16 @@ typedef struct _sha256_hash_t
 
 struct AL
 {
-	secp256k1_pubkey user_pubkeys[MAX_LOG_SIZE];
-	sha256_hash_t command_hashes[MAX_LOG_SIZE];
+	secp256k1_pubkey user_pubkeys[10];
+	sha256_hash_t command_hashes[10];
 };
 
 
 
 struct AUD
 {
+	sgx_ec256_public_t master_user_pubkeys[5];
 	int num_pubkeys;
-	secp256k1_pubkey master_user_pubkeys[MAX_USERS];
-	
 	struct AL auditlog;
 	int audit_offset;
 	int audit_version_no;
@@ -80,7 +75,7 @@ struct SCS
 
 struct AR
 {
-	int seqno[MAX_USERS];
+	int seqno[10];
 };
 
 
@@ -104,7 +99,7 @@ struct private_command {
 	struct cType CT;
 	struct cInputs CI;
 	int seqNo;
-};
+}
 
 
 struct clientCommand

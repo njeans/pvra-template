@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "command.h"
 #include "appPVRA.h"
+#include "command.h"
+
 
 FILE *open_file(const char *const filename, const char *const mode) {
   return fopen(filename, mode);
@@ -30,7 +31,7 @@ char** str_split(char* a_str, const char a_delim)
         tmp++;
     }
 
-    printf("%d\n", count);
+    printf("%d\n", (int)count);
 
     /* Add space for trailing token. */
     count += last_comma < (a_str + strlen(a_str) - 1);

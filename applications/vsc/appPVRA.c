@@ -8,7 +8,6 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
     struct cResponse ret;
 
     //printf("[apPVRA] Readable eCMD: [CI]:%d,%d} ", CI->uid, CI->test_result);
-
     if(CI->uid > NUM_USERS-1) {
         char *m = "[apPVRA] STATUS_UPDATE ERROR invalid userID";
         printf("%s\n", m);
@@ -41,7 +40,6 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
     enclave_state->appdata.test_history[(CI->uid)*NUM_TESTS + (enclave_state->appdata.num_tests[CI->uid])] = CI->test_result;
     enclave_state->appdata.num_tests[CI->uid]++;
     enclave_state->appdata.query_counter[CI->uid]++;
-
     //printf("%s %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid]);
 
     return ret;
@@ -101,24 +99,24 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInput
 }
 
 
-/* Initializes the Application Data as per expectation */
+/* Initializes the Application Data in initPVRA*/
 int initES(struct ES* enclave_state, struct dAppData *dAD)
 {
+    /* Allocate buffers for dynamic structures */
     char *test_history = calloc(INIT_NUM_USERS*INIT_NUM_TESTS, sizeof(char));
     if(test_history == NULL) return -1;
 
     int *num_tests = calloc(INIT_NUM_USERS, sizeof(int));
-    if(num_tests == NULL) 
-        return -1;
+    if(num_tests == NULL) return -1;
 
     int *query_counter = calloc(INIT_NUM_USERS, sizeof(int));
-    if(query_counter == NULL) 
-        return -1;
+    if(query_counter == NULL) return -1;
 
     enclave_state->appdata.query_counter = query_counter;
     enclave_state->appdata.num_tests = num_tests;
     enclave_state->appdata.test_history = test_history;
 
+    /* Set Initial Values */
     for(int i = 0; i < NUM_USERS; i++) {
         enclave_state->appdata.query_counter[i] = 6; 
         enclave_state->appdata.num_tests[i] = 7;
@@ -129,11 +127,16 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
 
 
     /* Initialize metadata regarding dynamic data-structures for sealing purposes */
+    /* struct dAppData stores this metadata */
 
     // Number of dynamic data structures
     dAD->num_dDS = 3;
 
-    // For each dDS, assign the pointer and the size of the DS
+    // For each dynamic data structure:
+    // 1. allocate a struct dynamicDS (basically stores a buffer_ptr + buffer_size) 
+    // 2. assign the dynamicDS.buffer to allocated buffer ptr
+    // 3. assign the dynamicDS.buffer_size to the size in BYTES of the buffer
+
     struct dynamicDS *tDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
     if(tDS == NULL) return -1;
     tDS->buffer = test_history;
@@ -149,15 +152,22 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
     qDS->buffer = test_history;
     qDS->buffer_size = INIT_NUM_USERS*sizeof(int);
 
+
+    // Allocate an array of struct dynamicDS * pointers
     struct dynamicDS **dDS = (struct dynamicDS **)calloc(3, sizeof(struct dynamicDS *));
     if(dDS == NULL) return -1;
+
+    // Assign each struct dynamicDS to a array entry
     dDS[0] = tDS;
     dDS[1] = nDS;
     dDS[2] = qDS;
     dAD->dDS = dDS;
+
     return 0;
 }
 
+
+/* Initializes the Application Data dynamic structure pointers in commandPVRA */
 int initAD(struct ES* enclave_state, struct dAppData *dAD)
 {
     enclave_state->appdata.test_history = dAD->dDS[0]->buffer;
@@ -170,6 +180,6 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.test_result, CC->seqNo, CC->cid);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d} ", CC->eCMD.CT.tid, CC->eCMD.CI.uid, CC->eCMD.CI.test_result, CC->eCMD.seqNo);
 }
 

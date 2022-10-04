@@ -118,7 +118,7 @@ y_little = report_data[32:]
 x = little2big_endian(x_little)
 y = little2big_endian(y_little)
 point = b"\x04" + x + y
-pubkey = ec.EllipticCurvePublicKey.from_encoded_point(curve=ec.SECP256R1(), data=point)
+pubkey = ec.EllipticCurvePublicKey.from_encoded_point(curve=ec.SECP256K1(), data=point)
 
 pubkey_pem = pubkey.public_bytes(
     encoding=serialization.Encoding.PEM,

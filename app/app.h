@@ -76,6 +76,21 @@ extern size_t sealed_out_buffer_size;
 extern void *FT_buffer;
 extern size_t FT_buffer_size;
 
+extern void *pubkeys_buffer;
+extern size_t pubkeys_buffer_size;
+
+extern void *sigpubkeys_buffer;
+extern size_t sigpubkeys_buffer_size;
+
+
+
+extern void *auditlog_buffer;
+extern size_t auditlog_buffer_size;
+
+extern void *auditlog_signature_buffer;
+extern size_t auditlog_signature_buffer_size;
+
+extern int actual_auditlog_size;
 
 
 /* Function prototypes */
@@ -159,7 +174,7 @@ bool save_text(char * text, size_t text_size, const char *const txt_file);
 
 BIGNUM *bignum_from_little_endian_bytes_32(const unsigned char *const bytes);
 
-bool save_signature(const char *const signature_file);
+bool save_signature(const char *const signature_file, unsigned char *signature_src_buffer);
 
 bool save_public_key(const char *const public_key_file);
 

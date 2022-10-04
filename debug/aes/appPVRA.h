@@ -1,52 +1,77 @@
 #include <stdbool.h>
 
-
+#define INITSEALSIZE 7092
 
 #ifndef COMMAND_H
 #define COMMAND_H
 
-
 #define NUM_COMMANDS 2
 #define NUM_USERS 2
-#define PUBLIC_KEY_SIZE 64
+#define NUM_TESTS 100
 
-#define  HEATMAP_GRANULARITY 5
+#define INIT_NUM_USERS 2
+#define INIT_NUM_TESTS 100
 
-struct locationData
-{
-    float lat;
-    float lng;
-    int startTs;
-    int endTs;
-    bool result;
-};
-//
-//struct heatmapEntry
-//{
-//    int latLoc;
-//    int lngLoc;
-//    int count;
-//};
+typedef struct {
+    unsigned char data[64];
+} secp256k1_pubkey;
+
 
 struct cInputs
 {
 	int uid;
-	struct locationData data;
+	int test_result;
 };
+
+
+struct cType 
+{
+	int tid;
+};
+
+
+struct private_command {
+	struct cType CT;
+	struct cInputs CI;
+	int seqNo;
+};
+
+
+struct clientCommand
+{
+	secp256k1_pubkey user_pubkey;
+	struct private_command eCMD;
+};
+
+
+
+
 
 struct cResponse
 {
+	bool access;
 	int error;
 	char message[100];
-	int heatmap_data[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
+
 };
+
+/*
+struct AD
+{
+	char test_history[NUM_USERS*NUM_TESTS];
+	int num_tests[NUM_USERS];
+	int query_counter[NUM_USERS];
+};*/
+
+
 
 struct AD
 {
-	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
-	int num_data;
-	struct locationData *user_data;
+	char *test_history;
+	int *num_tests;
+	int *query_counter;
 };
+
 
 
 

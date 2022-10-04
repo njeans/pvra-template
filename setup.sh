@@ -66,7 +66,6 @@ while [[ $# -gt 0 ]]; do
       rm ./enclave/appPVRA.*
       rm ./client.sh
       rm ./host.sh
-      rm ./encrypt_command
       rm ./format_command
       rm ./service_cert.pem
       rm ./user0_cert.pem
@@ -101,7 +100,6 @@ then
   cp ./applications/$APP_NAME/appPVRA.* ./enclave/
   cp ./applications/$APP_NAME/client.sh ./
   cp ./applications/$APP_NAME/host.sh ./
-  cp ./applications/$APP_NAME/encrypt_command ./
   cp ./applications/$APP_NAME/format_command ./
 else
   echo "Error: Application Directory ./applications/$APP_NAME/ does not exist."

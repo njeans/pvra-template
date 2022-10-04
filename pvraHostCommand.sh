@@ -19,8 +19,8 @@ then
 fi
 
 echo "[server] Received Command: HTTP/1.1 200 OK" | nc -l -p 8080 -q 0 > command.bin;
-dd count=256 if=command.bin of=eAESkey.bin bs=1 >/dev/null 2>&1
-dd skip=256 if=command.bin of=eCMD.bin bs=1 >/dev/null 2>&1
+dd count=64 if=command.bin of=pubkeyCMD.bin bs=1 >/dev/null 2>&1
+dd skip=64 if=command.bin of=eCMD.bin bs=1 >/dev/null 2>&1
 echo "[bcPVRA] Host<-Client eAESkey+eCMD"
 
 
@@ -80,7 +80,7 @@ cat FT.txt
   --signedFT signedFT.bin \
   --FT FT.txt \
   --eCMD eCMD.bin \
-  --eAESkey eAESkey.bin \
+  --eAESkey pubkeyCMD.bin \
   --cResponse cResponse.txt \
   --cRsig cResponse.sig \
   --sealedOut sealedOut.bin

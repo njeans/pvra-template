@@ -16,6 +16,15 @@ bool allocate_buffers() {
   //printf("[agPVRA] Allocating buffers\n");
 
   signature_buffer = calloc(signature_buffer_size, 1);
+  sigpubkeys_buffer_size = signature_buffer_size;
+  sigpubkeys_buffer = calloc(sigpubkeys_buffer_size, 1);
+
+  auditlog_buffer_size = 8000;
+  auditlog_buffer = calloc(auditlog_buffer_size, 1);
+
+  auditlog_signature_buffer_size = signature_buffer_size;
+  auditlog_signature_buffer = calloc(auditlog_signature_buffer_size, 1);
+
 
   // SET using ecall calc_buffer_sizes
   //sealed_state_buffer_size = INITSEALSIZE;
@@ -24,7 +33,8 @@ bool allocate_buffers() {
   sealed_out_buffer_size = sealed_state_buffer_size;
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
 
-  pub_enckey_buffer_size = 451;
+  //pub_enckey_buffer_size = 451;
+  pub_enckey_buffer_size = 64;
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 
   cResponse_buffer_size = 100;
