@@ -85,7 +85,7 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 	- [ ] COPY USER KEY PAIRS TO ./client
 	- [ ] COPY USER ECDH SCRIPT TO ./client
 
-- [ ] ```pvraClientCommand.sh``` 
+- [ ] ```./pvraClientCommand.sh``` 
 	- [ ] ```client_ecdh.py```
 
 
