@@ -1,19 +1,13 @@
 #include "enclavestate.h"
 #include "appPVRA.h"
 
-int LAT_HEATMAP_MAX = 10;
-int LAT_HEATMAP_MIN = 1;
-int LONG_HEATMAP_MAX = 5;
-int LONG_HEATMAP_MIN = 1;
-int HEATMAP_COUNT_THRESHOLD = 2;
 
 /* COMMAND0 Kernel Definition */
-struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
 {
     struct cResponse ret;
 
     //printf("[apPVRA] Readable eCMD: [CI]:%d,%d} ", CI->uid, CI->test_result);
-
     if(CI->uid > NUM_USERS-1) {
         char *m = "[apPVRA] STATUS_UPDATE ERROR invalid userID";
         printf("%s\n", m);
@@ -21,68 +15,75 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
         ret.error = 1;
         return ret;
     }
-    if (enclave_state->appdata.num_data > 1024) {
-        ret.error = 1;
-        char *m = "[apPVRA] STATUS_UPDATE ERROR data buffer already full";
+
+    if(enclave_state->appdata.num_tests[CI->uid] == NUM_TESTS) {
+        char *m = "[apPVRA] STATUS_UPDATE ERROR full test_history";
         printf("%s\n", m);
         memcpy(ret.message, m, strlen(m)+1);
+        ret.error = 2;
         return ret;
     }
 
-
-    int num_data =  enclave_state->appdata.num_data;
-//    for (int i = 0; i < CI->num_data; i++) {
-//        enclave_state->appdata.user_data[num_data+i] = CI->data[i];
-//    }
-
-    printf("accessing user_data[%d] enclave_state struct %p CI struct %p\n",num_data, enclave_state->appdata.user_data, CI->data);
-    memcpy(enclave_state->appdata.user_data, CI->data,sizeof(struct locationData));
-    //enclave_state->appdata.user_data[num_data] = CI->data;//[i];
-    printf("succesfully set appdata.user_data[]");
-    enclave_state->appdata.num_data+=1;//CI->num_data;
-    printf("succesfully set appdata.num_data %d ",enclave_state->appdata.num_data);
+    if((CI->test_result != 0) && (CI->test_result != 1))
+    {
+        char *m = "[apPVRA] STATUS_UPDATE ERROR invalid test_result";
+        printf("%s [%d]\n", m, CI->test_result);
+        memcpy(ret.message, m, strlen(m)+1);
+        ret.error = 3;
+        return ret;
+    }
 
     ret.error = 0;
-    char *m = "[apPVRA] STATUS_UPDATE SAVED location data";
+    char *m = "[apPVRA] STATUS_UPDATE SAVED test_result";
+    //printf("%s %d %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid], CI->test_result);
     memcpy(ret.message, m, strlen(m)+1);
+    enclave_state->appdata.test_history[(CI->uid)*NUM_TESTS + (enclave_state->appdata.num_tests[CI->uid])] = CI->test_result;
+    enclave_state->appdata.num_tests[CI->uid]++;
+    enclave_state->appdata.query_counter[CI->uid]++;
+    //printf("%s %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid]);
+
     return ret;
 }
 
-int geo_time_index(struct locationData geo_time)
-{
-//    println!("geo_time_index geo_time.lat {:?} geo_time.lng {:?}",geo_time.lat,geo_time.lng);
-    if (geo_time.lat < LAT_HEATMAP_MIN || geo_time.lat > LAT_HEATMAP_MAX || geo_time.lng < LONG_HEATMAP_MIN || geo_time.lng > LONG_HEATMAP_MAX ){
-        return -1;
-    }
-    float side_length_lat = HEATMAP_GRANULARITY/(LAT_HEATMAP_MAX- LAT_HEATMAP_MIN);
-    float side_length_long = HEATMAP_GRANULARITY/(LONG_HEATMAP_MAX- LONG_HEATMAP_MIN);
-    int lat = ((geo_time.lat - LAT_HEATMAP_MIN)*side_length_lat);//.round();//TODO round function?
-    int lng = ((geo_time.lng - LONG_HEATMAP_MIN)*side_length_long);//.round();//TODO round function?
-//    println!("geo_time_index side_length_lat {:?} side_length_long {:?}",side_length_lat,side_length_long);
-//    println!("geo_time_index lat {:?} lng {:?}",lat,lng);
-   return lat*HEATMAP_GRANULARITY + lng;
-}
 
 /* COMMAND1 Kernel Definition */
-struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
 {
     struct cResponse ret;
-//    int data_size = sizeof(struct locationData);
-    for (int i = 0; i < enclave_state->appdata.num_data; i++) {
-        struct locationData data = enclave_state->appdata.user_data[i];
-        if (data.result) {
-            int heatmap_index = geo_time_index(data);
-            if (heatmap_index > 0) {
-                ret.heatmap_data[heatmap_index]++;
-            }
-        }
+
+    enclave_state->appdata.query_counter[CI->uid]++;
+
+    if(CI->uid > NUM_USERS-1) {
+        char *m = "[apPVRA] STATUS_QUERY ERROR invalid userID";
+        printf("%s\n", m);
+        memcpy(ret.message, m, strlen(m)+1);
+        ret.error = 1;
+        return ret;
     }
 
-    for (int i = 0; i < HEATMAP_GRANULARITY*HEATMAP_GRANULARITY; i++) {
-        if (ret.heatmap_data[i] < HEATMAP_COUNT_THRESHOLD) {
-            ret.heatmap_data[i] = 0;
-        }
+    if(enclave_state->appdata.num_tests[CI->uid] < 2) {
+        char *m = "[apPVRA] STATUS_QUERY ERROR insufficient testing";
+        printf("%s\n", m);
+        memcpy(ret.message, m, strlen(m)+1);
+        ret.error = 2;
+        return ret;
     }
+
+    ret.error = 0;
+    if ( (enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1] == 0) &&
+            (enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-2] == 0) ) {
+        ret.access = true;
+        char *m = "[apPVRA] STATUS_QUERY ACCESS GRANTED";
+        printf("%s\n", m);
+        memcpy(ret.message, m, strlen(m)+1);
+    }
+    else {
+        ret.access = false;
+        char *m = "[apPVRA] STATUS_QUERY ACCESS DENIED";
+        printf("%s LAST TEST RESULTS:[%d,%d]\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-2], enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1]);
+        memcpy(ret.message, m, strlen(m)+1);
+    }
+
     return ret;
 }
 
@@ -91,62 +92,94 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
 /* Initializes the Function Pointers to Function Names Above */
 int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*)) 
 {
-    (functions[0]) = &addPersonalData;
-    (functions[1]) = &getHeatMap;
+    (functions[0]) = &statusUpdate;
+    (functions[1]) = &statusQuery;
     //printf("Initialized Application Kernels\n");
     return 0;
 }
 
 
-/* Initializes the Application Data as per expectation */
+/* Initializes the Application Data in initPVRA*/
 int initES(struct ES* enclave_state, struct dAppData *dAD)
 {
-    char *user_info = calloc(NUM_USERS*PUBLIC_KEY_SIZE,sizeof(char));
-    if(user_info == NULL) return -1;
+    /* Allocate buffers for dynamic structures */
+    char *test_history = calloc(INIT_NUM_USERS*INIT_NUM_TESTS, sizeof(char));
+    if(test_history == NULL) return -1;
 
-    struct locationData *user_data = calloc(NUM_USERS*MAX_DATA,sizeof(struct locationData));
-    if(user_data == NULL) return -1;
+    int *num_tests = calloc(INIT_NUM_USERS, sizeof(int));
+    if(num_tests == NULL) return -1;
 
-    enclave_state->appdata.user_info = user_info;
-    enclave_state->appdata.user_data = user_data;
+    int *query_counter = calloc(INIT_NUM_USERS, sizeof(int));
+    if(query_counter == NULL) return -1;
 
-    enclave_state->appdata.num_data = 0;
+    enclave_state->appdata.query_counter = query_counter;
+    enclave_state->appdata.num_tests = num_tests;
+    enclave_state->appdata.test_history = test_history;
+
+    /* Set Initial Values */
+    for(int i = 0; i < NUM_USERS; i++) {
+        enclave_state->appdata.query_counter[i] = 6; 
+        enclave_state->appdata.num_tests[i] = 7;
+        for(int j = 0; j < NUM_TESTS; j++) {
+            enclave_state->appdata.test_history[i*NUM_TESTS + j] = 8;
+        }
+    }
 
 
     /* Initialize metadata regarding dynamic data-structures for sealing purposes */
+    /* struct dAppData stores this metadata */
 
     // Number of dynamic data structures
-    dAD->num_dDS = 2;
+    dAD->num_dDS = 3;
 
-    // For each dDS, assign the pointer and the size of the DS
+    // For each dynamic data structure:
+    // 1. allocate a struct dynamicDS (basically stores a buffer_ptr + buffer_size) 
+    // 2. assign the dynamicDS.buffer to allocated buffer ptr
+    // 3. assign the dynamicDS.buffer_size to the size in BYTES of the buffer
+
     struct dynamicDS *tDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
     if(tDS == NULL) return -1;
-    tDS->buffer = user_info;
-    tDS->buffer_size = NUM_USERS*PUBLIC_KEY_SIZE*sizeof(char);
+    tDS->buffer = test_history;
+    tDS->buffer_size = INIT_NUM_USERS*INIT_NUM_TESTS*sizeof(char);
 
     struct dynamicDS *nDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
     if(nDS == NULL) return -1;
-    nDS->buffer = user_data;
-    nDS->buffer_size = NUM_USERS*MAX_DATA*sizeof(struct locationData);
+    nDS->buffer = num_tests;
+    nDS->buffer_size = INIT_NUM_USERS*sizeof(int);
 
-    struct dynamicDS **dDS = (struct dynamicDS **)calloc(dAD->num_dDS, sizeof(struct dynamicDS *));
+    struct dynamicDS *qDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
+    if(qDS == NULL) return -1;
+    qDS->buffer = test_history;
+    qDS->buffer_size = INIT_NUM_USERS*sizeof(int);
+
+
+    // Allocate an array of struct dynamicDS * pointers
+    struct dynamicDS **dDS = (struct dynamicDS **)calloc(3, sizeof(struct dynamicDS *));
     if(dDS == NULL) return -1;
+
+    // Assign each struct dynamicDS to a array entry
     dDS[0] = tDS;
     dDS[1] = nDS;
+    dDS[2] = qDS;
     dAD->dDS = dDS;
+
     return 0;
 }
 
+
+/* Initializes the Application Data dynamic structure pointers in commandPVRA */
 int initAD(struct ES* enclave_state, struct dAppData *dAD)
 {
-    enclave_state->appdata.user_info = dAD->dDS[0]->buffer;
-    enclave_state->appdata.user_data = dAD->dDS[1]->buffer;
+    enclave_state->appdata.test_history = dAD->dDS[0]->buffer;
+    enclave_state->appdata.num_tests = dAD->dDS[1]->buffer;
+    enclave_state->appdata.query_counter = dAD->dDS[2]->buffer;
     return 0;
 }
+
 
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d} ", CC->eCMD.CT.tid, CC->eCMD.CI.uid, CC->eCMD.CI.data.lat, CC->eCMD.CI.data.lng, CC->eCMD.CI.data.startTs, CC->eCMD.CI.data.endTs, CC->eCMD.CI.data.result, CC->eCMD.seqNo);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d} ", CC->eCMD.CT.tid, CC->eCMD.CI.uid, CC->eCMD.CI.test_result, CC->eCMD.seqNo);
 }
 
