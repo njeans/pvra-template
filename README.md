@@ -50,11 +50,14 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 	./admin.sh
 	```
 	_```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the application directory and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If not arguments are passed it uses the VSC application. ```-clean``` undoes the effects of the script._
+
 	_CCF public key is hardcoded in the enclave image as a root of trust and must be updated in initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
+
+	_```SGX_SPID``` and ```IAS_PRIMARY_KEY``` are EPID parameters required for generating SGX  *unlinkable* quotes and reports from IAS. To enroll in Intel SGX Attestation Service refer to: https://api.portal.trustedservices.intel.com/EPID-attestation_
 
 	- [ ]  Auditee: admin.sh sources a python venv for auditee, give instructions on how to setup that python environment and isolate that from admin.sh script
 
-		- [ ]  Auditee: MRENCLAVE MATCH FROM DOCKER BUILD
+	- [ ]  Auditee: MRENCLAVE MATCH FROM DOCKER BUILD
 
 
 * Running the Host.
