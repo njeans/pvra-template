@@ -5,43 +5,49 @@
 #ifndef __APPPVRA_H__
 #define __APPPVRA_H__
 
-#define NUM_COMMANDS 2
 
+#define NUM_COMMANDS 2
 #define NUM_USERS 2
-#define NUM_TESTS 100
-#define INIT_NUM_USERS 2
-#define INIT_NUM_TESTS 100
+#define MAX_DATA 10
+#define PUBLIC_KEY_SIZE 64
+#define  HEATMAP_GRANULARITY 5
+
+
+struct locationData
+{
+    float lat;
+    float lng;
+    int startTs;
+    int endTs;
+    bool result;
+};
 
 struct cInputs
 {
 	int uid;
-	int test_result;
+	struct locationData data;
 };
 
 struct cResponse
 {
-	bool access;
 	int error;
 	char message[100];
-
+	int heatmap_data[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
 };
 
 struct AD
 {
-	char *test_history;
-	int *num_tests;
-	int *query_counter;
+	char *user_info;
+	int num_data;
+	struct locationData *user_data;
 };
-
-
-
 
 /* static version outdated */ /*
 struct AD
 {
-	char test_history[NUM_USERS*NUM_TESTS];
-	int num_tests[NUM_USERS];
-	int query_counter[NUM_USERS];
+	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
+	int num_data;
+	struct locationData user_data[NUM_USERS*MAX_DATA];
 };*/
 
 #endif

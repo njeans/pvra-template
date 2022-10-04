@@ -1,5 +1,7 @@
 #!/bin/bash
 
+### PVRA CLIENT BEHAVIOR ###
+
 ### VSC COMMAND CHEAT SHEET ###
 # "<commandType> <userID> <test_result> <seqNo>" is an example VSC command
 # commandType: (0=update, 1=query) 

@@ -1,18 +1,16 @@
 #include <stdbool.h>
 
-#define INITSEALSIZE 7024
 
-#ifndef COMMAND_H
-#define COMMAND_H
+
+#ifndef __APPPVRA_H__
+#define __APPPVRA_H__
 
 
 #define NUM_COMMANDS 2
 #define NUM_USERS 2
 #define MAX_DATA 10
 #define PUBLIC_KEY_SIZE 64
-
 #define  HEATMAP_GRANULARITY 5
-
 
 
 struct locationData
@@ -23,13 +21,6 @@ struct locationData
     int endTs;
     bool result;
 };
-//
-//struct heatmapEntry
-//{
-//    int latLoc;
-//    int lngLoc;
-//    int count;
-//};
 
 struct cInputs
 {
@@ -44,15 +35,6 @@ struct cResponse
 	int heatmap_data[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
 };
 
-/*
-struct AD
-{
-	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
-	int num_data;
-	struct locationData user_data[NUM_USERS*MAX_DATA];
-};*/
-
-
 struct AD
 {
 	char *user_info;
@@ -60,6 +42,12 @@ struct AD
 	struct locationData *user_data;
 };
 
-
+/* static version outdated */ /*
+struct AD
+{
+	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
+	int num_data;
+	struct locationData user_data[NUM_USERS*MAX_DATA];
+};*/
 
 #endif

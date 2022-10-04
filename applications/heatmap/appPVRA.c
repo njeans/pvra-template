@@ -147,6 +147,6 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.data.lat, CC->CI.data.lng, CC->CI.data.startTs, CC->CI.data.endTs, CC->CI.data.result, CC->seqNo, CC->cid);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d} ", CC->eCMD.CT.tid, CC->eCMD.CI.uid, CC->eCMD.CI.data.lat, CC->eCMD.CI.data.lng, CC->eCMD.CI.data.startTs, CC->eCMD.CI.data.endTs, CC->eCMD.CI.data.result, CC->eCMD.seqNo);
 }
 

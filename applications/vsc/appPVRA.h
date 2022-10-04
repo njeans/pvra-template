@@ -6,11 +6,11 @@
 #define __APPPVRA_H__
 
 #define NUM_COMMANDS 2
-
 #define NUM_USERS 2
 #define NUM_TESTS 100
 #define INIT_NUM_USERS 2
 #define INIT_NUM_TESTS 100
+
 
 struct cInputs
 {
@@ -32,9 +32,6 @@ struct AD
 	int *num_tests;
 	int *query_counter;
 };
-
-
-
 
 /* static version outdated */ /*
 struct AD

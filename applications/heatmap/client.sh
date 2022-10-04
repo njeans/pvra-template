@@ -1,19 +1,25 @@
 #!/bin/bash
 
 ### PVRA CLIENT BEHAVIOR ###
-#"1 0 0 1 0" is a VSC command: readable as commandType=1 (query), userID=0, test_result=0, seqNo=1, clientID=0 
-# "0 8214 1.0 1.0 10 20 0 0 0" sample HeatMap command: readable as commandType=0 (addPersonalData), userID=8214, lat=1.0, lng=1.0, startTs=10, endTs=20, result=0(false/negative), seqNo=0, clientID=0
+
+### HEATMAP COMMAND CHEAT SHEET ###
+# "<commandType> <userID> <lat> <lng> <startTs> <endTs> <result> <seqNo>" is an example HeatMap command
+# commandType: (0=addPersonalData, 1=getHeatMap) 
+# userID: (integer) some user identification that is NOT their user_pubkey
+# lat: (float)
+# lng: (float)
+# startTs: (integer) UNIX timestamp?
+# endTs: (integer) UNIX timestamp?
+# result: (0=negative, 1=positive)
+# seqNo: (integer) must be increasing by 1 for each subsequent command from the same client
 
 
 
-# [TODO][BULLETIN]: GET ias_report.json from bulletin board
-#./pvraRA ias_report.json
+# [TODO][NERLA]: GET ias_report.json from bulletin board
+# [TODO][AUDITEE]: VERIFY ias_report.json and extract enclave signing key (very similar to auditee_extract.py once ias_report.json is available)
+
+# Placeholder: copying extracted enclave signing key from admin environment
 cp ../signingkey.pem .
 
-./pvraClientCommand.sh "0 1 1.0 1.0 5.0 5.0 0 0 0"
-exit 0
-./pvraClientCommand.sh "1 0 0 1 0"
+./pvraClientCommand.sh user0_pubkey.bin "0 1 1.0 1.0 5.0 5.0 0 0"
 
-./pvraClientCommand.sh "0 0 0 2 0"
-
-./pvraClientCommand.sh "1 0 0 3 0"
