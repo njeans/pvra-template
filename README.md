@@ -5,7 +5,7 @@
 
 PVRA (Publically Verifiable Remote Attestation) aims to provide a framework for developers to bootstrap a range of auditting capabilities and security properties for their enclave based applications that are otherwise vulnerable.
 
-The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SecureDataTransfer. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 153 LoC and HeatMap at 171 LoC.
+The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SecureDataTransfer. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 229 LoC and HeatMap at 205 LoC.
 
 ## Getting Started
 
@@ -49,7 +49,7 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 	export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>
 	./admin.sh
 	```
-	_```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the application directory and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If not arguments are passed it uses the VSC application. ```-clean``` undoes the effects of the script._
+	_```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the application directory and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```-clean``` undoes the effects of the script._
 
 	_CCF public key is hardcoded in the enclave image as a root of trust and must be updated in initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
 
