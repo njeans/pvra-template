@@ -78,10 +78,6 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 
 ## Bulletin Board Integration Check-list
 
-- [ ] ```./applications/<APP_NAME>/client.sh``` GET ```ias_report.json``` from BB
-
-- [ ] ```./applications/<APP_NAME>/host.sh``` POST signed AUDIT_LOG to BB
-
 - [ ] ```./admin.sh``` 
 	- [ ] ```init_BB.py```
 	- [ ] ```gen_client_keys.py```
@@ -93,6 +89,11 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 	- [ ] ```client_ecdh.py```
 
 
+- [ ] ```./applications/<APP_NAME>/client.sh``` GET ```ias_report.json``` from BB
+
+- [ ] ```./applications/<APP_NAME>/host.sh``` POST signed AUDIT_LOG to BB
+
+
 ### Sample VSC Run:
 
 ![alt text](./readme/setup.png)
@@ -102,4 +103,5 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 ![alt text](./readme/host.png)
 
 ![alt text](./readme/client.png)
+
 

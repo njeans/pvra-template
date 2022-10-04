@@ -15,14 +15,15 @@ NC='\033[0m'
 
 echo "[client] Generating AES session key using ECDH"
 
-# [TODO][NERLA]: Python Script to generate Shared Secret using ECDH
+# ./client_ecdh.py user0_prikey.bin enclave_enc_pubkey.bin ?
 
+# [TODO][NERLA]: Python Script to generate Shared Secret using ECDH
 # The two source files would be: user0_prikey.bin and enclave_enc_pubkey.bin
 # Both are raw byte dump of secp256k1 keys 
-# (NOT 100% sure about the endianess) 
+# (NOT 100% sure about the endian-ness) 
 # I suspect they are little endian because auditee_extract.py assumes little endian and the signature verification is PASSING
 # I attempted something in client_ecdh.py but figured you would be faster at implementing this
-# ./client_ecdh.py user0_prikey.bin enclave_enc_pubkey.bin
+
 
 
 

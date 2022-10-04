@@ -61,11 +61,11 @@ fi
 ### 0.2 BulletinBoard INIT: ... ###
 
 # ./run_BB.py ?
-# [TODO][NERLA]: I placed this here temporarily, BulletinBoard init might need happen after the signed pubkey list published from initPVRA, I am not sure
+# [TODO][NERLA]: I only placed this here temporarily, BulletinBoard init might go after the signed pubkey list (pubkeys.sig) is published by initPVRA, I am not sure
 
 
 # ./gen_user_keys.py ?
-# [TODO][NERLA]: Implement the script to generate 5 secp256k1 user key pairs (can only support MAX_USERS=5 right now)  
+# [TODO][NERLA]: Implement the script to generate 5 secp256k1 user key pairs (MAX_USERS=5 in enclavestate.h right now)  
 # Saves files to <user0_pubkey.bin, user0_prikey.bin> ...
 # Save a list of pubkeys with the preamble "5\n" and one hexstring user pubkey per line
 # The enclave public signing key is available AFTER initPVRA in: enclave_enc_pubkey.bin
@@ -116,7 +116,7 @@ python3.7 ../auditee_extract.py
 # Let me know if it needs to be signed by the enclave
 # This is returned AFTER initPVRA returns the quote, quote is sent to intel and ias_report.json comes back
 # We will have to run ANOTHER ecall to sign it by the enclave
-# Alternatively the admin has a key pair, and the admin signs it?
+# Alternatively the admin has a key pair, and the admin signs it because the admin is the person with the SPID that requests the ias_report from intel?
 
 
 
