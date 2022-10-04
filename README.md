@@ -1,25 +1,42 @@
 # PVRA Template
 
-To browse the trace of a PVRA application look under ```./applications/``` for the sample applications. VSC currently at 153 LoC and HeatMap at 171 LoC.
+<!-- ABOUT THE PROJECT -->
+## About The Project
 
-## How to write a PVRA application:
+PVRA (Publically Verifiable Remote Attestation) aims to provide a framework for developers to bootstrap a range of auditting capabilities and security properties for their enclave based applications that are otherwise vulnerable.
+
+The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SDT. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 153 LoC and HeatMap at 171 LoC.
+
+## Getting Started
+
+### How to write a PVRA application:
+
+There are five application-specific files that need to be modified for implementing an application.
+
+1. ```appPVRA.h``` This is the header file for the application; it defines the types of commands the enclave processes, the structure of command inputs/outputs, and the structure of application data.
+
+2. ```appPVRA.c``` This is enclave executable application code. Every command should have an associated execution kernel. There are two auxillary functions that are required: ```initES()``` which initializes the application data structures, and ```initFP()``` which associates functions to enumerated commands (COMMAND<sub>0</sub>-COMMAND<sub>N</sub>);
+
+3. ```host.sh``` This is a script that defines the untrusted host or enclave administrator's behavior. In the examples provides the simple host waits for client commands, executes them, and returns the associated cResponses.
+
+4. ```client.sh``` This is a script that defines the client behavior. It is mainly setup for testing purposes, to simulate multiple client commands in a sequence sent to the host for execution.
+
+5. ```format_command``` This is a C program executable that takes as input space-deliminated arguements, places them in a private_command struct and outputs the raw binary information ready for encryption. The result is fed to the ```encrypt_command``` executable which AES-128-GCM encrypts the binary file.
 
 
-Make new directory under ```./applications/``` named after your application.
-
-Edit appPVRA.h and appPVRA.c based on application functionality.
-
-Edit host.sh and client.sh based on host/client behavior model.
-
-Edit executables ./format_command and ./encrypt_command for client->host BB bypass.
-
-Upload all files (6) to same application directory.
 
 
-## How to compile and run a PVRA application:
+### How to compile and run a PVRA application:
 
-In order to run an existing application pass the APP_NAME to ./setup.sh script
 
+#### Prerequisites
+
+In order to run an existing application pass the APP_NAME to ```./setup.sh``` script.
+
+- [ ] Add python requirements, make, gcc, etc.
+
+
+#### Usage
 
 ```
 Terminal 1:
