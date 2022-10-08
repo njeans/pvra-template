@@ -19,10 +19,10 @@ cp ../signingkey.pem .
 
 
 
-./pvraClientCommand.sh user0_pubkey.bin "0 0 0 0"
+./pvraClientCommand.sh user0_prikey.bin user0_pubkey.bin "0 0 0 0"
  
-./pvraClientCommand.sh user0_pubkey.bin "1 0 0 1"
+./pvraClientCommand.sh user0_prikey.bin user0_pubkey.bin "1 0 0 1"
 
-./pvraClientCommand.sh user0_pubkey.bin "0 0 0 2"
+./pvraClientCommand.sh user0_prikey.bin user0_pubkey.bin "0 0 0 2"
 
-./pvraClientCommand.sh user0_pubkey.bin "1 0 0 3"
+./pvraClientCommand.sh user0_prikey.bin user0_pubkey.bin "1 0 0 3"

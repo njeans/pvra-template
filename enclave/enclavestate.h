@@ -43,11 +43,11 @@ typedef struct _sha256_hash_t
 } sha256_hash_t;
 
 
-
+typedef unsigned char address_t[20];
 
 struct AL
 {
-	secp256k1_pubkey user_pubkeys[MAX_LOG_SIZE];
+        address_t user_pubkeys[MAX_LOG_SIZE];
 	sha256_hash_t command_hashes[MAX_LOG_SIZE];
 };
 
@@ -60,7 +60,7 @@ struct AUD
 	
 	struct AL auditlog;
 	int audit_offset;
-	int audit_version_no;
+	uint64_t audit_version_no;
 };
 
 

@@ -92,6 +92,13 @@ sgx_status_t ecall_initPVRA(
   // [TODO]: Handle ret
   enclave_state.enclavekeys.enc_pubkey = pubkey_e;
   enclave_state.enclavekeys.enc_prikey = seckey_e;
+
+  char pubkey_e_ser[65];
+  size_t pubkey_e_ser_len = 65;
+
+  // [TODO]: Handle ret
+  secp25k1_ret = secp256k1_ec_pubkey_serialize(ctx_e, &pubkey_e_ser, &pubkey_e_ser_len, &pubkey_e, SECP256K1_EC_UNCOMPRESSED);
+
   secp256k1_context_destroy(ctx_e);
   memset(&seckey_e, 0, sizeof(seckey_e));
   if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key (secp256k1)\n");
@@ -162,12 +169,12 @@ sgx_status_t ecall_initPVRA(
 
   /*    Sign secp256k1 Enclave Encryption Key    */
 
-  unsigned char enc_pubkey_hash[32];
+  unsigned char pubkey_e_ser_hash[32];
   ret = mbedtls_md(
       mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 
-      (const unsigned char *)&enclave_state.enclavekeys.enc_pubkey, 
-      sizeof(secp256k1_pubkey), 
-      enc_pubkey_hash);
+      &pubkey_e_ser, 
+      pubkey_e_ser_len, 
+      pubkey_e_ser_hash);
   if(ret != 0) {
     printf("[eiPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
     ret = SGX_ERROR_INVALID_PARAMETER;
@@ -180,14 +187,15 @@ sgx_status_t ecall_initPVRA(
   secp256k1_context* enc_pubkey_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   sgx_read_rand(enc_pubkey_randomize, sizeof(enc_pubkey_randomize));
   secp25k1_ret = secp256k1_context_randomize(enc_pubkey_ctx, enc_pubkey_randomize);
-  secp25k1_ret = secp256k1_ecdsa_sign(enc_pubkey_ctx, &enc_pubkey_sig, enc_pubkey_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
+  secp25k1_ret = secp256k1_ecdsa_sign(enc_pubkey_ctx, &enc_pubkey_sig, pubkey_e_ser_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
+
 
   //printf("[eiPVRA] ENCPUBKEY SIGNATURE %d\n", sizeof(secp256k1_ecdsa_signature));
   //print_hexstring(&enc_pubkey_sig, sizeof(secp256k1_ecdsa_signature));
 
   memcpy(encpubkey_signature, &enc_pubkey_sig, 64);
-  memcpy(encpubkey, &enclave_state.enclavekeys.enc_pubkey, sizeof(secp256k1_pubkey));
-
+  //memcpy(encpubkey, &enclave_state.enclavekeys.enc_pubkey, sizeof(secp256k1_pubkey));
+  memcpy(encpubkey, &pubkey_e_ser, pubkey_e_ser_len);
   if(I_DEBUGRDTSC) ocall_rdtsc();
 
 
@@ -299,7 +307,7 @@ sgx_status_t ecall_initPVRA(
   /*    Initialize AUDIT LOG metadata    */
 
   enclave_state.auditmetadata.audit_offset = 0;
-  enclave_state.auditmetadata.audit_version_no = 0;
+  enclave_state.auditmetadata.audit_version_no = 1;
   if(I_DEBUGPRINT) printf("[eiPVRA] Initialized audit log metadata success\n");
 
 

@@ -25,6 +25,7 @@
 
 #include <secp256k1.h>
 #include <secp256k1_ecdh.h>
+#include "keccak256.h"
 
 #include "enclavestate.h"
 #include "appPVRA.h"
@@ -38,7 +39,14 @@
 #define C_DEBUGRDTSC 0 
 
 
-
+void get_address(secp256k1_pubkey * pubkey, address_t* out) {
+    struct SHA3_CTX ctx;
+    keccak_init(&ctx);
+    keccak_update(&ctx, pubkey, 64);
+    unsigned char result[32];
+    keccak_final(&ctx, &result);
+    memcpy(out, &result[12], 20);
+}
 
 /**
  * This function executes one PVRA command.
@@ -292,7 +300,14 @@ sgx_status_t ecall_commandPVRA(
   sgx_read_rand(randomize_e, sizeof(randomize_e));
   int secp25k1_ret = secp256k1_context_randomize(ctx_e, randomize_e);
   unsigned char shared_secret[32];
-  secp25k1_ret = secp256k1_ecdh(ctx_e, shared_secret, &enclave_state.auditmetadata.master_user_pubkeys[user_idx], &enclave_state.enclavekeys.enc_prikey, NULL, NULL);
+
+  secp256k1_pubkey user_pubkey;
+  char user_pubkey_buff[65];
+  user_pubkey_buff[0] = 4;
+  memcpy(&user_pubkey_buff[1], &enclave_state.auditmetadata.master_user_pubkeys[user_idx], 64);
+  secp256k1_ec_pubkey_parse(ctx_e, &user_pubkey, &user_pubkey_buff, 65);
+
+  secp25k1_ret = secp256k1_ecdh(ctx_e, shared_secret, &user_pubkey, &enclave_state.enclavekeys.enc_prikey, NULL, NULL);
   //if(C_DEBUGPRINT) printf("[eiPVRA] Enclave Generated User0 Shared Secret\n");
   //if(C_DEBUGPRINT) print_hexstring(&shared_secret, 32);
   //if(C_DEBUGPRINT) printf("\n");
@@ -397,7 +412,8 @@ sgx_status_t ecall_commandPVRA(
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
-  memcpy(&enclave_state.auditmetadata.auditlog.user_pubkeys[entry], &CC.user_pubkey, 64);
+
+  get_address(&CC.user_pubkey, &enclave_state.auditmetadata.auditlog.user_pubkeys[entry]);
   memcpy(&enclave_state.auditmetadata.auditlog.command_hashes[entry], eCMD_hash, 32);
   enclave_state.auditmetadata.audit_offset++;
 
@@ -409,7 +425,7 @@ sgx_status_t ecall_commandPVRA(
     printf("ENTRY[%d]: ", i);
     print_hexstring(&enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
     printf("PBUKEY: ");
-    print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 64);
+    print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
   } 
   */
 

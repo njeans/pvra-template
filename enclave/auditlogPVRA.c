@@ -131,22 +131,23 @@ sgx_status_t ecall_auditlogPVRA(
     printf("HASH[%d]: ", i);
     print_hexstring(&enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
     printf("PKEY[%d]: ", i);
-    print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 64);
+    print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
   } 
   
 
-
-
-  uint32_t auditlogbuf_size = num_entries*(sizeof(secp256k1_pubkey)+sizeof(sha256_hash_t));
+  char str[80];
+  int s = sprintf(str,"%d", enclave_state.auditmetadata.audit_version_no);
+  uint32_t auditlogbuf_size = s+num_entries*(sizeof(address_t)+sizeof(sha256_hash_t));
   uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size); 
-  uint32_t auditlog_offset = 0;
-
-
+  uint32_t auditlog_offset = s-1;
+  memcpy(auditlogbuf, &str, s-1);
+  
+  
   for(int i = 0; i < num_entries; i++) {
     memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
     auditlog_offset += 32;
-    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 64);
-    auditlog_offset += 64;
+    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
+    auditlog_offset += 20;
   } 
 
   printf("\n[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED\n", auditlog_offset, auditlogbuf_size);

@@ -34,7 +34,7 @@ bool allocate_buffers() {
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
 
   //pub_enckey_buffer_size = 451;
-  pub_enckey_buffer_size = 64;
+  pub_enckey_buffer_size = 65;
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 
   cResponse_buffer_size = 100;

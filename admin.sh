@@ -27,6 +27,12 @@ then
 fi
 
 
+if [[ -z "${NUM_USERS}" ]];
+then
+  echo "Error: environment variable NUM_USERS not set."
+  exit
+fi
+
 test -d test_sgx || mkdir test_sgx
 cd ./test_sgx
 rm -rf *
@@ -59,31 +65,9 @@ fi
 
 
 ### 0.2 BulletinBoard INIT: ... ###
-
-# ./run_BB.py ?
-# [TODO][NERLA]: I only placed this here temporarily, BulletinBoard init might go after the signed pubkey list (pubkeys.sig) is published by initPVRA, I am not sure
-
-
-# ./gen_user_keys.py ?
-# [TODO][NERLA]: Implement the script to generate 5 secp256k1 user key pairs (MAX_USERS=5 in enclavestate.h right now)  
-# Saves files to <user0_pubkey.bin, user0_prikey.bin> ...
-# Save a list of pubkeys with the preamble "5\n" and one hexstring user pubkey per line
-# The enclave public signing key is available AFTER initPVRA in: enclave_enc_pubkey.bin
-
-
-
-# Placeholder user0 key
-echo "728c48ee66b4229ca476914fc87130014f5bd5eda29116578b2fc2dca01f4b7eb88b77acc107d4136649c470de332962daf17eeead91e5b253fa9912caa94d11" | xxd -r -p > user0_pubkey.bin
-echo "0a9f3adcd54ee2043315210dd6a4d2c8f90590733a227d6fc4a08724543a24e2" | xxd -r -p > user0_prikey.bin
-
-# Placeholder for pubkeys list
-# Run this if you need a sample of what the pubkeys.list should look like
-echo -e "5\n728c48ee66b4229ca476914fc87130014f5bd5eda29116578b2fc2dca01f4b7eb88b77acc107d4136649c470de332962daf17eeead91e5b253fa9912caa94d11\na388161f5b0fd97c1d7cfac645c5552d67da1c4706688736d3f9a4866dcbdd4956cde955303477fe9eb5bf4617e08ca18eaaf1b7a58eecb96a9714e28a16e6c5\n86093073acda4891e1da447ee9661e32ede352998a8663174b5c2be43c995cdaa4fca5ea32322ab70cb60bba1fd45acff7afe70d076effe47dddd7f8d39d8a74\n54ffdd443c49155b45771a38680d9531b564eec830416ceee9a75189f4252f1712225efc807a0349c72eae337bf657aceddffacedf3598dde707701ab97f5412\ncb731cf5bb5f82298be5a7e80759b6a74c9ff5f48b8bc81da760eb49366857e40a9c59e552b5a0ac570b3aa1dce14fe1fab3d4c751ab9b033f0fc36bc28bdb49" > pubkeys.list
-
-
-
-
-
+../stop_BB.sh
+../run_BB.sh
+python3 ../gen_user_keys.py
 
 
 ### 1.0 INITIALIZE PVRA ENCLAVE ###

@@ -19,7 +19,8 @@
 # [TODO][AUDITEE]: VERIFY ias_report.json and extract enclave signing key (very similar to auditee_extract.py once ias_report.json is available)
 
 # Placeholder: copying extracted enclave signing key from admin environment
+
 cp ../signingkey.pem .
 
-./pvraClientCommand.sh user0_pubkey.bin "0 1 1.0 1.0 5.0 5.0 0 0"
+./pvraClientCommand.sh user0_prikey.bin user0_pubkey.bin "0 1 1.0 1.0 5.0 5.0 0 0"
 
