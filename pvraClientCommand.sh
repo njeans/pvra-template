@@ -15,36 +15,15 @@ NC='\033[0m'
 
 echo "[client] Generating AES session key using ECDH"
 
-# ./client_ecdh.py user0_prikey.bin enclave_enc_pubkey.bin ?
-
-# [TODO][NERLA]: Python Script to generate Shared Secret using ECDH
-# The two source files would be: user0_prikey.bin and enclave_enc_pubkey.bin
-# Both are raw byte dump of secp256k1 keys 
-# (NOT 100% sure about the endian-ness) 
-# I suspect they are little endian because auditee_extract.py assumes little endian and the signature verification is PASSING
-# I attempted something in client_ecdh.py but figured you would be faster at implementing this
+python3 ../../gen_ecdh.py $1
 
 
-
-
-# Placeholder Shared Secret between enclave and user0: 8ccb97f8c11de97bbd707b735fed37059bc3d1de7dc418958a38b4e51bceaab8
-# This works because DETERMINISTIC_ENC_KEY=1 in initPVRA.c (making enclave encryption key fixed)
-# And the user0_key is hardcoded in admin.sh
-
-# Not 100% sure what the protocol is to generate AES-128 key from this, using Top 128 bits for now
-echo "8ccb97f8c11de97bbd707b735fed3705" | xxd -r -p > sessionAESkey.bin
-      
-
-
-
-
-
-echo -e "[client] Encrypting Command ${Blue}$2${NC}"
+echo -e "[client] Encrypting Command ${Blue}$3${NC}"
 
 # format_command encrypts struct private_command which is the {<command_type>, <command_inputs>, <seqno>}
 # to modify this executable, update ./applications/<APP_NAME>/format.c
 # and run gcc format.c -o format_command
-./format_command "$2" pt.bin > /dev/null
+./format_command "$3" pt.bin > /dev/null
 
 # encrypt_command is universal and does not really need modification
 # it takes as input a plaintext formatted command <pt.bin> and the raw AES key <sessionAESkey.bin>
@@ -59,7 +38,7 @@ echo -e "[client] Encrypting Command ${Blue}$2${NC}"
 echo -e "[client] Client->Host eCMD+eAESkey"
 
 # concatenates <user0_pubkey.bin> to <encrypted_command.bin> for sending to host
-cat $1 eCMD.bin > command.bin
+cat $2 eCMD.bin > command.bin
 
 # the host should be waiting for this connection
 nc -N localhost 8080 < command.bin >/dev/null
