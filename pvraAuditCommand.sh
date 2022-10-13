@@ -29,6 +29,6 @@ curr_dir=$(pwd)
 data="$curr_dir/auditlog.bin"
 sig="$curr_dir/auditlog.sig"
 
-echo "[biPVRA] Verifying signed auditlog: "
+echo -n "[biPVRA] Verifying signed auditlog: "
 #openssl dgst -sha256 -verify signingkey.pem -signature auditlog.sig auditlog.bin
-python3 $PROJECT_ROOT/billboard/crypto.py recover_eth_path $key $data $sig
+python3 $PROJECT_ROOT/billboard/billboard.py admin_post_audit_data $data $sig $1

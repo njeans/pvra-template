@@ -30,6 +30,7 @@
 #include "enclavestate.h"
 #include "appPVRA.h"
 #include "keccak256.h"
+#include "util.h"
 
 #define BUFLEN 2048
 #define AESGCM_128_KEY_SIZE 16
@@ -138,19 +139,20 @@ sgx_status_t ecall_auditlogPVRA(
   
 
   char audit_num_str[80];
-  int len_audit_num = sprintf(audit_num_str,"%d", enclave_state.auditmetadata.audit_version_no);
-  uint32_t auditlogbuf_size = len_audit_num+num_entries*(sizeof(address_t)+sizeof(sha256_hash_t));
+  int len_audit_num = sprintf(audit_num_str,"%d", enclave_state.auditmetadata.audit_version_no)-1;//don't want string deliminator \0 so -1
+  uint32_t auditlogbuf_size = len_audit_num+num_entries*(sizeof(packed_address_t)+32);
   uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size); 
-  uint32_t auditlog_offset = len_audit_num-1;
-  memcpy(auditlogbuf, &audit_num_str, len_audit_num-1);
-  
-  
+  uint32_t auditlog_offset = len_audit_num;
+  memcpy(auditlogbuf, &audit_num_str, len_audit_num);
+
+  for(int i = 0; i < num_entries; i++) {
+    memcpy(auditlogbuf + auditlog_offset + 12, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
+    auditlog_offset += sizeof(packed_address_t);
+  }
   for(int i = 0; i < num_entries; i++) {
     memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
     auditlog_offset += 32;
-    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);//todo change packing
-    auditlog_offset += 20;
-  } 
+  }
 
   printf("\n[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED\n", auditlog_offset, auditlogbuf_size);
   print_hexstring(auditlogbuf, auditlogbuf_size);

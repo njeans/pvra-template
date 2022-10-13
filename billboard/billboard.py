@@ -13,7 +13,6 @@ import secp256k1
 PROJECT_ROOT = os.environ.get('PROJECT_ROOT')
 BILLBOARD_URL = os.environ.get('BILLBOARD_URL', 'http://localhost:8545')
 NUM_USERS = os.environ.get('NUM_USERS', 2)
-print("BILLBOARD_URL",BILLBOARD_URL)
 CONTRACT_ADDRESS_PATH = os.environ.get('CONTRACT_ADDRESS_PATH', PROJECT_ROOT +"/billboard/contract_address")
 ENCLAVE_PUBLIC_KEY_PATH = os.environ.get('ENCLAVE_PUBLIC_KEY_PATH', PROJECT_ROOT +"/test_sgx/signingkey.bin")
 IAS_REPORT_PATH = os.environ.get('IAS_REPORT_PATH', PROJECT_ROOT +"/test_sgx/ias_report.json")
@@ -120,16 +119,18 @@ def send_tx(w3, foo, user_addr, value=0):
 
 
 def admin_init_contract(user_addresses_path, signature_path):
-    w3 = setup_w3()
-    admin_addr_, admin_pk = get_account(0)
-    _,contract,_ = deploy_contract(w3, admin_addr=admin_addr_)
     with open(signature_path, "rb") as f:
         signature = f.read()
     with open(user_addresses_path) as f:
         data = f.read().split("\n")[1:]
-        user_addresses = [convert_publickey_address(x) for x in data]
+    user_addresses = [convert_publickey_address(x) for x in data]
     address_data = b"".join(map(get_packed_address, user_addresses))
-    crypto.recover_eth_data(enclave_public_key, address_data, signature)
+    res = crypto.recover_eth_data(enclave_public_key, address_data, signature)
+    print(res)
+    assert res
+    w3 = setup_w3()
+    admin_addr_, admin_pk = get_account(0)
+    _,contract,_ = deploy_contract(w3, admin_addr=admin_addr_)
     ge = send_tx(w3, contract.functions.init_user_db(user_addresses, signature), admin_addr_)
     print("gasUsed", ge)
     initialized = contract.functions.initialized().call({"from": admin_addr_})
@@ -153,14 +154,40 @@ def user_add_data(user_num, encrypted_user_data_path):
     assert user_info[2] == encrypted_user_data  # user_data
 
 
+def admin_post_audit_data(data_path, signature_path, audit_num=1):
+    with open(data_path, "rb") as f:
+        audit_data_raw = f.read()
+    with open(signature_path, "rb") as f:
+        signature = f.read()
+    res = crypto.recover_eth_data(enclave_public_key, audit_data_raw, signature)
+    print(res)
+    assert res
+    len_addr=32
+    len_hash=32
+    n=len_addr+len_hash
+    audit_data = audit_data_raw
+    start_data = len(str(audit_num))
+    audit_data = [audit_data[i:i+len_addr] for i in range(start_data, len(audit_data_raw), 32)]
+    audit_data = [audit_data[:int(len(audit_data)/2)], audit_data[int(len(audit_data)/2):]]
+    audit_data = [[Web3.toChecksumAddress(x[-20:].hex()) for x in audit_data[0]], audit_data[1]]
+    print("audit_data=", audit_data)
+    w3 = setup_w3()
+    contract = get_contract(w3)
+    admin_addr, _ = get_account(0)
+    audit_num = int(audit_num)
+    gas=send_tx(w3, contract.functions.admin_audit(audit_num, signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
+    last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
+    assert last_audit_num == audit_num
+    print("gasUsed",gas)
+
+
 if __name__ == '__main__':
-    print(sys.argv[1:])
+    # print(sys.argv[1:])
     if len(sys.argv) == 2:
         globals()[sys.argv[1]]()
     elif len(sys.argv) == 3:
         globals()[sys.argv[1]](sys.argv[2])
     elif len(sys.argv) == 4:
-        print(globals()[sys.argv[1]], sys.argv[2], sys.argv[3])
         globals()[sys.argv[1]](sys.argv[2], sys.argv[3])
     elif len(sys.argv) == 5:
         globals()[sys.argv[1]](sys.argv[2], sys.argv[3], sys.argv[4])

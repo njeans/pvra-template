@@ -100,13 +100,12 @@ sgx_status_t ecall_initPVRA(
   size_t encpubkey_ser_len = 65;
   char encpubkey_ser[65];
   secp25k1_ret = secp256k1_ec_pubkey_serialize(ctx_e, &encpubkey_ser, &encpubkey_ser_len, &pubkey_e, SECP256K1_EC_UNCOMPRESSED);
-//  memcpy(encpubkey, &enclave_state.enclavekeys.enc_pubkey, sizeof(secp256k1_pubkey));
+  memcpy(encpubkey, &enclave_state.enclavekeys.enc_pubkey, encpubkey_size);
 
   secp256k1_context_destroy(ctx_e);
   memset(&seckey_e, 0, sizeof(seckey_e));
-  if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key (secp256k1)\n");
-  if(I_DEBUGPRINT) print_hexstring(&enclave_state.enclavekeys.enc_pubkey, 32);
-  if(I_DEBUGPRINT) print_hexstring((char *)(&enclave_state.enclavekeys.enc_pubkey)+32, 32);
+  if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key (secp256k1) %d\nencpubkey=", encpubkey_size);
+  if(I_DEBUGPRINT) print_hexstring(encpubkey, encpubkey_size);
   if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key serialized (secp256k1) %d\n", encpubkey_ser_len);
   if(I_DEBUGPRINT) print_hexstring(encpubkey_ser, encpubkey_ser_len);
   if(I_DEBUGPRINT) printf("\n");
@@ -178,26 +177,30 @@ sgx_status_t ecall_initPVRA(
   unsigned char encpubkey_hash[32];
   ret = mbedtls_md(
       mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 
-      &encpubkey_ser,
-      encpubkey_ser_len,
+      encpubkey,
+      encpubkey_size,
       encpubkey_hash);
   if(ret != 0) {
     printf("[eiPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
+  if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key hash %d\n", sizeof(encpubkey_hash));
+  if(I_DEBUGPRINT) print_hexstring(encpubkey_hash, sizeof(encpubkey_hash));
+  if(I_DEBUGPRINT) printf("\n");
 
   secp256k1_ecdsa_signature enc_pubkey_sig;
   unsigned char enc_pubkey_randomize[32];
   secp256k1_context* enc_pubkey_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   sgx_read_rand(enc_pubkey_randomize, sizeof(enc_pubkey_randomize));
   secp25k1_ret = secp256k1_context_randomize(enc_pubkey_ctx, enc_pubkey_randomize);
-  secp25k1_ret = secp256k1_ecdsa_sign(enc_pubkey_ctx, encpubkey_signature, encpubkey_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
-//  secp25k1_ret = secp256k1_ecdsa_signature_serialize_compact(enc_pubkey_ctx, encpubkey_signature, &enc_pubkey_sig);
-//  printf("[eiPVRA] ENCPUBKEY SIGNATURE serialized %d\n", sizeof(secp256k1_ecdsa_signature));
-//  print_hexstring(encpubkey_signature, sizeof(secp256k1_ecdsa_signature));
+  secp25k1_ret = secp256k1_ecdsa_sign(enc_pubkey_ctx, &enc_pubkey_sig, &encpubkey_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
+  secp25k1_ret = secp256k1_ecdsa_signature_serialize_compact(enc_pubkey_ctx, encpubkey_signature, &enc_pubkey_sig);
+  printf("encpubkey_signature_size %d =? %d\n", encpubkey_signature_size, sizeof(enc_pubkey_sig));
+  printf("[eiPVRA] ENCPUBKEY SIGNATURE serialized %d\n", encpubkey_signature_size);
+  print_hexstring(encpubkey_signature, encpubkey_signature_size);
 
-  memcpy(encpubkey, &enclave_state.enclavekeys.enc_pubkey, sizeof(secp256k1_pubkey));
+//  memcpy(encpubkey, &enclave_state.enclavekeys.enc_pubkey, sizeof(secp256k1_pubkey));
   if(I_DEBUGRDTSC) ocall_rdtsc();
 
 

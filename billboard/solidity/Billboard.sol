@@ -131,20 +131,20 @@ contract Billboard {
         }
     }
 
-    function hash_address_list(address[] memory _addresses) internal returns (bytes32) {
+    function hash_address_list(address[] memory _addresses) internal pure returns (bytes32) {
         uint len = _addresses.length;
         bytes memory packed = abi.encodePacked(_addresses);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix,uint2str(packed.length),packed);
-        tmp_byte = packed;
         bytes32 hash = keccak256(packed);
         return hash;
     }
 
+    //todo change packing audit_num?
     function hash_audit_data(uint audit_num, address[] memory _addresses, bytes32[] memory _data) internal pure returns (bytes32) {
         require(_addresses.length == _data.length);
         //        uint len = _addresses.length;
-        bytes memory packed = abi.encodePacked(audit_num, _addresses, _data);
+        bytes memory packed = abi.encodePacked(uint2str(audit_num), _addresses, _data);
         //      bytes memory packed = abi.encodePacked(uint2str(audit_num));
         //        for (uint i = 0; i < len; i++) {
         //            packed = abi.encodePacked(packed, address2string(_addresses[i]), _data[i]);

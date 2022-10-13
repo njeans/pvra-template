@@ -13,6 +13,10 @@ White='\033[0;37m'        # White
 NC='\033[0m'
 
 
+echo -n "[biPVRA] Verifying signed encryption key: "
+#openssl dgst -sha256 -verify signingkey.pem -signature enclave_enc_pubkey.sig enclave_enc_pubkey.bin
+python3 $PROJECT_ROOT/billboard/crypto.py verify_secp256k1_path signingkey.bin enclave_enc_pubkey.bin enclave_enc_pubkey.sig
+
 echo "[client] Generating AES session key using ECDH"
 
 python3 ../../gen_ecdh.py $2

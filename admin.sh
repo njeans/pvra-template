@@ -73,6 +73,7 @@ fi
 
 ### 0.2 BulletinBoard INIT: ... ###
 ../stop_BB.sh
+sleep 1
 ../run_BB.sh
 export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' billboard):8545"
 echo "BILLBOARD_URL=$BILLBOARD_URL"
@@ -111,7 +112,8 @@ python3 ../auditee_extract.py
 ### 2.1 Verify signed enclave encryption key using signingkey.pem (extracted enclave signing key) ###
 
 echo -n "[biPVRA] Verifying signed encryption key: "
-openssl dgst -sha256 -verify signingkey.pem -signature enclave_enc_pubkey.sig enclave_enc_pubkey.bin
+#openssl dgst -sha256 -verify signingkey.pem -signature enclave_enc_pubkey.sig enclave_enc_pubkey.bin
+python3 $PROJECT_ROOT/billboard/crypto.py verify_secp256k1_path signingkey.bin enclave_enc_pubkey.bin enclave_enc_pubkey.sig
 
 echo -n "[biPVRA] Initialize billboard and Verifying signed userpubkeys:"
 python3 $PROJECT_ROOT/billboard/billboard.py admin_init_contract pubkeys.list pubkeys.sig

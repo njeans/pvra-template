@@ -21,5 +21,8 @@
 # Placeholder: copying extracted enclave signing key from admin environment
 
 cp ../signingkey.pem .
-
+cp ../signingkey.bin .
+cp ../enclave_enc_pubkey.bin .
+cp ../enclave_enc_pubkey.sig .
+#client num is first argument
 ./pvraClientCommand.sh 0 user0_prikey.bin user0_pubkey.bin "0 1 1.0 1.0 5.0 5.0 0 0"

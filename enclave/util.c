@@ -28,18 +28,11 @@ void get_packed_address(secp256k1_pubkey * pubkey, packed_address_t* out) {
 //solidity abi.packed([]address) function left pads address to 32 bytes
 void hash_address_list(secp256k1_pubkey * pubkey_list, int num_pubkeys, char * hash_out_32) {
   packed_address_t * addr_buff = (packed_address_t *) calloc(num_pubkeys, sizeof(packed_address_t));//todo check null
-  printf("num_pubkeys %d\n", num_pubkeys);
-
-//  printf("addr_buff_ptr=%p\n",addr_buff);
-
   for (int i = 0; i < num_pubkeys; i++) {
     get_packed_address(&pubkey_list[i], &addr_buff[i]);
-//    printf("address_buff=");
-//    print_hexstring(addr_buff, num_pubkeys*sizeof(packed_address_t));
   }
   char eth_prefix[100];
   int s = sprintf(eth_prefix,"%cEthereum Signed Message:\n%d", 25, sizeof(packed_address_t) * num_pubkeys);
-  printf("prefix string [%s]\n",eth_prefix);
   printf("address_buff=");
   print_hexstring(addr_buff, num_pubkeys*sizeof(packed_address_t));
   struct SHA3_CTX ctx_sha3;
