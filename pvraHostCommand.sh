@@ -18,11 +18,16 @@ then
   exit
 fi
 
-echo "[server] Received Command: HTTP/1.1 200 OK" | nc -l -p 8080 -q 0 > command.bin;
-dd count=64 if=command.bin of=pubkeyCMD.bin bs=1 >/dev/null 2>&1
-dd skip=64 if=command.bin of=eCMD.bin bs=1 >/dev/null 2>&1
-echo "[bcPVRA] Host<-Client eAESkey+eCMD"
-
+if [ "$2" = "local" ]; then
+  echo "adding a local command.bin"
+    dd count=64 if=command.bin of=pubkeyCMD.bin bs=1 >/dev/null 2>&1
+    dd skip=64 if=command.bin of=eCMD.bin bs=1 >/dev/null 2>&1
+else
+  echo "[server] Received Command: HTTP/1.1 200 OK" | nc -l -p 8080 -q 0 > command.bin;
+  dd count=64 if=command.bin of=pubkeyCMD.bin bs=1 >/dev/null 2>&1
+  dd skip=64 if=command.bin of=eCMD.bin bs=1 >/dev/null 2>&1
+  echo "[bcPVRA] Host<-Client eAESkey+eCMD"
+fi
 
 echo "[bcPVRA] Host->SCS updateFT(...)"
 
@@ -74,7 +79,6 @@ fi
 printf "[bcPVRA] Host<-SCS signedFT = "
 cat FT.txt
 
-
 ../../app/app --commandPVRA --enclave-path `pwd`/../../enclave/enclave.signed.so \
   --sealedState sealedState.bin \
   --signedFT signedFT.bin \
@@ -85,21 +89,25 @@ cat FT.txt
   --cRsig cResponse.sig \
   --sealedOut sealedOut.bin
 
-
-state_counter=$((state_counter+1))
-filename="sealedState$1.bin" 
+filename="sealedState$1.bin"
 cp sealedOut.bin $filename
 mv sealedOut.bin sealedState.bin
-
 
 xxd -p cResponse.sig | tr -d '\n' > sig.hexstring
 xxd -p cResponse.txt | tr -d '\n' > msg.hexstring
 SIG=$(cat ./sig.hexstring)
 MSG=$(cat ./msg.hexstring)
-jq -n --arg sig $SIG --arg msg $MSG '{"sig": $sig, "msg": $msg}' > cResponse.json
 
+python3 $PROJECT_ROOT/billboard/billboard.py admin_sign_confirmation pubkeyCMD.bin eCMD.bin sig_admin.hexstring msg_admin.hexstring
+MSG_ADMIN=$(cat ./msg_admin.hexstring)
+SIG_ADMIN=$(cat ./sig_admin.hexstring)
 
-echo "[bcPVRA] Host->Client cResponse"
-nc -N localhost 8080 < cResponse.json >/dev/null
-echo ""
+jq -n --arg sig $SIG --arg msg $MSG  --arg sig_a $SIG_ADMIN --arg msg_a $MSG_ADMIN '{"sig": $sig, "msg": $msg, "sig_admin": $sig_a, "msg_admin": $msg_a}' > cResponse.json
 
+if [ "$2" = "local" ]; then
+  echo "todo upload cResponse to billboard?" #todo
+else
+  echo "[bcPVRA] Host->Client cResponse"
+  nc -N localhost 8080 < cResponse.json >/dev/null
+  echo ""
+fi

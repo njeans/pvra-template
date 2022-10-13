@@ -3,12 +3,14 @@
 import json
 import sys
 import os
-import crypto
+import hashlib
 
 from web3 import Web3
 import solcx
 from solcx import compile_source
 import secp256k1
+
+import crypto
 
 PROJECT_ROOT = os.environ.get('PROJECT_ROOT')
 BILLBOARD_URL = os.environ.get('BILLBOARD_URL', 'http://localhost:8545')
@@ -37,8 +39,8 @@ def get_account(user_num, accounts_path=BILLBOARD_ACCOUNTS_PATH):
         accounts_info = json.loads(f.read())
     user_address = list(accounts_info["addresses"].keys())[user_num]
     private_key = bytes(accounts_info["addresses"][user_address]["secretKey"]["data"])
-    secret_key = secp256k1.PrivateKey(private_key, raw=True)
-    return Web3.toChecksumAddress(user_address), secret_key
+    # secret_key = secp256k1.PrivateKey(private_key, raw=True)
+    return Web3.toChecksumAddress(user_address), private_key
 
 
 def compile_source_file(base_path, contract_source_path, allowed):
@@ -84,7 +86,7 @@ def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths
     contract_id,abis,bins = compile_source_file(base_path, contract_source_path, allowed)
     with open(contract_address_path) as f:
         contract_address = f.read()
-    print("contract_address", contract_address)
+    # print("contract_address", contract_address)
     contract = w3.eth.contract(abi=abis, bytecode=bins, address=contract_address)
     return contract
 
@@ -126,11 +128,11 @@ def admin_init_contract(user_addresses_path, signature_path):
         data = f.read().split("\n")[1:]
     user_addresses = [convert_publickey_address(x) for x in data]
     address_data = b"".join(map(get_packed_address, user_addresses))
-    res = crypto.recover_eth_data(enclave_public_key, address_data, signature)
+    res = crypto.recover_eth_data(address_data, signature, publickey=enclave_public_key)
     print(res)
     assert res
     w3 = setup_w3()
-    admin_addr_, admin_pk = get_account(0)
+    admin_addr_, _ = get_account(0)
     _,contract,_ = deploy_contract(w3, admin_addr=admin_addr_)
     ge = send_tx(w3, contract.functions.init_user_db(user_addresses, signature), admin_addr_)
     print("gasUsed", ge)
@@ -144,12 +146,15 @@ def user_add_data(user_num, encrypted_user_data_path):
         encrypted_user_data = f.read()
     w3 = setup_w3()
     contract = get_contract(w3)
-    user_addr, secret_key = get_account(user_num)
+    user_addr, _ = get_account(user_num)
     last_audit_num = contract.functions.last_audit_num().call({"from": user_addr})
     audit_num = last_audit_num+1
+
     ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data, audit_num), user_addr)
     print("gasUsed", ge)
+
     user_info = contract.functions.get_user(user_addr, audit_num).call({"from": user_addr})
+    print("update billboard user state", user_info)
     assert user_info[0] == user_addr
     assert user_info[1] == audit_num  # next_audit_num
     assert user_info[2] == encrypted_user_data  # user_data
@@ -160,7 +165,7 @@ def admin_post_audit_data(data_path, signature_path, audit_num=1):
         audit_data_raw = f.read()
     with open(signature_path, "rb") as f:
         signature = f.read()
-    res = crypto.recover_eth_data(enclave_public_key, audit_data_raw, signature)
+    res = crypto.recover_eth_data(audit_data_raw, signature, publickey=enclave_public_key)
     print(res)
     assert res
     len_unit = 32
@@ -196,6 +201,55 @@ def admin_get_bb_data(output_base_path, audit_num=1):
             f.write(encrypted_data[i])
 
 
+def admin_sign_confirmation(user_pubkey_path, user_cmd_path, sig_out_path, msg_out_path):
+    with open(user_pubkey_path, "rb") as f:
+        user_pubkey = f.read()
+    with open(user_cmd_path, "rb") as f:
+        user_cmd = f.read()
+    w3 = setup_w3()
+    contract = get_contract(w3)
+    admin_addr, private_key = get_account(0)
+    last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
+    audit_num = last_audit_num+1
+    user_addr = bytes.fromhex(crypto.convert_publickey_address(user_pubkey.hex())[2:])
+    m = hashlib.sha3_256()
+    m.update(user_cmd)
+    user_cmd_hash = m.digest()
+    confirmation = bytes(str(audit_num), "utf-8") + user_addr + user_cmd_hash
+    sig = crypto.sign_eth_data(private_key, confirmation)
+    with open(sig_out_path, "w") as f:
+        f.write(sig)#todo remove 0x?
+    with open(msg_out_path, "w") as f:
+        f.write(confirmation.hex())
+
+
+def user_verify_confirmation(user_num, msg_path, sig_path, data_path):
+    with open(msg_path, "rb") as f:
+        msg = f.read()
+    with open(sig_path, "rb") as f:
+        sig = f.read()
+    with open(data_path, "rb") as f:
+        data = f.read()
+    user_num = int(user_num)
+    m = hashlib.sha3_256()
+    m.update(data)
+    data_hash = m.digest()
+    user_addr, _ = get_account(user_num)
+    w3 = setup_w3()
+    contract = get_contract(w3)
+    admin_addr = contract.functions.admin_addr().call({"from": user_addr})
+    res = crypto.recover_eth_data(msg, sig, address=admin_addr)
+    print(res)
+    assert res
+    len_audit_num = len(msg) - 20 - 32
+    listed_audit_num = int(msg[:len_audit_num])
+    listed_address = msg[len_audit_num:len_audit_num+20]
+    listed_data_hash = msg[len_audit_num+20:]
+    assert listed_address.hex() == user_addr.lower()[2:]
+    assert listed_data_hash == data_hash
+    last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
+    assert listed_audit_num == last_audit_num+1
+
 if __name__ == '__main__':
     # print(sys.argv[1:])
     if len(sys.argv) == 2:
@@ -206,3 +260,5 @@ if __name__ == '__main__':
         globals()[sys.argv[1]](sys.argv[2], sys.argv[3])
     elif len(sys.argv) == 5:
         globals()[sys.argv[1]](sys.argv[2], sys.argv[3], sys.argv[4])
+    elif len(sys.argv) == 6:
+        globals()[sys.argv[1]](sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])

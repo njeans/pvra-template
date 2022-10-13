@@ -1,8 +1,9 @@
 import sys
+import hashlib
+
 import secp256k1
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
-import hashlib
 from web3 import Web3
 from web3.auto import w3
 from eth_account.messages import encode_defunct
@@ -58,12 +59,20 @@ def verify_secp256k1_data(publickey, data, sig_raw):
     return res
 
 
-def recover_eth_data(publickey, data, sig):
-    if len(publickey) == 65:
-        publickey = publickey[1:]
+def sign_eth_data(private_key, data):
     data = encode_defunct(primitive=data)
-    res = w3.eth.account.recover_message(data, signature=sig).lower()
-    eq = convert_publickey_address(publickey.hex()) == res
+    res = w3.eth.account.sign_message(data, private_key)
+    return res.signature.hex()
+
+
+def recover_eth_data(data, sig, publickey=None, address=None):
+    if address is None:
+        if len(publickey) == 65:
+            publickey = publickey[1:]
+        address = convert_publickey_address(publickey.hex())
+    data = encode_defunct(primitive=data)
+    res = w3.eth.account.recover_message(data, signature=sig)
+    eq = address.lower() == res.lower()
     return eq
 
 

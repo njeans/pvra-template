@@ -68,6 +68,12 @@ if [ "$5" != "omit" ]; then
   echo -n "[client] Verifying cResponse signature: "
   openssl dgst -sha256 -verify signingkey.pem -signature cResponse.sig cResponse.txt
 
+  jq '.sig_admin' cResponse.json | tr -d '\"' | xxd -r -p > adminConfirm.sig
+  jq '.msg_admin' cResponse.json | tr -d '\"' | xxd -r -p > adminConfirm.txt
+
+  echo -n "[client] Verifying cResponse admin signature: "
+  python3 $PROJECT_ROOT/billboard/billboard.py user_verify_confirmation $1 adminConfirm.txt  adminConfirm.sig eCMD.bin
+
   # prints the cResponse message that was signed (CAREFUL only readable for ASCII string messages)
   echo -n -e "[client] cResponse: ${Cyan}"
   cat cResponse.txt
