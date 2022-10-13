@@ -185,8 +185,8 @@ int main(int argc, char **argv) {
     (opt_initPVRA ? initPVRA() : true) &&
     (opt_initPVRA ? save_seal(opt_sealedstate_file) : true) &&
     (opt_initPVRA ? save_quote(opt_quote_file) : true) &&
-    (opt_initPVRA ? save_signature(opt_signature_file, signature_buffer) : true) &&
-    (opt_initPVRA ? save_signature(opt_sigpubkeys_file, sigpubkeys_buffer) : true) &&
+    (opt_initPVRA ? save_signature(opt_signature_file, signature_buffer, signature_buffer_size) : true) &&
+    (opt_initPVRA ? save_signature(opt_sigpubkeys_file, sigpubkeys_buffer, sigpubkeys_buffer_size) : true) &&
     (opt_initPVRA ? save_message() : true) &&
 
     (opt_commandPVRA ? load_seal(opt_sealedstate_file) : true) &&
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
     (opt_auditlogPVRA ? load_seal(opt_sealedstate_file) : true) &&     
     (opt_auditlogPVRA ? auditlogPVRA() : true) &&
     (opt_auditlogPVRA ? save_auditlog(opt_auditlog_file) : true) &&
-    (opt_auditlogPVRA ? save_auditlogsig(opt_auditlogsig_file) : true);
+    (opt_auditlogPVRA ? save_signature(opt_auditlogsig_file, auditlog_signature_buffer, auditlog_signature_buffer_size) : true);
 
 
   if (sgx_lasterr != SGX_SUCCESS) {

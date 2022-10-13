@@ -22,5 +22,4 @@
 
 cp ../signingkey.pem .
 
-./pvraClientCommand.sh user0_prikey.bin user0_pubkey.bin "0 1 1.0 1.0 5.0 5.0 0 0"
-
+./pvraClientCommand.sh 0 user0_prikey.bin user0_pubkey.bin "0 1 1.0 1.0 5.0 5.0 0 0"

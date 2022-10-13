@@ -1,10 +1,11 @@
 import json
 import os
+
 num_users = int(os.environ.get("NUM_USERS"))
+PROJECT_ROOT = os.environ.get('PROJECT_ROOT')
+pubkeys_path = PROJECT_ROOT+"/test_sgx/pubkeys.list"
 
-pubkeys_path = "pubkeys.list"
-
-with open("../accounts.json") as f:
+with open(PROJECT_ROOT+"/billboard/accounts.json") as f:
     accounts = json.loads(f.read())
 
 user_addresses = list(accounts["addresses"].keys())

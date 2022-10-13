@@ -26,7 +26,7 @@ all: ../interface/libenclave_stub_t.a enclave.signed.so
 
 ../interface/libenclave_stub_t.a: ../trustedLib/mbedtls_SGX-2.6.0/lib/mbedtls_SGX.edl ../interface/enclave.edl
 
-enclave.unsigned.so: ../trustedLib/secp256k1/lib/libsecp256k1.a ../trustedLib/mbedtls_SGX-2.6.0/lib/libmbedtls_sgx_t.a  calcbuffsize.o print.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o
+enclave.unsigned.so: ../trustedLib/secp256k1/lib/libsecp256k1.a ../trustedLib/mbedtls_SGX-2.6.0/lib/libmbedtls_sgx_t.a  calcbuffsize.o print.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o util.o
 
 enclave.signed.so: enclave.key.pem
 

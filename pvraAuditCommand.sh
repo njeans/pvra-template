@@ -24,7 +24,11 @@ fi
   --auditlog auditlog.bin \
   --auditlogsig auditlog.sig 
 
+key="$PROJECT_ROOT/test_sgx/signingkey.bin"
+curr_dir=$(pwd)
+data="$curr_dir/auditlog.bin"
+sig="$curr_dir/auditlog.sig"
 
-echo -n "[biPVRA] Verifying signed auditlog: "
-openssl dgst -sha256 -verify signingkey.pem -signature auditlog.sig auditlog.bin
-
+echo "[biPVRA] Verifying signed auditlog: "
+#openssl dgst -sha256 -verify signingkey.pem -signature auditlog.sig auditlog.bin
+python3 $PROJECT_ROOT/billboard/crypto.py recover_eth_path $key $data $sig

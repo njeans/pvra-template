@@ -15,15 +15,16 @@ NC='\033[0m'
 
 echo "[client] Generating AES session key using ECDH"
 
-python3 ../../gen_ecdh.py $1
+python3 ../../gen_ecdh.py $2
 
 
-echo -e "[client] Encrypting Command ${Blue}$3${NC}"
+echo -e "[client] Encrypting Command ${Blue}$5${NC}"
 
 # format_command encrypts struct private_command which is the {<command_type>, <command_inputs>, <seqno>}
 # to modify this executable, update ./applications/<APP_NAME>/format.c
 # and run gcc format.c -o format_command
-./format_command "$3" pt.bin > /dev/null
+echo "formatting $4"
+./format_command "$4" pt.bin > /dev/null
 
 # encrypt_command is universal and does not really need modification
 # it takes as input a plaintext formatted command <pt.bin> and the raw AES key <sessionAESkey.bin>
@@ -33,12 +34,9 @@ echo -e "[client] Encrypting Command ${Blue}$3${NC}"
 
 
 
-
-
 echo -e "[client] Client->Host eCMD+eAESkey"
-
 # concatenates <user0_pubkey.bin> to <encrypted_command.bin> for sending to host
-cat $2 eCMD.bin > command.bin
+cat $3 eCMD.bin > command.bin
 
 # the host should be waiting for this connection
 nc -N localhost 8080 < command.bin >/dev/null
@@ -60,12 +58,13 @@ jq '.sig' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.sig
 jq '.msg' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.txt
 
 
-
-
-echo -n "[client] Verifying cResponse signature: "
-
 # secp256k1 signature verification: <signingkey.pem> is enclave public signing key
+echo -n "[client] Verifying cResponse signature: "
 openssl dgst -sha256 -verify signingkey.pem -signature cResponse.sig cResponse.txt
+
+
+#post to bulletin board
+python3 $PROJECT_ROOT/billboard/billboard.py user_add_data $1 command.bin
 
 
 # prints the cResponse message that was signed (CAREFUL only readable for ASCII string messages)

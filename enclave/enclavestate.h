@@ -44,10 +44,11 @@ typedef struct _sha256_hash_t
 
 
 typedef unsigned char address_t[20];
+typedef unsigned char packed_address_t[32];
 
 struct AL
 {
-        address_t user_pubkeys[MAX_LOG_SIZE];
+	address_t user_pubkeys[MAX_LOG_SIZE];
 	sha256_hash_t command_hashes[MAX_LOG_SIZE];
 };
 

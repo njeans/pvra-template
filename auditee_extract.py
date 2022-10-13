@@ -120,6 +120,9 @@ y = little2big_endian(y_little)
 point = b"\x04" + x + y
 pubkey = ec.EllipticCurvePublicKey.from_encoded_point(curve=ec.SECP256K1(), data=point)
 
+with open("signingkey.bin", "wb") as f:
+    f.write(point[1:])
+
 pubkey_pem = pubkey.public_bytes(
     encoding=serialization.Encoding.PEM,
     format=serialization.PublicFormat.SubjectPublicKeyInfo,

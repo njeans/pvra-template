@@ -111,6 +111,10 @@ time.sleep(1)
 print(f"{term.bold}\nExtracting public key from IAS report ...{term.normal}")
 quote_body = res.json()["isvEnclaveQuoteBody"]
 report_data = base64.b64decode(quote_body)[368:432]
+
+with open("signingkey.bin", "wb") as f:
+    f.write(report_data)
+
 x_little = report_data[:32]
 y_little = report_data[32:]
 x = little2big_endian(x_little)

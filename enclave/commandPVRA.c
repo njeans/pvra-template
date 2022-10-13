@@ -29,6 +29,7 @@
 
 #include "enclavestate.h"
 #include "appPVRA.h"
+#include "util.h"
 
 #define BUFLEN 2048
 #define AESGCM_128_KEY_SIZE 16
@@ -38,15 +39,6 @@
 #define C_DEBUGPRINT 1
 #define C_DEBUGRDTSC 0 
 
-
-void get_address(secp256k1_pubkey * pubkey, address_t* out) {
-    struct SHA3_CTX ctx;
-    keccak_init(&ctx);
-    keccak_update(&ctx, pubkey, 64);
-    unsigned char result[32];
-    keccak_final(&ctx, &result);
-    memcpy(out, &result[12], 20);
-}
 
 /**
  * This function executes one PVRA command.
@@ -405,13 +397,19 @@ sgx_status_t ecall_commandPVRA(
   /*   (6.5) UPDATE AUDIT LOG    */
   int entry = enclave_state.auditmetadata.audit_offset;
   unsigned char eCMD_hash[32];
+  struct SHA3_CTX ctx_sha3;
+  keccak_init(&ctx_sha3);
+  keccak_update(&ctx_sha3, eCMD, eCMD_size);
+  keccak_final(&ctx_sha3, &eCMD_hash);
+
+  /*
   ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)eCMD, eCMD_size, eCMD_hash);
   if(ret != 0) 
   {
     printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
-  }
+  }*/
 
   get_address(&CC.user_pubkey, &enclave_state.auditmetadata.auditlog.user_pubkeys[entry]);
   memcpy(&enclave_state.auditmetadata.auditlog.command_hashes[entry], eCMD_hash, 32);

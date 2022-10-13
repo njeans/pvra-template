@@ -25,6 +25,7 @@ with open(ENCLAVE_PUBLIC_KEY_PATH, "rb") as f:
     if len(enclave_public_key) == 65:
         enclave_public_key = enclave_public_key[1:]
 
+
 def setup_w3(bb_url=BILLBOARD_URL):
     provider = Web3.HTTPProvider(bb_url, request_kwargs={'timeout': 60})
     w3 = Web3(provider)
@@ -67,9 +68,9 @@ def deploy_contract(w3, admin_addr=""):
     contract = w3.eth.contract(abi=abis, bytecode=bins)
     with open(IAS_REPORT_PATH) as f:
         ias_report = json.loads(f.read())
-    print("enclave_public_key=",enclave_public_key.hex())
+    print("enclave_public_key="+enclave_public_key.hex())
     # print("ias_report_signature=", ias_report["headers"]["X-IASReport-Signature"])
-    print("admin_addr=",admin_addr)
+    print("admin_addr="+admin_addr)
     tx_hash = contract.constructor(enclave_public_key, b'ias report').transact({"from": admin_addr})
     contract_address = w3.eth.get_transaction_receipt(tx_hash)['contractAddress']
     contract = w3.eth.contract(address=contract_address, abi=abis)
@@ -93,6 +94,12 @@ def convert_publickey_address(publickey):
     return Web3.toChecksumAddress(Web3.toHex(h[-20:]))
 
 
+def get_packed_address(address):
+    if address[:2] == "0x":
+        address = address[2:]
+    return bytes.fromhex(address).rjust(32, b'\0')
+
+
 def send_tx(w3, foo, user_addr, value=0):
     # print("billboard.send_tx from address:", user_addr, foo)
 
@@ -108,42 +115,28 @@ def send_tx(w3, foo, user_addr, value=0):
         # pprint.pprint(dict(receipt))
         # print("\tWas transaction successful?"+str(receipt["status"]))
     else:
-        print("billboard.send_tx error Gas cost exceeds 1000000:", gas_estimate)
+        print("billboard.send_tx error Gas cost exceeds 10000000:", gas_estimate)
         exit(1)
 
 
 def admin_init_contract(user_addresses_path, signature_path):
-    print("admin_init_contract", "user_addresses_path", user_addresses_path, "signature_path", signature_path)
     w3 = setup_w3()
-    _admin_addr, admin_pk = get_account(0)
-    _,contract,_ = deploy_contract(w3, admin_addr=_admin_addr)
+    admin_addr_, admin_pk = get_account(0)
+    _,contract,_ = deploy_contract(w3, admin_addr=admin_addr_)
     with open(signature_path, "rb") as f:
         signature = f.read()
     with open(user_addresses_path) as f:
         data = f.read().split("\n")[1:]
         user_addresses = [convert_publickey_address(x) for x in data]
-    print("signature", len(signature), signature.hex())
-    print("user_addresses", len(user_addresses), user_addresses)
-    # address_data = bytes("".join(map(lambda x: x.lower(), user_addresses)), "utf-8")
-    # print("".join(map(lambda x: x.lower(), user_addresses), bytes("".join(map(lambda x: x.lower(), user_addresses), "utf-8"))
-    # crypto.verify_secp256k1_data(enclave_public_key, address_data, signature)
-    ge = send_tx(w3, contract.functions.init_user_db(user_addresses, signature), _admin_addr)
+    address_data = b"".join(map(get_packed_address, user_addresses))
+    crypto.recover_eth_data(enclave_public_key, address_data, signature)
+    ge = send_tx(w3, contract.functions.init_user_db(user_addresses, signature), admin_addr_)
     print("gasUsed", ge)
-
-    tmp_addr = contract.functions.tmp_addr().call({"from": _admin_addr})
-    tmp_hash = contract.functions.tmp_hash().call({"from": _admin_addr})
-    tmp_b = contract.functions.tmp_byte().call({"from": _admin_addr})
-    enclave_address = contract.functions.enclave_address().call({"from": _admin_addr})
-    print("tmp_addr",tmp_addr, "enclave_address", enclave_address,"tmp_byte", tmp_b,"tmp_byte_hex", tmp_b.hex(), "tmp_hash", tmp_hash)
-
-    initialized = contract.functions.initialized().call({"from": _admin_addr})
+    initialized = contract.functions.initialized().call({"from": admin_addr_})
     assert initialized
-    amount = contract.functions.max_penalty().call({"from": _admin_addr})
-    send_tx(w3, contract.functions.fund(), _admin_addr, value=amount*10)
 
 
 def user_add_data(user_num, encrypted_user_data_path):
-    print("user_add_data", "user_num", user_num, "encrypted_user_data_path", encrypted_user_data_path)
     user_num = int(user_num)+1
     with open(encrypted_user_data_path, "rb") as f:
         encrypted_user_data = f.read()
@@ -152,12 +145,9 @@ def user_add_data(user_num, encrypted_user_data_path):
     user_addr, secret_key = get_account(user_num)
     last_audit_num = contract.functions.last_audit_num().call({"from": user_addr})
     audit_num = last_audit_num+1
-    print("audit_num",audit_num)
-    print("encrypted_user_data", len(encrypted_user_data), encrypted_user_data)
     ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data, audit_num), user_addr)
     print("gasUsed", ge)
     user_info = contract.functions.get_user(user_addr, audit_num).call({"from": user_addr})
-    print("updated user", user_info)
     assert user_info[0] == user_addr
     assert user_info[1] == audit_num  # next_audit_num
     assert user_info[2] == encrypted_user_data  # user_data

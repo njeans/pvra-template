@@ -25,9 +25,11 @@
 
 #include <secp256k1.h>
 #include <secp256k1_ecdh.h>
+#include <secp256k1_recovery.h>
 
 #include "enclavestate.h"
 #include "appPVRA.h"
+#include "keccak256.h"
 
 #define BUFLEN 2048
 #define AESGCM_128_KEY_SIZE 16
@@ -135,18 +137,18 @@ sgx_status_t ecall_auditlogPVRA(
   } 
   
 
-  char str[80];
-  int s = sprintf(str,"%d", enclave_state.auditmetadata.audit_version_no);
-  uint32_t auditlogbuf_size = s+num_entries*(sizeof(address_t)+sizeof(sha256_hash_t));
+  char audit_num_str[80];
+  int len_audit_num = sprintf(audit_num_str,"%d", enclave_state.auditmetadata.audit_version_no);
+  uint32_t auditlogbuf_size = len_audit_num+num_entries*(sizeof(address_t)+sizeof(sha256_hash_t));
   uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size); 
-  uint32_t auditlog_offset = s-1;
-  memcpy(auditlogbuf, &str, s-1);
+  uint32_t auditlog_offset = len_audit_num-1;
+  memcpy(auditlogbuf, &audit_num_str, len_audit_num-1);
   
   
   for(int i = 0; i < num_entries; i++) {
     memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
     auditlog_offset += 32;
-    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
+    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);//todo change packing
     auditlog_offset += 20;
   } 
 
@@ -157,8 +159,15 @@ sgx_status_t ecall_auditlogPVRA(
   *actual_auditlog_size = auditlogbuf_size;
   
   /*   (8) SIGN AUDITLOG   */ 
-
   unsigned char auditlog_hash[32];
+  char eth_prefix[80];
+  int len_prefix = sprintf(eth_prefix,"%cEthereum Signed Message:\n%d",25, auditlogbuf_size);
+  struct SHA3_CTX ctx_sha3;
+  keccak_init(&ctx_sha3);
+  keccak_update(&ctx_sha3, eth_prefix, len_prefix-1);
+  keccak_update(&ctx_sha3, auditlogbuf, auditlogbuf_size);
+  keccak_final(&ctx_sha3, &auditlog_hash);
+/*
   ret = mbedtls_md(
       mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 
       (const unsigned char *)auditlogbuf, 
@@ -169,20 +178,31 @@ sgx_status_t ecall_auditlogPVRA(
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
-
-  secp256k1_ecdsa_signature sig;
+*/
+  secp256k1_ecdsa_recoverable_signature sig;
   unsigned char randomize[32];
 
   secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   sgx_read_rand(randomize, sizeof(randomize));
   int secp25k1_ret = secp256k1_context_randomize(ctx, randomize);
-  secp25k1_ret = secp256k1_ecdsa_sign(ctx, &sig, auditlog_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
+//  secp25k1_ret = secp256k1_ecdsa_sign(ctx, &sig, auditlog_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
+  secp25k1_ret = secp256k1_ecdsa_sign_recoverable(ctx, &sig, &auditlog_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
 
-  //printf("[eiPVRA] PUBKEYS SIGNATURE %d\n", sizeof(secp256k1_ecdsa_signature));
-  //print_hexstring(&sig, sizeof(secp256k1_ecdsa_signature));
+  unsigned char sig_serialized[65];
+  int recovery;
+  secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, &sig_serialized, &recovery, &sig);
+  uint8_t v = ((uint8_t) recovery);
+  uint8_t p = (uint8_t) 27;
+  v = v + p;
+  sig_serialized[64] = v;
+
+
+  printf("[eiPVRA] AUDITLOG SIGNATURE serialized %d\n", sizeof(sig_serialized));
+  print_hexstring(&sig_serialized, sizeof(sig_serialized));
+
 
   memcpy(auditlog, auditlogbuf, auditlogbuf_size);
-  memcpy(auditlog_signature, &sig, 64);
+  memcpy(auditlog_signature, &sig_serialized, 65);
   secp256k1_context_destroy(ctx);
 
   if(A_DEBUGRDTSC) ocall_rdtsc();

@@ -15,7 +15,7 @@
 #include <sgx_utils.h>
 
 #include "enclavestate.h"
-#include <secp256k1.h>
+#include <secp256k1_recovery.h>
 
 /**
  * This function calculates the sizes of buffers needed for the untrusted app to
@@ -30,9 +30,9 @@
  * some other appropriate sgx_status_t value upon failure.
  */
 
-sgx_status_t ecall_calc_buffer_sizes(size_t *esignature_size, size_t *esealed_state_size) {
+sgx_status_t ecall_calc_buffer_sizes(size_t *esignature_size, size_t *esignature_rec_size, size_t *esealed_state_size) {
   *esignature_size = sizeof(secp256k1_ecdsa_signature);
-
+  *esignature_rec_size = sizeof(secp256k1_ecdsa_recoverable_signature);
   struct ES enclave_state;
   struct dAppData dAD;
   int initES_ret = initES(&enclave_state, &dAD);
