@@ -313,7 +313,7 @@ bool save_auditlog(const char *const auditlog_file) {
   }
 
   if (fwrite(auditlog_buffer, actual_auditlog_size, 1, sk_file) != 1) {
-    fprintf(stderr, "[Gateway]: cResponse only partially written.\n");
+    fprintf(stderr, "[Gateway]: auditLog only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
   }

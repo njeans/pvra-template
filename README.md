@@ -37,9 +37,11 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 - [ ] Add python requirements, make, gcc, etc.
 
 	```
+ 	export PROJECT_ROOT=$(pwd)
 	export CCF_ENABLE=<0 or 1>
 	export SGX_SPID=<SGX_SPID>
 	export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>	
+ 	source ~/.venvs/pvra/bin/activate
 	```
 
 

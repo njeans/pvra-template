@@ -22,7 +22,7 @@ echo "[client] Generating AES session key using ECDH"
 python3 ../../gen_ecdh.py $2
 
 
-echo -e "[client] Encrypting Command ${Blue}$5${NC}"
+echo -e "[client] Encrypting Command ${Blue}$4${NC}"
 
 # format_command encrypts struct private_command which is the {<command_type>, <command_inputs>, <seqno>}
 # to modify this executable, update ./applications/<APP_NAME>/format.c
@@ -42,9 +42,12 @@ echo -e "[client] Client->Host eCMD+eAESkey"
 # concatenates <user0_pubkey.bin> to <encrypted_command.bin> for sending to host
 cat $3 eCMD.bin > command.bin
 
-# the host should be waiting for this connection
-nc -N localhost 8080 < command.bin >/dev/null
-
+if [ "$5" != "omit" ]; then
+  # the host should be waiting for this connection
+  nc -N localhost 8080 < command.bin >/dev/null
+else
+  echo "[client] Not sending data to the admin, only posting to bulletin board"
+fi
 
 
 
@@ -54,25 +57,26 @@ nc -N localhost 8080 < command.bin >/dev/null
 
 
 
+if [ "$5" != "omit" ]; then
+  echo "[client] Received cResponse: HTTP/1.1 200 OK\n" | nc -l -p 8080 -q 0 > cResponse.json
 
-echo "[client] Received cResponse: HTTP/1.1 200 OK\n" | nc -l -p 8080 -q 0 > cResponse.json
+  # parses the cResponse.json hexstring into a binary signature file <cResponse.sig> and signed message <cResponse.txt>
+  jq '.sig' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.sig
+  jq '.msg' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.txt
 
-# parses the cResponse.json hexstring into a binary signature file <cResponse.sig> and signed message <cResponse.txt>
-jq '.sig' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.sig
-jq '.msg' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.txt
+  # secp256k1 signature verification: <signingkey.pem> is enclave public signing key
+  echo -n "[client] Verifying cResponse signature: "
+  openssl dgst -sha256 -verify signingkey.pem -signature cResponse.sig cResponse.txt
 
+  # prints the cResponse message that was signed (CAREFUL only readable for ASCII string messages)
+  echo -n -e "[client] cResponse: ${Cyan}"
+  cat cResponse.txt
+  echo -e "${NC}"
+  echo ""
 
-# secp256k1 signature verification: <signingkey.pem> is enclave public signing key
-echo -n "[client] Verifying cResponse signature: "
-openssl dgst -sha256 -verify signingkey.pem -signature cResponse.sig cResponse.txt
+fi
 
 
 #post to bulletin board
+echo "[client] Posting data to billboard"
 python3 $PROJECT_ROOT/billboard/billboard.py user_add_data $1 command.bin
-
-
-# prints the cResponse message that was signed (CAREFUL only readable for ASCII string messages)
-echo -n -e "[client] cResponse: ${Cyan}"
-cat cResponse.txt
-echo -e "${NC}"
-echo ""

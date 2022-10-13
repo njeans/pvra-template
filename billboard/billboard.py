@@ -84,6 +84,7 @@ def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths
     contract_id,abis,bins = compile_source_file(base_path, contract_source_path, allowed)
     with open(contract_address_path) as f:
         contract_address = f.read()
+    print("contract_address", contract_address)
     contract = w3.eth.contract(abi=abis, bytecode=bins, address=contract_address)
     return contract
 
@@ -162,12 +163,10 @@ def admin_post_audit_data(data_path, signature_path, audit_num=1):
     res = crypto.recover_eth_data(enclave_public_key, audit_data_raw, signature)
     print(res)
     assert res
-    len_addr=32
-    len_hash=32
-    n=len_addr+len_hash
+    len_unit = 32
     audit_data = audit_data_raw
     start_data = len(str(audit_num))
-    audit_data = [audit_data[i:i+len_addr] for i in range(start_data, len(audit_data_raw), 32)]
+    audit_data = [audit_data[i:i+len_unit] for i in range(start_data, len(audit_data_raw), 32)]
     audit_data = [audit_data[:int(len(audit_data)/2)], audit_data[int(len(audit_data)/2):]]
     audit_data = [[Web3.toChecksumAddress(x[-20:].hex()) for x in audit_data[0]], audit_data[1]]
     print("audit_data=", audit_data)
@@ -179,6 +178,22 @@ def admin_post_audit_data(data_path, signature_path, audit_num=1):
     last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
     assert last_audit_num == audit_num
     print("gasUsed",gas)
+
+
+def admin_get_bb_data(output_base_path, audit_num=1):
+    w3 = setup_w3()
+    contract = get_contract(w3)
+    admin_addr, _ = get_account(0)
+    audit_num = int(audit_num)
+
+    user_datas = contract.functions.get_all_user_data(audit_num).call({"from": admin_addr})
+    print("billboard user data for audit_num", audit_num, user_datas)
+    encrypted_data = []
+    for user in user_datas:
+        encrypted_data.append(user[2])
+    for i in range(len(encrypted_data)):
+        with open(output_base_path + "/command"+str(i)+".bin", "wb") as f:
+            f.write(encrypted_data[i])
 
 
 if __name__ == '__main__':

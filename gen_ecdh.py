@@ -1,5 +1,4 @@
 import secp256k1
-import hashlib
 import sys
 
 def swap_endians(b, *, length=32, from_byteorder="little", to_byteorder="big"):
@@ -12,7 +11,7 @@ y_little = other_publickey[32:]
 x = swap_endians(x_little)
 y = swap_endians(y_little)
 other_publickey = b"\x04" + x + y
-print("enclave_enc_pubkey.bin", other_publickey.hex())
+# print("enclave_enc_pubkey.bin", other_publickey.hex())
 
 with open(sys.argv[1], "rb") as f:
     my_privatekey = f.read()

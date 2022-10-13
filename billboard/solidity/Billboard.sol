@@ -95,7 +95,7 @@ contract Billboard {
         audit_data[audit_num] = AuditData(included_user_ids, included_data_hashes);
     }
 
-    function detect_omission(address user_id, uint audit_num) public {
+    function prove_omission_data(address user_id, uint audit_num) public {
         require(initialized);
         require(last_audit_num >= audit_num);
         User storage user = user_info[user_id];
@@ -112,7 +112,7 @@ contract Billboard {
         }
     }
 
-    function prove_omission(address user_id, uint audit_num, bytes32 data_hash, bytes memory confirm_signature) public {
+    function prove_omission_sig(address user_id, uint audit_num, bytes32 data_hash, bytes memory confirm_signature) public {
         require(initialized);
         require(last_audit_num >= audit_num);
         bytes32 confirm_hash = hash_confirmation(user_id, audit_num, data_hash);
@@ -176,6 +176,31 @@ contract Billboard {
     function get_user(address user_addr, uint audit_num) public view returns (UserData memory) {
         User storage user = user_info[msg.sender];
         return UserData(user_addr, user.last_audit_num, user.user_data[audit_num]);
+    }
+
+
+    function get_all_user_data(uint audit_num) public view returns (UserData[] memory) {
+        uint user_count = 0;
+        for (uint i = 0; i < user_list.length; i++) {
+            address addr = user_list[i];
+            User storage user = user_info[addr];
+            if (user.called_add_data[audit_num] == true) {
+                user_count++;
+            }
+        }
+
+        UserData[] memory user_data = new UserData[](user_count);
+        uint index = 0;
+        for (uint i = 0; i < user_list.length; i++) {
+            address addr = user_list[i];
+            User storage user = user_info[addr];
+            if (user.called_add_data[audit_num] == true) {
+                UserData memory user_datum = UserData(addr, user.last_audit_num, user.user_data[audit_num]);
+                user_data[index] = user_datum;
+                index++;
+            }
+        }
+        return user_data;
     }
 
     function recover(bytes32 hash, bytes memory signature) internal pure returns (address) {
