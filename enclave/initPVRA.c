@@ -104,7 +104,7 @@ sgx_status_t ecall_initPVRA(
 
   secp256k1_context_destroy(ctx_e);
   memset(&seckey_e, 0, sizeof(seckey_e));
-  if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key (secp256k1) %d\nencpubkey=", encpubkey_size);
+  if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key (secp256k1) %d\n", encpubkey_size);
   if(I_DEBUGPRINT) print_hexstring(encpubkey, encpubkey_size);
   if(I_DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key serialized (secp256k1) %d\n", encpubkey_ser_len);
   if(I_DEBUGPRINT) print_hexstring(encpubkey_ser, encpubkey_ser_len);
@@ -196,7 +196,6 @@ sgx_status_t ecall_initPVRA(
   secp25k1_ret = secp256k1_context_randomize(enc_pubkey_ctx, enc_pubkey_randomize);
   secp25k1_ret = secp256k1_ecdsa_sign(enc_pubkey_ctx, &enc_pubkey_sig, &encpubkey_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
   secp25k1_ret = secp256k1_ecdsa_signature_serialize_compact(enc_pubkey_ctx, encpubkey_signature, &enc_pubkey_sig);
-  printf("encpubkey_signature_size %d =? %d\n", encpubkey_signature_size, sizeof(enc_pubkey_sig));
   printf("[eiPVRA] ENCPUBKEY SIGNATURE serialized %d\n", encpubkey_signature_size);
   print_hexstring(encpubkey_signature, encpubkey_signature_size);
 

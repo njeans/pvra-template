@@ -11,17 +11,13 @@ with open(PROJECT_ROOT+"/billboard/accounts.json") as f:
 user_addresses = list(accounts["addresses"].keys())
 public_key = ["" for _ in range(num_users)]
 for i in range(num_users):
-    address = user_addresses[i]
-    print("address",address)
+    address = user_addresses[i+1]  # admin is account at position 0
+    print("address for user",i,
+          address)
 
     priv = bytes(accounts["addresses"][address]["secretKey"]["data"])
     pub = bytes(accounts["addresses"][address]["publicKey"]["data"])
     public_key[i] = pub.hex() 
-    print("public_key[i]",public_key[i])
-    with open("user"+str(i)+"_prikey.hex", "w") as f:
-        f.write(priv.hex())
-    with open("user"+str(i)+"_pubkey.hex", "w") as f:
-        f.write(pub.hex())
     with open("user"+str(i)+"_prikey.bin", "wb") as f:
         f.write(priv)
     with open("user"+str(i)+"_pubkey.bin", "wb") as f:

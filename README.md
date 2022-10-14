@@ -81,22 +81,28 @@ In order to run an existing application pass the APP_NAME to ```./setup.sh``` sc
 
 
 
-## Bulletin Board Integration Check-list
+## Bulletin Board Auditing Tests
 
-- [ ] ```./admin.sh``` 
-	- [ ] ```init_BB.py```
-	- [ ] ```gen_client_keys.py```
-	- [ ] POST ```ias_report.json``` to BB
-	- [ ] COPY USER KEY PAIRS TO ./client
-	- [ ] COPY USER ECDH SCRIPT TO ./client
+* Test auditing with admin signature
 
-- [ ] ```./pvraClientCommand.sh``` 
-	- [ ] ```client_ecdh.py```
+	```
+	cd billboard
+	./test_auditing.sh heatmap omit_sig
+	```
 
+* Test auditing with data bosted on bulletin board
 
-- [ ] ```./applications/<APP_NAME>/client.sh``` GET ```ias_report.json``` from BB
+	```
+	cd billboard
+	./test_auditing.sh heatmap omit_data
+	```
 
-- [ ] ```./applications/<APP_NAME>/host.sh``` POST signed AUDIT_LOG to BB
+* Test auditing with user omitting data and admin getting data from bulletin board
+
+	```
+	cd billboard
+	./test_auditing.sh heatmap omit_user
+	```
 
 
 ### Sample VSC Run:

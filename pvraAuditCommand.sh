@@ -18,33 +18,35 @@ then
   exit
 fi
 
-echo "[biPVRA] Getting data from bulletin board"
+if [ "$3" != "omit" ]; then
+  echo "[biPVRA] Getting data from bulletin board"
+  # wait for data to be commited to bb
+  sleep 3
+  CMDPATH="tmp_ecmds"
+  mkdir $CMDPATH
+  python3 $PROJECT_ROOT/billboard/billboard.py admin_get_bb_data $CMDPATH $1
 
-# wait for data to be commited to bb
-sleep 3
-CMDPATH="tmp_ecmds"
-mkdir $CMDPATH
-python3 $PROJECT_ROOT/billboard/billboard.py admin_get_bb_data $CMDPATH $1
+  CMDFILES=$(ls "$CMDPATH")
 
-CMDFILES=$(ls "$CMDPATH")
+  echo "[biPVRA] Posting data from bulletin board $CMDFILES"
 
-echo "[biPVRA] Posting data from bulletin board $CMDFILES"
-
-state_counter=$2
-for f in $CMDFILES
-do
-	echo "[biPVRA] Forwarding data in $CMDPATH/$f"
-	cp "$CMDPATH/$f" command.bin
-	state_counter=$(($state_counter+1))
-	./pvraHostCommand.sh $state_counter local
-done
-rm -rf $CMDPATH
-
+  state_counter=$2
+  for f in $CMDFILES
+  do
+    echo "[biPVRA] Forwarding data in $CMDPATH/$f"
+    cp "$CMDPATH/$f" command.bin
+    state_counter=$(($state_counter+1))
+    ./pvraHostCommand.sh $state_counter local
+  done
+  rm -rf $CMDPATH
+fi
 
 ../../app/app --auditlogPVRA --enclave-path `pwd`/../../enclave/enclave.signed.so \
   --sealedState sealedState.bin \
   --auditlog auditlog.bin \
   --auditlogsig auditlog.sig 
+
+
 
 key="$PROJECT_ROOT/test_sgx/signingkey.bin"
 curr_dir=$(pwd)

@@ -59,6 +59,7 @@ fi
 
 if [ "$5" != "omit" ]; then
   echo "[client] Received cResponse: HTTP/1.1 200 OK\n" | nc -l -p 8080 -q 0 > cResponse.json
+  cat cResponse.json
 
   # parses the cResponse.json hexstring into a binary signature file <cResponse.sig> and signed message <cResponse.txt>
   jq '.sig' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.sig
@@ -68,11 +69,11 @@ if [ "$5" != "omit" ]; then
   echo -n "[client] Verifying cResponse signature: "
   openssl dgst -sha256 -verify signingkey.pem -signature cResponse.sig cResponse.txt
 
-  jq '.sig_admin' cResponse.json | tr -d '\"' | xxd -r -p > adminConfirm.sig
-  jq '.msg_admin' cResponse.json | tr -d '\"' | xxd -r -p > adminConfirm.txt
+#  jq '.sig_admin' cResponse.json | tr -d '\"' | xxd -r -p > adminConfirm.sig
+#  jq '.msg_admin' cResponse.json | tr -d '\"' | xxd -r -p > adminConfirm.txt
 
   echo -n "[client] Verifying cResponse admin signature: "
-  python3 $PROJECT_ROOT/billboard/billboard.py user_verify_confirmation $1 adminConfirm.txt  adminConfirm.sig eCMD.bin
+  python3 $PROJECT_ROOT/billboard/billboard.py user_verify_confirmation $1 cResponse.json eCMD.bin
 
   # prints the cResponse message that was signed (CAREFUL only readable for ASCII string messages)
   echo -n -e "[client] cResponse: ${Cyan}"
@@ -82,7 +83,8 @@ if [ "$5" != "omit" ]; then
 
 fi
 
-
-#post to bulletin board
-echo "[client] Posting data to billboard"
-python3 $PROJECT_ROOT/billboard/billboard.py user_add_data $1 command.bin
+if [ "$5" != "omit_sig" ]; then
+  #post to bulletin board
+  echo "[client] Posting data to billboard"
+  python3 $PROJECT_ROOT/billboard/billboard.py user_add_data $1 command.bin
+fi

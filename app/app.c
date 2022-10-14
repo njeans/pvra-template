@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
       opt_eCMD_file = optarg;
       break;
     case 11:
-      opt_eAESkey_file = optarg;
+      opt_eAESkey_file = optarg;  //its not an aes key
       break;
     case 12:
       opt_cResponse_file = optarg;

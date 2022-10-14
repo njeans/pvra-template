@@ -115,7 +115,7 @@ echo -n "[biPVRA] Verifying signed encryption key: "
 #openssl dgst -sha256 -verify signingkey.pem -signature enclave_enc_pubkey.sig enclave_enc_pubkey.bin
 python3 $PROJECT_ROOT/billboard/crypto.py verify_secp256k1_path signingkey.bin enclave_enc_pubkey.bin enclave_enc_pubkey.sig
 
-echo -n "[biPVRA] Initialize billboard and Verifying signed userpubkeys:"
+echo -n "[biPVRA] Initialize billboard and Verifying signed userpubkeys: "
 python3 $PROJECT_ROOT/billboard/billboard.py admin_init_contract pubkeys.list pubkeys.sig
 
 
@@ -123,6 +123,7 @@ python3 $PROJECT_ROOT/billboard/billboard.py admin_init_contract pubkeys.list pu
 mkdir client 
 cp ../client.sh ./client
 cp ../pvraClientCommand.sh ./client
+cp ../pvraClientAuditCommand.sh ./client
 cp ./enclave_enc_pubkey.bin ./client
 cp ../encrypt_command ./client
 cp ../format_command ./client

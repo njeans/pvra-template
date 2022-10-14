@@ -135,6 +135,7 @@ sgx_status_t ecall_commandPVRA(
   unsigned char eCMD_hash[32];
   struct SHA3_CTX ctx_sha3;
   keccak_init(&ctx_sha3);
+  keccak_update(&ctx_sha3, cmdpubkey, cmdpubkey_size);
   keccak_update(&ctx_sha3, eCMD, eCMD_size);
   keccak_final(&ctx_sha3, &eCMD_hash);
 

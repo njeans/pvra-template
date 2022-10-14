@@ -156,7 +156,7 @@ contract Billboard {
     }
 
     function hash_confirmation(address _addresses, uint audit_num, bytes32 data_hash) internal pure returns (bytes32) {
-        bytes memory packed = abi.encodePacked(audit_num, _addresses, data_hash);
+        bytes memory packed = abi.encodePacked(uint2str(audit_num), _addresses, data_hash);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
         bytes32 hash = keccak256(packed);

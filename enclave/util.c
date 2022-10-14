@@ -33,8 +33,8 @@ void hash_address_list(secp256k1_pubkey * pubkey_list, int num_pubkeys, char * h
   }
   char eth_prefix[100];
   int s = sprintf(eth_prefix,"%cEthereum Signed Message:\n%d", 25, sizeof(packed_address_t) * num_pubkeys);
-  printf("address_buff=");
-  print_hexstring(addr_buff, num_pubkeys*sizeof(packed_address_t));
+//  printf("address_buff=");
+//  print_hexstring(addr_buff, num_pubkeys*sizeof(packed_address_t));
   struct SHA3_CTX ctx_sha3;
   keccak_init(&ctx_sha3);
   //s-1 don't want '{0}' string deliminator

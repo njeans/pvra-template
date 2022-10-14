@@ -20,21 +20,17 @@ cp ../sealedState0.bin sealedState.bin
 
 if [ "$1" != "omit" ]; then
   state_counter=$((state_counter+1))
-  ./pvraHostCommand.sh $state_counter
+  ./pvraHostCommand.sh $state_counter $1
 fi
 
-
-
-
-
-# audit_num is the first argument
-./pvraAuditCommand.sh 1 $state_counter
 # [TODO][NERLA]: Audit Log has been signed by enclave, use it for the BulletinBoard
 # Requesting the auditlog is implemented as a seperate lightweight ecall that doesn't change the enclave state 
 # auditlogPVRA ecall currently does not use audit_version_no, instead it just dumps the entire audit log (we can change later this doesn't seem high priority)
 # the "blob" that is signed is {hash(eCMD0) || cmd0_userpubkey || ... || hash(eCMDN) || cmdN_userpubkey}
 # there are print statements in the ecall for a better look
 
+# audit_num is the first argument
+./pvraAuditCommand.sh 1 $state_counter $2
 
 
 

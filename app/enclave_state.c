@@ -147,7 +147,6 @@ bool save_signature(const char *const signature_file, unsigned char *signature_s
   bool ret_status = true;
   FILE *file = NULL;
 
-  printf("save_signature signature_src_buffer_size %ld\n", signature_src_buffer_size);
   if (signature_src_buffer_size != 64 && signature_src_buffer_size != 65) {
     fprintf(stderr,
             "[GatewayApp]: assertion failed: signature_src_buffer_size != 64 or 65\n");

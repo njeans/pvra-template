@@ -69,13 +69,13 @@ def deploy_contract(w3, admin_addr=""):
     contract = w3.eth.contract(abi=abis, bytecode=bins)
     with open(IAS_REPORT_PATH) as f:
         ias_report = json.loads(f.read())
-    print("enclave_public_key="+enclave_public_key.hex())
+    # print("enclave_public_key="+enclave_public_key.hex())
     # print("ias_report_signature=", ias_report["headers"]["X-IASReport-Signature"])
-    print("admin_addr="+admin_addr)
+    # print("admin_addr="+admin_addr)
     tx_hash = contract.constructor(enclave_public_key, b'ias report').transact({"from": admin_addr})
     contract_address = w3.eth.get_transaction_receipt(tx_hash)['contractAddress']
     contract = w3.eth.contract(address=contract_address, abi=abis)
-    print(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash}')
+    print(f'[billboard] Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}')
     with open(CONTRACT_ADDRESS_PATH, "w") as f:
         f.write(contract_address)
     return contract_address, contract, tx_hash
@@ -117,7 +117,7 @@ def send_tx(w3, foo, user_addr, value=0):
         # pprint.pprint(dict(receipt))
         # print("\tWas transaction successful?"+str(receipt["status"]))
     else:
-        print("billboard.send_tx error Gas cost exceeds 10000000:", gas_estimate)
+        print("[billboard] send_tx error Gas cost exceeds 10000000:", gas_estimate)
         exit(1)
 
 
@@ -134,11 +134,13 @@ def admin_init_contract(user_addresses_path, signature_path):
     w3 = setup_w3()
     admin_addr_, _ = get_account(0)
     _,contract,_ = deploy_contract(w3, admin_addr=admin_addr_)
+    print("[billboard] initializing contract with users ", user_addresses)
     ge = send_tx(w3, contract.functions.init_user_db(user_addresses, signature), admin_addr_)
-    print("gasUsed", ge)
+    print("[billboard] gasUsed", ge)
     initialized = contract.functions.initialized().call({"from": admin_addr_})
     assert initialized
 
+#todo add user_verify_contract
 
 def user_add_data(user_num, encrypted_user_data_path):
     user_num = int(user_num)+1
@@ -151,10 +153,10 @@ def user_add_data(user_num, encrypted_user_data_path):
     audit_num = last_audit_num+1
 
     ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data, audit_num), user_addr)
-    print("gasUsed", ge)
+    print("[billboard] gasUsed", ge)
 
     user_info = contract.functions.get_user(user_addr, audit_num).call({"from": user_addr})
-    print("update billboard user state", user_info)
+    print("[billboard] updated billboard user state for audit_num", audit_num, user_info)
     assert user_info[0] == user_addr
     assert user_info[1] == audit_num  # next_audit_num
     assert user_info[2] == encrypted_user_data  # user_data
@@ -174,15 +176,15 @@ def admin_post_audit_data(data_path, signature_path, audit_num=1):
     audit_data = [audit_data[i:i+len_unit] for i in range(start_data, len(audit_data_raw), 32)]
     audit_data = [audit_data[:int(len(audit_data)/2)], audit_data[int(len(audit_data)/2):]]
     audit_data = [[Web3.toChecksumAddress(x[-20:].hex()) for x in audit_data[0]], audit_data[1]]
-    print("audit_data=", audit_data)
+    print("[billboard] posting audit_data", audit_data)
     w3 = setup_w3()
     contract = get_contract(w3)
     admin_addr, _ = get_account(0)
     audit_num = int(audit_num)
     gas=send_tx(w3, contract.functions.admin_audit(audit_num, signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
+    print("[billboard] gasUsed",gas)
     last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
     assert last_audit_num == audit_num
-    print("gasUsed",gas)
 
 
 def admin_get_bb_data(output_base_path, audit_num=1):
@@ -192,7 +194,7 @@ def admin_get_bb_data(output_base_path, audit_num=1):
     audit_num = int(audit_num)
 
     user_datas = contract.functions.get_all_user_data(audit_num).call({"from": admin_addr})
-    print("billboard user data for audit_num", audit_num, user_datas)
+    print("[billboard] user data for audit_num", audit_num, user_datas)
     encrypted_data = []
     for user in user_datas:
         encrypted_data.append(user[2])
@@ -201,11 +203,11 @@ def admin_get_bb_data(output_base_path, audit_num=1):
             f.write(encrypted_data[i])
 
 
-def admin_sign_confirmation(user_pubkey_path, user_cmd_path, sig_out_path, msg_out_path):
-    with open(user_pubkey_path, "rb") as f:
-        user_pubkey = f.read()
+def admin_sign_confirmation(user_cmd_path, sig_out_path, msg_out_path):
     with open(user_cmd_path, "rb") as f:
-        user_cmd = f.read()
+        user_cmd_buff = f.read()
+    user_pubkey = user_cmd_buff[:64]
+    user_cmd = user_cmd_buff[64:]
     w3 = setup_w3()
     contract = get_contract(w3)
     admin_addr, private_key = get_account(0)
@@ -218,19 +220,17 @@ def admin_sign_confirmation(user_pubkey_path, user_cmd_path, sig_out_path, msg_o
     confirmation = bytes(str(audit_num), "utf-8") + user_addr + user_cmd_hash
     sig = crypto.sign_eth_data(private_key, confirmation)
     with open(sig_out_path, "w") as f:
-        f.write(sig)#todo remove 0x?
+        f.write(sig[2:])
     with open(msg_out_path, "w") as f:
         f.write(confirmation.hex())
 
 
-def user_verify_confirmation(user_num, msg_path, sig_path, data_path):
-    with open(msg_path, "rb") as f:
-        msg = f.read()
-    with open(sig_path, "rb") as f:
-        sig = f.read()
+def user_verify_confirmation(user_num, cResponse_path, data_path):
+    with open(cResponse_path, "r") as f:
+        cResponse = json.loads(f.read())
     with open(data_path, "rb") as f:
         data = f.read()
-    user_num = int(user_num)
+    user_num = int(user_num)+1
     m = hashlib.sha3_256()
     m.update(data)
     data_hash = m.digest()
@@ -238,7 +238,8 @@ def user_verify_confirmation(user_num, msg_path, sig_path, data_path):
     w3 = setup_w3()
     contract = get_contract(w3)
     admin_addr = contract.functions.admin_addr().call({"from": user_addr})
-    res = crypto.recover_eth_data(msg, sig, address=admin_addr)
+    msg = bytes.fromhex(cResponse["msg_admin"])
+    res = crypto.recover_eth_data(msg, bytes.fromhex(cResponse["sig_admin"]), address=admin_addr)
     print(res)
     assert res
     len_audit_num = len(msg) - 20 - 32
@@ -249,6 +250,40 @@ def user_verify_confirmation(user_num, msg_path, sig_path, data_path):
     assert listed_data_hash == data_hash
     last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
     assert listed_audit_num == last_audit_num+1
+
+
+def user_prove_omission_sig(user_num, cResponse_path):
+    with open(cResponse_path, "r") as f:
+        cResponse = json.loads(f.read())
+    msg = bytes.fromhex(cResponse["msg_admin"])
+    sig = bytes.fromhex(cResponse["sig_admin"])
+    user_num = int(user_num)+1
+    user_addr, _ = get_account(user_num)
+    w3 = setup_w3()
+    contract = get_contract(w3)
+    len_audit_num = len(msg) - 20 - 32
+    audit_num = int(msg[:len_audit_num])
+    listed_address = msg[len_audit_num:len_audit_num+20]
+    listed_data_hash = msg[len_audit_num+20:]
+    ge = send_tx(w3, contract.functions.prove_omission_sig(listed_address, audit_num, listed_data_hash, sig), user_addr)
+    omission_detected = contract.functions.omission_detected().call({"from": user_addr})
+    print(omission_detected)
+    print("[billboard] gasUsed", ge)
+    assert omission_detected
+
+
+def user_prove_omission_data(user_num, audit_num=1):
+    user_num = int(user_num)+1
+    user_addr, _ = get_account(user_num)
+    w3 = setup_w3()
+    contract = get_contract(w3)
+    audit_num = int(audit_num)
+    ge = send_tx(w3, contract.functions.prove_omission_data(user_addr, audit_num), user_addr)
+    omission_detected = contract.functions.omission_detected().call({"from": user_addr})
+    print(omission_detected)
+    print("[billboard] gasUsed", ge)
+    assert omission_detected
+
 
 if __name__ == '__main__':
     # print(sys.argv[1:])
