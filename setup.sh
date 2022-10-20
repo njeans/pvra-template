@@ -101,6 +101,7 @@ then
   cp ./applications/$APP_NAME/client.sh ./
   cp ./applications/$APP_NAME/host.sh ./
   cp ./applications/$APP_NAME/format_command ./
+  cp ./encrypt_command ./applications/$APP_NAME/
 else
   echo "Error: Application Directory ./applications/$APP_NAME/ does not exist."
 fi

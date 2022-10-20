@@ -34,8 +34,9 @@ bool auditlogPVRA() {
       (char *)sealed_state_buffer, sealed_state_buffer_size, 
       (char *)auditlog_buffer, auditlog_buffer_size,
       (char *)auditlog_signature_buffer, auditlog_signature_buffer_size,
-      &actual_auditlog_size);
-  
+      &actual_auditlog_size,
+        (char *)sealed_out_buffer, sealed_out_buffer_size);
+
   t = clock() - t;
   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
   printf("[hcPVRA] ecall_auditlogPVRA took %f seconds\n", time_taken);

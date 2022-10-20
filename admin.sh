@@ -5,8 +5,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
-
-
+set -e
 
 if [[ -z "${CCF_ENABLE}" ]]; 
 then
@@ -128,11 +127,12 @@ cp ./enclave_enc_pubkey.bin ./client
 cp ../encrypt_command ./client
 cp ../format_command ./client
 
-# [TODO][NERLA]: Copy all generated user key pairs to client environment
-# ./client for now will be a SUPER CLIENT that stores all client information
-# we can make seperate directories for individual clients potentially later, low priority
-cp ./user0_pubkey.bin ./client
-cp ./user0_prikey.bin ./client
+num=$((NUM_USERS-1))
+for var in $(eval echo "{0..$num}")
+do
+  cp ./user"$var"_pubkey.bin ./client
+  cp ./user"$var"_prikey.bin ./client
+done
 
 # Otherwise copy your script to client environment
 cp ../client_ecdh.py ./client

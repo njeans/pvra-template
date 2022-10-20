@@ -42,12 +42,4 @@ struct AD
 	struct locationData *user_data;
 };
 
-/* static version outdated */ /*
-struct AD
-{
-	char user_info[NUM_USERS*PUBLIC_KEY_SIZE];
-	int num_data;
-	struct locationData user_data[NUM_USERS*MAX_DATA];
-};*/
-
 #endif

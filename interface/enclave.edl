@@ -41,7 +41,8 @@ enclave
             [in, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
             [out, size=auditlog_size] char *auditlog, size_t auditlog_size,
             [out, size=auditlog_signature_size] char *auditlog_signature, size_t auditlog_signature_size,
-            [out] uint32_t* actual_auditlog_size
+            [out] uint32_t* actual_auditlog_size,
+            [out, size=newsealedstate_size] char *newsealedstate, size_t newsealedstate_size
             );
 
 

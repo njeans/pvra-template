@@ -34,7 +34,8 @@ state_counter=$((state_counter+1))
 
 
 #audit num is first argument
-./pvraAuditCommand.sh 1
+state_counter=$((state_counter+1))
+./pvraAuditCommand.sh 1 $state_counter
 # [TODO][NERLA]: Audit Log has been signed by enclave, use it for the BulletinBoard
 # Requesting the auditlog is implemented as a seperate lightweight ecall that doesn't change the enclave state 
 # auditlogPVRA ecall currently does not use audit_version_no, instead it just dumps the entire audit log (we can change later this doesn't seem high priority)

@@ -61,7 +61,8 @@ sgx_status_t ecall_auditlogPVRA(
     char *sealedstate, size_t sealedstate_size, 
     char *auditlog, size_t auditlog_size,
     char *auditlog_signature, size_t auditlog_signature_size,
-    uint32_t *actual_auditlog_size) {
+    uint32_t *actual_auditlog_size,
+    char *newsealedstate, size_t newsealedstate_size) {
 
 
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
@@ -128,35 +129,32 @@ sgx_status_t ecall_auditlogPVRA(
 
   // PRINTS AUDIT LOG 
   
+  int hash_size = 32;
   printf("[eaPVRA] PRINTING READABLE AUDITLOG\n");
   int num_entries = enclave_state.auditmetadata.audit_offset;
   for(int i = 0; i < num_entries; i++) {
     printf("HASH[%d]: ", i);
-    print_hexstring(&enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
+    print_hexstring(&enclave_state.auditmetadata.auditlog.command_hashes[i], hash_size);
     printf("PKEY[%d]: ", i);
     print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
-  } 
-  
+  }
 
-  char audit_num_str[80];
-  int len_audit_num = sprintf(audit_num_str,"%d", enclave_state.auditmetadata.audit_version_no)-1;//don't want string deliminator \0 so -1
-  uint32_t auditlogbuf_size = len_audit_num+num_entries*(sizeof(packed_address_t)+32);
-  uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size); 
-  uint32_t auditlog_offset = len_audit_num;
-  memcpy(auditlogbuf, &audit_num_str, len_audit_num);
+  uint32_t auditlogbuf_size = sizeof(enclave_state.auditmetadata.audit_version_no)+num_entries*(sizeof(packed_address_t)+hash_size);
+  uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size);
+  memcpy_big_uint32(auditlogbuf, enclave_state.auditmetadata.audit_version_no);
+  uint32_t auditlog_offset = sizeof(enclave_state.auditmetadata.audit_version_no);
 
   for(int i = 0; i < num_entries; i++) {
     memcpy(auditlogbuf + auditlog_offset + 12, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
     auditlog_offset += sizeof(packed_address_t);
   }
   for(int i = 0; i < num_entries; i++) {
-    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
-    auditlog_offset += 32;
+    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], hash_size);
+    auditlog_offset += hash_size;
   }
 
   printf("\n[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED\n", auditlog_offset, auditlogbuf_size);
   print_hexstring(auditlogbuf, auditlogbuf_size);
-  printf("\n");
 
   *actual_auditlog_size = auditlogbuf_size;
   
@@ -169,18 +167,7 @@ sgx_status_t ecall_auditlogPVRA(
   keccak_update(&ctx_sha3, eth_prefix, len_prefix-1);
   keccak_update(&ctx_sha3, auditlogbuf, auditlogbuf_size);
   keccak_final(&ctx_sha3, &auditlog_hash);
-/*
-  ret = mbedtls_md(
-      mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 
-      (const unsigned char *)auditlogbuf, 
-      auditlogbuf_size, 
-      auditlog_hash);
-  if(ret != 0) {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
-  }
-*/
+
   secp256k1_ecdsa_recoverable_signature sig;
   unsigned char randomize[32];
 
@@ -193,6 +180,7 @@ sgx_status_t ecall_auditlogPVRA(
   unsigned char sig_serialized[65];
   int recovery;
   secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, &sig_serialized, &recovery, &sig);
+  secp256k1_context_destroy(ctx);
   uint8_t v = ((uint8_t) recovery);
   uint8_t p = (uint8_t) 27;
   v = v + p;
@@ -205,13 +193,83 @@ sgx_status_t ecall_auditlogPVRA(
 
   memcpy(auditlog, auditlogbuf, auditlogbuf_size);
   memcpy(auditlog_signature, &sig_serialized, 65);
-  secp256k1_context_destroy(ctx);
+
+  enclave_state.auditmetadata.audit_offset = 0;
+  enclave_state.auditmetadata.audit_version_no+=1;
+  printf("[eiPVRA] Reseting audit log audit_num %d\n", enclave_state.auditmetadata.audit_version_no);
 
   if(A_DEBUGRDTSC) ocall_rdtsc();
 
+  size_t new_unsealed_data_size = sizeof(enclave_state) + sizeof(struct dAppData);
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    new_unsealed_data_size += sizeof(struct dynamicDS);
+    new_unsealed_data_size += dAD.dDS[i]->buffer_size;
+  }
 
+
+  uint8_t *const new_unsealed_data = (uint8_t *)malloc(new_unsealed_data_size);
+
+  if (new_unsealed_data == NULL) {
+      printf("[ecPVRA] malloc new_unsealed_data blob error.\n");
+      ret = SGX_ERROR_INVALID_PARAMETER;
+      goto cleanup;
+  }
+
+  int new_unsealed_offset = 0;
+
+  memcpy(new_unsealed_data + new_unsealed_offset, &enclave_state, sizeof(struct ES));
+  new_unsealed_offset += sizeof(struct ES);
+
+  memcpy(new_unsealed_data + new_unsealed_offset, &dAD, sizeof(struct dAppData));
+  new_unsealed_offset += sizeof(struct dAppData);
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i], sizeof(struct dynamicDS));
+    new_unsealed_offset += sizeof(struct dynamicDS);
+  }
+
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i]->buffer, dAD.dDS[i]->buffer_size);
+    new_unsealed_offset += dAD.dDS[i]->buffer_size;
+  }
+
+  if(new_unsealed_offset != new_unsealed_data_size) {
+    printf("[ecPVRA] creating new_unsealed_data blob error.\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
+
+  // FREE metadata structs
+  for(int i = 0; i < dAD.num_dDS; i++) {
+    if(dAD.dDS[i] != NULL)
+      free(dAD.dDS[i]);
+  }
+
+  if(dAD.dDS != NULL)
+    free(dAD.dDS);
+  uint32_t seal_size = sgx_calc_sealed_data_size(0U, new_unsealed_data_size);
+  if(A_DEBUGRDTSC) printf("[ecPVRA] New seal_size: [%d]\n", seal_size);
+
+  //printf("[ecPVRA] sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
+  //if(sealedout_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
+  ret = sgx_seal_data(0U, NULL, new_unsealed_data_size, new_unsealed_data, seal_size, (sgx_sealed_data_t *)newsealedstate);
+  if(ret !=SGX_SUCCESS) {
+    print("[ecPVRA] sgx_seal_data() failed!\n");
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
+  //}
+  //else {
+  //  printf("[ecPVRA] Size allocated is less than the required size!\n");
+  //  ret = SGX_ERROR_INVALID_PARAMETER;
+  //  goto cleanup;
+  //}
+
+  if(A_DEBUGPRINT) printf("[ecPVRA] Enclave State sealed success\n");
+  ret = SGX_SUCCESS;
 
   cleanup:
+//    if (ctx != NULL) secp256k1_context_destroy(ctx); todo uncomment
     if(A_DEBUGRDTSC) ocall_rdtsc();
     return ret;
 }

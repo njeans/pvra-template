@@ -11,8 +11,7 @@ Purple='\033[0;35m'       # Purple
 Cyan='\033[0;36m'         # Cyan
 White='\033[0;37m'        # White
 NC='\033[0m'
-
-
+echo "pvraClientCommand uid: $1 priv: $2 pub: $3 cmd: $4 mode: [$5]"
 echo -n "[biPVRA] Verifying signed encryption key: "
 #openssl dgst -sha256 -verify signingkey.pem -signature enclave_enc_pubkey.sig enclave_enc_pubkey.bin
 python3 $PROJECT_ROOT/billboard/crypto.py verify_secp256k1_path signingkey.bin enclave_enc_pubkey.bin enclave_enc_pubkey.sig
@@ -38,13 +37,13 @@ echo "formatting $4"
 
 
 
-echo -e "[client] Client->Host eCMD+eAESkey"
 # concatenates <user0_pubkey.bin> to <encrypted_command.bin> for sending to host
 cat $3 eCMD.bin > command.bin
 
 if [ "$5" != "omit" ]; then
+  echo -e "[client] Client->Host eCMD+eAESkey"
   # the host should be waiting for this connection
-  nc -N localhost 8080 < command.bin >/dev/null
+  nc -N localhost 8081 < command.bin >/dev/null
 else
   echo "[client] Not sending data to the admin, only posting to bulletin board"
 fi
@@ -56,9 +55,10 @@ fi
 
 
 
-
+#omit
+#optimistic
 if [ "$5" != "omit" ]; then
-  echo "[client] Received cResponse: HTTP/1.1 200 OK\n" | nc -l -p 8080 -q 0 > cResponse.json
+  echo "[client] Received cResponse: HTTP/1.1 200 OK\n" | nc -l -p 8081 -q 0 > cResponse.json
   cat cResponse.json
 
   # parses the cResponse.json hexstring into a binary signature file <cResponse.sig> and signed message <cResponse.txt>

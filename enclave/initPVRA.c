@@ -305,8 +305,12 @@ sgx_status_t ecall_initPVRA(
     }
     memcpy(&enclave_state.auditmetadata.master_user_pubkeys[i], temp_key_bytes, sizeof(secp256k1_pubkey));
   }
-  if(I_DEBUGPRINT) printf("[eiPVRA] Initialized [%d] User Public Keys success\n", num_pubkeys);
-
+//  if(I_DEBUGPRINT) printf("[eiPVRA] Initialized [%d] User Public Keys success\n", num_pubkeys);
+//  for (int i = 0; i < enclave_state.auditmetadata.num_pubkeys; i++) {
+//    if(I_DEBUGPRINT) print_hexstring_n(&enclave_state.auditmetadata.master_user_pubkeys[i], 3);
+//    if(I_DEBUGPRINT) printf("...");
+//    if(I_DEBUGPRINT) print_hexstring((char *)(&enclave_state.auditmetadata.master_user_pubkeys[i])+(sizeof(secp256k1_pubkey)-3), 3);
+//  }
 
   /*    Initialize AUDIT LOG metadata    */
 
@@ -316,6 +320,7 @@ sgx_status_t ecall_initPVRA(
 
 
   /*    Sign all USER pubkeys    */
+
   unsigned char msg_hash[32];
   hash_address_list(&enclave_state.auditmetadata.master_user_pubkeys, num_pubkeys, &msg_hash);
   if(I_DEBUGPRINT) printf("[eiPVRA] USER pubkeys hash\n");
@@ -332,9 +337,7 @@ sgx_status_t ecall_initPVRA(
     goto cleanup;
   }
   */
-  //printf("[eiPVRA] PUBKEYS %d\n", enclave_state.auditmetadata.num_pubkeys*sizeof(sgx_ec256_public_t));
-  //print_hexstring(enclave_state.auditmetadata.master_user_pubkeys, enclave_state.auditmetadata.num_pubkeys*sizeof(sgx_ec256_public_t));
-  //print_hexstring(msg_hash, 32);
+
 
   secp256k1_ecdsa_recoverable_signature sig;
   unsigned char randomize[32];

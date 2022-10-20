@@ -21,6 +21,8 @@ cp ../sealedState0.bin sealedState.bin
 if [ "$1" != "omit" ]; then
   state_counter=$((state_counter+1))
   ./pvraHostCommand.sh $state_counter $1
+else
+  sleep 5
 fi
 
 # [TODO][NERLA]: Audit Log has been signed by enclave, use it for the BulletinBoard
@@ -30,6 +32,7 @@ fi
 # there are print statements in the ecall for a better look
 
 # audit_num is the first argument
+state_counter=$((state_counter+1))
 ./pvraAuditCommand.sh 1 $state_counter $2
 
 

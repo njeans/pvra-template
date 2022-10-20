@@ -18,25 +18,28 @@ then
   exit
 fi
 
-if [ "$3" != "omit" ]; then
+state_counter=$1
+mode=$2
+echo "pvraAuditCommand sc: $1 mode: [$2]"
+
+if [ "$mode" != "omit" ]; then
   echo "[biPVRA] Getting data from bulletin board"
   # wait for data to be commited to bb
   sleep 3
   CMDPATH="tmp_ecmds"
   mkdir $CMDPATH
-  python3 $PROJECT_ROOT/billboard/billboard.py admin_get_bb_data $CMDPATH $1
+  python3 $PROJECT_ROOT/billboard/billboard.py admin_get_bb_data $CMDPATH $3
 
   CMDFILES=$(ls "$CMDPATH")
 
   echo "[biPVRA] Posting data from bulletin board $CMDFILES"
 
-  state_counter=$2
   for f in $CMDFILES
   do
     echo "[biPVRA] Forwarding data in $CMDPATH/$f"
     cp "$CMDPATH/$f" command.bin
-    state_counter=$(($state_counter+1))
     ./pvraHostCommand.sh $state_counter local
+    state_counter=$((state_counter+1))
   done
   rm -rf $CMDPATH
 fi
@@ -44,7 +47,12 @@ fi
 ../../app/app --auditlogPVRA --enclave-path `pwd`/../../enclave/enclave.signed.so \
   --sealedState sealedState.bin \
   --auditlog auditlog.bin \
-  --auditlogsig auditlog.sig 
+  --auditlogsig auditlog.sig \
+  --sealedOut sealedOut.bin
+
+filename="sealedState$state_counter.bin"
+cp sealedOut.bin $filename
+mv sealedOut.bin sealedState.bin
 
 
 
@@ -55,4 +63,4 @@ sig="$curr_dir/auditlog.sig"
 
 echo -n "[biPVRA] Verifying signed auditlog: "
 #openssl dgst -sha256 -verify signingkey.pem -signature auditlog.sig auditlog.bin
-python3 $PROJECT_ROOT/billboard/billboard.py admin_post_audit_data $data $sig $1
+python3 $PROJECT_ROOT/billboard/billboard.py admin_post_audit_data $data $sig

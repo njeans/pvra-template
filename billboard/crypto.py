@@ -18,7 +18,7 @@ def derive_key_aes(my_privatekey, other_publickey):
 
 
 def swap_endians(b, *, length=32, from_byteorder="little", to_byteorder="big"):
-    return int.from_bytes(b, from_byteorder).to_bytes(length, "big")
+    return int.from_bytes(b, from_byteorder).to_bytes(length, to_byteorder)
 
 
 def encrypt_aes(derived_key, data):

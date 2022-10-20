@@ -299,8 +299,14 @@ sgx_status_t ecall_commandPVRA(
 
 
   /*    Reading the user_pubkey    */
-
   memcpy(&CC.user_pubkey, cmdpubkey, sizeof(secp256k1_pubkey));
+
+  if(C_DEBUGPRINT) printf("[ecPVRA] eCMD user_pubkey: ");
+  if(C_DEBUGPRINT) print_hexstring_n(&CC.user_pubkey, 3);
+  if(C_DEBUGPRINT) printf("..");
+  if(C_DEBUGPRINT) print_hexstring_n(((char *)&CC.user_pubkey)+61, 3);
+  if(C_DEBUGPRINT) printf("\n");
+
   int user_idx = -1;
   for(int i = 0; i < MAX_USERS; i++) {
     if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
@@ -309,15 +315,11 @@ sgx_status_t ecall_commandPVRA(
   }
   if (user_idx == -1) {
     if(C_DEBUGPRINT) printf("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
+    sprintf(cResponse, "[ecPVRA] user_pubkey NOT FOUND rejecting command");
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
   }
-
-  if(C_DEBUGPRINT) printf("[ecPVRA] CMD user_pubkey[%d]: ", user_idx);
-  if(C_DEBUGPRINT) print_hexstring_n(&CC.user_pubkey, 3);
-  if(C_DEBUGPRINT) printf("....");
-  if(C_DEBUGPRINT) print_hexstring_n(((char *)&CC.user_pubkey)+61, 3);
-  if(C_DEBUGPRINT) printf(" success\n");
+  if(C_DEBUGPRINT) printf("[ecPVRA] CMD user_pubkey[%d]: \n", user_idx);
 
 
   /*    ECDH protocol to generate shared secret AESKey    */
@@ -358,6 +360,7 @@ sgx_status_t ecall_commandPVRA(
   
   if (ct_src_len != sizeof(struct private_command)) {
     printf("[ecPVRA] BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
+    sprintf(cResponse, "[ecPVRA] BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
   }
@@ -376,7 +379,8 @@ sgx_status_t ecall_commandPVRA(
   );
 
   if(decrypt_status) {
-    printf("[ecPVRA] Failed to Decrypt Command\n");
+    printf("[ecPVRA] Failed to Decrypt Command decrypt_status: %d\n", decrypt_status);
+    sprintf(cResponse, "[ecPVRA] Failed to Decrypt Command decrypt_status: %d\n", decrypt_status);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
   }
@@ -397,12 +401,13 @@ sgx_status_t ecall_commandPVRA(
   
   /*    (5) SEQNO Verification    */
 
-  if(CC.eCMD.seqNo != enclave_state.antireplay.seqno[user_idx]) {
-    printf("SeqNo failure received [%d] =/= [%d] logged\n", CC.eCMD.seqNo, enclave_state.antireplay.seqno[user_idx]);
+  if(CC.eCMD.seqNo < enclave_state.antireplay.seqno[user_idx]) {
+    printf("SeqNo failure received [%d] < [%d] logged\n", CC.eCMD.seqNo, enclave_state.antireplay.seqno[user_idx]);
+    sprintf(cResponse, "SeqNo failure received [%d] <= [%d] logged\n", CC.eCMD.seqNo, enclave_state.antireplay.seqno[user_idx]);
     goto seal_cleanup;
   }
   if(C_DEBUGPRINT) printf("SeqNo success [%d]\n", enclave_state.antireplay.seqno[user_idx]);
-  enclave_state.antireplay.seqno[user_idx]++;
+  enclave_state.antireplay.seqno[user_idx]=CC.eCMD.seqNo+1;
 
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
@@ -419,9 +424,7 @@ sgx_status_t ecall_commandPVRA(
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
-
   struct cResponse cRet;
-
   /*   APPLICATION KERNEL INVOKED    */
   cRet = (*functions[CC.eCMD.CT.tid])(&enclave_state, &CC.eCMD.CI);
   char* cRstring = cRet.message;

@@ -61,7 +61,7 @@ struct AUD
 	
 	struct AL auditlog;
 	int audit_offset;
-	uint64_t audit_version_no;
+	uint32_t audit_version_no;
 };
 
 

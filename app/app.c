@@ -175,7 +175,6 @@ int main(int argc, char **argv) {
 
   OpenSSL_add_all_algorithms(); /* Init OpenSSL lib */
 
-
   bool success_status =
     create_enclave(opt_enclave_path) && 
     enclave_get_buffer_sizes() &&
@@ -203,7 +202,8 @@ int main(int argc, char **argv) {
     (opt_auditlogPVRA ? load_seal(opt_sealedstate_file) : true) &&     
     (opt_auditlogPVRA ? auditlogPVRA() : true) &&
     (opt_auditlogPVRA ? save_auditlog(opt_auditlog_file) : true) &&
-    (opt_auditlogPVRA ? save_signature(opt_auditlogsig_file, auditlog_signature_buffer, auditlog_signature_buffer_size) : true);
+    (opt_auditlogPVRA ? save_signature(opt_auditlogsig_file, auditlog_signature_buffer, auditlog_signature_buffer_size) : true) &&
+    (opt_auditlogPVRA ? save_sealO(opt_sealedout_file) : true);
 
 
   if (sgx_lasterr != SGX_SUCCESS) {

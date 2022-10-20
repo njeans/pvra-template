@@ -19,7 +19,7 @@ CONTRACT_ADDRESS_PATH = os.environ.get('CONTRACT_ADDRESS_PATH', PROJECT_ROOT +"/
 ENCLAVE_PUBLIC_KEY_PATH = os.environ.get('ENCLAVE_PUBLIC_KEY_PATH', PROJECT_ROOT +"/test_sgx/signingkey.bin")
 IAS_REPORT_PATH = os.environ.get('IAS_REPORT_PATH', PROJECT_ROOT +"/test_sgx/ias_report.json")
 BILLBOARD_ACCOUNTS_PATH = os.environ.get('BILLBOARD_ACCOUNTS_PATH', PROJECT_ROOT+'/billboard/accounts.json')
-SOLIDITY_PATHS = (PROJECT_ROOT+'/billboard/solidity/', 'Billboard.sol', [])
+SOLIDITY_PATHS = (PROJECT_ROOT+'/billboard/solidity/', 'Billboard.sol', [PROJECT_ROOT+'/billboard/solidity/openzeppelin-contracts'])
 
 with open(ENCLAVE_PUBLIC_KEY_PATH, "rb") as f:
     enclave_public_key = f.read()
@@ -140,6 +140,7 @@ def admin_init_contract(user_addresses_path, signature_path):
     initialized = contract.functions.initialized().call({"from": admin_addr_})
     assert initialized
 
+
 #todo add user_verify_contract
 
 def user_add_data(user_num, encrypted_user_data_path):
@@ -152,7 +153,7 @@ def user_add_data(user_num, encrypted_user_data_path):
     last_audit_num = contract.functions.last_audit_num().call({"from": user_addr})
     audit_num = last_audit_num+1
 
-    ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data, audit_num), user_addr)
+    ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data), user_addr)
     print("[billboard] gasUsed", ge)
 
     user_info = contract.functions.get_user(user_addr, audit_num).call({"from": user_addr})
@@ -162,7 +163,7 @@ def user_add_data(user_num, encrypted_user_data_path):
     assert user_info[2] == encrypted_user_data  # user_data
 
 
-def admin_post_audit_data(data_path, signature_path, audit_num=1):
+def admin_post_audit_data(data_path, signature_path):
     with open(data_path, "rb") as f:
         audit_data_raw = f.read()
     with open(signature_path, "rb") as f:
@@ -172,26 +173,44 @@ def admin_post_audit_data(data_path, signature_path, audit_num=1):
     assert res
     len_unit = 32
     audit_data = audit_data_raw
-    start_data = len(str(audit_num))
+    print("[billboard] audit_data_raw",audit_data_raw.hex())
+    start_data = 4
+    audit_num = int.from_bytes(audit_data_raw[:start_data], "big")
     audit_data = [audit_data[i:i+len_unit] for i in range(start_data, len(audit_data_raw), 32)]
     audit_data = [audit_data[:int(len(audit_data)/2)], audit_data[int(len(audit_data)/2):]]
     audit_data = [[Web3.toChecksumAddress(x[-20:].hex()) for x in audit_data[0]], audit_data[1]]
-    print("[billboard] posting audit_data", audit_data)
     w3 = setup_w3()
     contract = get_contract(w3)
     admin_addr, _ = get_account(0)
-    audit_num = int(audit_num)
-    gas=send_tx(w3, contract.functions.admin_audit(audit_num, signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
-    print("[billboard] gasUsed",gas)
+    print("[billboard] posting audit_data for audit_num", audit_num, audit_data)
+    # last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
+    # print("last_audit_num", last_audit_num)
+    gas=send_tx(w3, contract.functions.audit_start(), user_addr=admin_addr)
     last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
+    print("last_audit_num", last_audit_num, "audit_num", audit_num)
     assert last_audit_num == audit_num
+    gas+=send_tx(w3, contract.functions.audit_end(signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
+    print("[billboard] gasUsed", gas)
+    # tmp_byte = contract.functions.tmp_byte().call({"from": admin_addr})
+    # tmp_byte2 = contract.functions.tmp_byte2().call({"from": admin_addr})
+    # tmp_hash = contract.functions.tmp_hash().call({"from": admin_addr})
+    # tmp_addr = contract.functions.tmp_addr().call({"from": admin_addr})
+    # ee = contract.functions.enclave_address().call({"from": admin_addr})
+    # print("tmp_byte", tmp_byte.hex())
+    # print("tmp_byte2", tmp_byte2.hex())
+    # print("tmp_hash", tmp_hash.hex())
+    # print("tmp_addr", tmp_addr)
+    # print("enclave_address", ee)
+    #
 
-
-def admin_get_bb_data(output_base_path, audit_num=1):
+def admin_get_bb_data(output_base_path, audit_num=None):
     w3 = setup_w3()
     contract = get_contract(w3)
     admin_addr, _ = get_account(0)
-    audit_num = int(audit_num)
+    if audit_num is None:
+        audit_num = contract.functions.last_audit_num().call({"from": admin_addr})+1
+    else:
+        audit_num = int(audit_num)
 
     user_datas = contract.functions.get_all_user_data(audit_num).call({"from": admin_addr})
     print("[billboard] user data for audit_num", audit_num, user_datas)
@@ -272,11 +291,13 @@ def user_prove_omission_sig(user_num, cResponse_path):
     assert omission_detected
 
 
-def user_prove_omission_data(user_num, audit_num=1):
+def user_prove_omission_data(user_num, audit_num=None):
     user_num = int(user_num)+1
     user_addr, _ = get_account(user_num)
     w3 = setup_w3()
     contract = get_contract(w3)
+    if audit_num is None:
+        audit_num = contract.functions.last_audit_num().call({"from": user_addr})
     audit_num = int(audit_num)
     ge = send_tx(w3, contract.functions.prove_omission_data(user_addr, audit_num), user_addr)
     omission_detected = contract.functions.omission_detected().call({"from": user_addr})
