@@ -15,7 +15,6 @@
 #define WAIT_TIME 60 //seconds
 #define RESET_TIME 60 //seconds
 
-
 struct userInfo
 {
     int retrieve_count;
@@ -23,6 +22,13 @@ struct userInfo
     char secret_data[DATA_SIZE];
     bool started_retrieve;
 	int uidx;
+};
+
+struct userLeaf
+{
+    int retrieve_count;
+    int retrieve_time; //time when retrieve can be completed
+    bool started_retrieve;
 };
 
 struct cInputs

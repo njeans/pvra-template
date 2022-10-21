@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
-//import "openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 
 contract Billboard {
     struct User {
@@ -42,12 +41,12 @@ contract Billboard {
 
     bytes32 public tmp_hash;
     bytes public tmp_byte;
-    bytes public tmp_byte2;
     bytes32 public tmp_hash2;
     address public tmp_addr;
-    int public tmp_idx;
+    uint public tmp_idx;
 
     constructor(bytes memory enclave_sign_key_, bytes memory ias_report_) {
+        require(enclave_sign_key_.length == 64);
         admin_addr = msg.sender;
         enclave_sign_key = enclave_sign_key_;
         enclave_address = address(uint160(uint256(keccak256(enclave_sign_key_))));
@@ -55,9 +54,9 @@ contract Billboard {
         ias_report = ias_report_;
     }
 
-    function init_user_db(address[] memory user_addresses, bytes memory signature) public {
+    function initialize(address[] memory user_addresses, bytes memory signature) public {
+
         require(msg.sender == admin_addr);
-        require(initialized == false);
         bytes32 users_hash = hash_address_list(user_addresses);
         address signer = recover(users_hash, signature);
         require(signer == enclave_address);
@@ -105,20 +104,19 @@ contract Billboard {
         audit_data[last_audit_num] = AuditData("", included_user_ids, included_data_hashes);
     }
 
-//    function audit_end_m(bytes memory audit_log_signature,
-//        address[] memory included_user_ids, bytes32[] memory included_data_hashes,
-//        bytes memory root_signature, bytes[] calldata leaves, bytes32[] calldata proof,
-//        bool[] calldata proofFlags) public {
-//        audit_end(audit_log_signature, included_user_ids, included_data_hashes);
-//        bytes32[] memory leaves_hashes = new bytes32[](leaves.length);
-//        for (int i = 0; i < leaves.length; i++) {
-//            leaves_hashes[i] = keccak256(leaves[i]);
-//        }
-////        audit_data[last_audit_num].merkle_root = MerkleRoot.processMultiProofCalldata(proof, proofFlags, leaves_hashes);
-////        bytes32 root_hash = hash_root(root);
-////        address signer = recover(root_hash, audit_log_signature);
-////        require(enclave_address == signer);
-//    }
+    function audit_end_merkle(bytes memory audit_log_signature,
+        address[] memory included_user_ids, bytes32[] memory included_data_hashes,
+         bytes[] calldata leaves, bytes32[] calldata proof) public {
+        require(msg.sender == admin_addr);
+        require(initialized);
+        // last_audit_num was incremented in audit_start()
+        last_audit_block_num = block.number;
+        bytes32 audit_log_hash = hash_audit_data_merkle(leaves, proof, last_audit_num, included_user_ids, included_data_hashes);
+        address signer = recover(audit_log_hash, audit_log_signature);
+        require(enclave_address == signer);
+        check_proof(proof, leaves);
+        audit_data[last_audit_num].merkle_root = proof[proof.length-1];
+    }
 
     function prove_omission_data(address user_id, uint32 audit_num) public {
         require(initialized);
@@ -128,7 +126,7 @@ contract Billboard {
         AuditData memory audit_log = audit_data[audit_num];
 
         int index = find_address(audit_log.included_user_ids, user_id);
-        tmp_idx = index;
+//        tmp_idx = index;
         if (index == -1 ) {
             omission_detected = true;
         } else {
@@ -160,7 +158,6 @@ contract Billboard {
     }
 
     function hash_address_list(address[] memory _addresses) internal pure returns (bytes32) {
-        uint len = _addresses.length;
         bytes memory packed = abi.encodePacked(_addresses);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix,uint2str(packed.length),packed);
@@ -172,13 +169,7 @@ contract Billboard {
     //todo pure
     function hash_audit_data(uint32 audit_num, address[] memory _addresses, bytes32[] memory _data) internal pure returns (bytes32) {
         require(_addresses.length == _data.length);
-        uint len = _addresses.length;
         bytes memory packed = abi.encodePacked(audit_num, _addresses, _data);
-        //      bytes memory packed = abi.encodePacked(uint2str(audit_num));
-        //        for (uint i = 0; i < len; i++) {
-        //            packed = abi.encodePacked(packed, address2string(_addresses[i]), _data[i]);
-        //        }
-//        tmp_byte2 = abi.encodePacked(audit_num);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
 //        tmp_byte = packed;
@@ -186,6 +177,21 @@ contract Billboard {
         return hash;
     }
 
+
+    function hash_audit_data_merkle(bytes[] calldata leaves, bytes32[] calldata proof,
+        uint32 audit_num, address[] memory _addresses, bytes32[] memory _data) public pure returns (bytes32) {
+        require(_addresses.length == _data.length);
+        bytes memory packed = abi.encodePacked(uint32(leaves[0].length), uint32(leaves.length));
+        for (uint i = 0; i < leaves.length; i++){
+            packed = abi.encodePacked(packed, leaves[i]);
+        }
+        packed = abi.encodePacked(packed, proof, audit_num, _addresses, _data);
+//        tmp_byte = packed;
+        bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
+        packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
+        bytes32 hash = keccak256(packed);
+        return hash;
+    }
     function hash_confirmation(address _addresses, uint32 audit_num, bytes32 data_hash) internal pure returns (bytes32) {
         bytes memory packed = abi.encodePacked(uint2str(audit_num), _addresses, data_hash);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
@@ -240,6 +246,25 @@ contract Billboard {
             }
         }
         return user_data;
+    }
+
+    function check_proof(bytes32[] calldata proof, bytes[] calldata leaves) internal pure {
+        for (uint i = 0; i < leaves.length; i++) {
+            require(proof[i] == keccak256(leaves[i]));
+        }
+        check_proof_(proof, int(proof.length)-1, 0);
+    }
+
+    function check_proof_(bytes32[] calldata proof, int index, uint level) internal pure {
+        int right_index = int(proof.length) - 1 -(int(2**(level+1))-1 + 2*((int(proof.length)-1-index) - int(2**level) + 1));
+        int left_index = right_index - 1;
+        if (left_index < 0) {
+            return;
+        }
+        bytes32 h = keccak256(abi.encodePacked(proof[uint(left_index)], proof[uint(right_index)]));
+        require(h == proof[uint(index)]);
+        check_proof_(proof, left_index, level+1);
+        check_proof_(proof, right_index, level+1);
     }
 
     function recover(bytes32 hash, bytes memory signature) internal pure returns (address) {
@@ -320,4 +345,6 @@ contract Billboard {
             addr := mload(add(bys, 32))
         }
     }
+
+
 }

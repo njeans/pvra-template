@@ -2,6 +2,7 @@
 
 #include "enclavestate.h"
 #include "appPVRA.h"
+#include "merkletree.h"
 
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
@@ -128,6 +129,16 @@ struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI)
     enclave_state->appdata.user_info[CI->uidx].retrieve_time = 0;
     sprintf(ret.message, "success cancelRetrieve");
     return ret;
+}
+
+void get_user_leaf(struct ES *enclave_state, char * out[NUM_USERS], int * block_size) {
+    for (int i=0; i< NUM_USERS; i++) {
+        out[i] = (char *)malloc(sizeof(struct userLeaf));
+        struct userInfo info = enclave_state->appdata.user_info[i];
+        struct userLeaf leaf = {info.retrieve_count, info.retrieve_time, info.started_retrieve};
+        memcpy(out[i], &leaf, sizeof(struct userLeaf));
+    }
+    *block_size = sizeof(struct userLeaf);
 }
 
 

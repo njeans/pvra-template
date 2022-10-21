@@ -11,6 +11,7 @@ from solcx import compile_source
 import secp256k1
 
 import crypto
+import merkletree
 
 PROJECT_ROOT = os.environ.get('PROJECT_ROOT')
 BILLBOARD_URL = os.environ.get('BILLBOARD_URL', 'http://localhost:8545')
@@ -19,7 +20,7 @@ CONTRACT_ADDRESS_PATH = os.environ.get('CONTRACT_ADDRESS_PATH', PROJECT_ROOT +"/
 ENCLAVE_PUBLIC_KEY_PATH = os.environ.get('ENCLAVE_PUBLIC_KEY_PATH', PROJECT_ROOT +"/test_sgx/signingkey.bin")
 IAS_REPORT_PATH = os.environ.get('IAS_REPORT_PATH', PROJECT_ROOT +"/test_sgx/ias_report.json")
 BILLBOARD_ACCOUNTS_PATH = os.environ.get('BILLBOARD_ACCOUNTS_PATH', PROJECT_ROOT+'/billboard/accounts.json')
-SOLIDITY_PATHS = (PROJECT_ROOT+'/billboard/solidity/', 'Billboard.sol', [PROJECT_ROOT+'/billboard/solidity/openzeppelin-contracts'])
+SOLIDITY_PATHS = (PROJECT_ROOT+'/billboard/solidity/', 'Billboard.sol', [])
 
 with open(ENCLAVE_PUBLIC_KEY_PATH, "rb") as f:
     enclave_public_key = f.read()
@@ -43,19 +44,20 @@ def get_account(user_num, accounts_path=BILLBOARD_ACCOUNTS_PATH):
     return Web3.toChecksumAddress(user_address), private_key
 
 
-def compile_source_file(base_path, contract_source_path, allowed):
-    with open(base_path + contract_source_path, 'r') as f:
-        contract_source_path = f.read()
-    compiled_sol = compile_source(contract_source_path,
+def compile_source_file(paths=SOLIDITY_PATHS):
+    base_path, contract_source_path, allowed = paths
+    with open(base_path + "/" + contract_source_path, 'r') as f:
+        contract_source = f.read()
+    compiled_sol = compile_source(contract_source,
                                   output_values=['abi', 'bin'],
                                   base_path=base_path,
-                                  allow_paths=[allowed])
+                                  allow_paths=allowed)
     abis = []
     bins = ""
     contract_id = ""
     for x in compiled_sol:
         contract_id += x
-        contract_interface=compiled_sol[x]
+        contract_interface = compiled_sol[x]
         abis = abis + contract_interface['abi']
         bins = bins + contract_interface['bin']
     return contract_id, abis, bins
@@ -64,15 +66,15 @@ def compile_source_file(base_path, contract_source_path, allowed):
 def deploy_contract(w3, admin_addr=""):
     if admin_addr == "":
         admin_addr,_ = get_account(0)
-    base_path, contract_source_path, allowed = SOLIDITY_PATHS
-    contract_id,abis,bins = compile_source_file(base_path, contract_source_path, allowed)
+    contract_id,abis,bins = compile_source_file(SOLIDITY_PATHS)
     contract = w3.eth.contract(abi=abis, bytecode=bins)
     with open(IAS_REPORT_PATH) as f:
         ias_report = json.loads(f.read())
     # print("enclave_public_key="+enclave_public_key.hex())
     # print("ias_report_signature=", ias_report["headers"]["X-IASReport-Signature"])
     # print("admin_addr="+admin_addr)
-    tx_hash = contract.constructor(enclave_public_key, b'ias report').transact({"from": admin_addr})
+    print("ias_report\n",json.dumps(ias_report, indent=2))
+    tx_hash = contract.constructor(enclave_public_key, b'ias_report').transact({"from": admin_addr})
     contract_address = w3.eth.get_transaction_receipt(tx_hash)['contractAddress']
     contract = w3.eth.contract(address=contract_address, abi=abis)
     print(f'[billboard] Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}')
@@ -131,11 +133,11 @@ def admin_init_contract(user_addresses_path, signature_path):
     res = crypto.recover_eth_data(address_data, signature, publickey=enclave_public_key)
     print(res)
     assert res
-    w3 = setup_w3()
     admin_addr_, _ = get_account(0)
+    w3 = setup_w3()
     _,contract,_ = deploy_contract(w3, admin_addr=admin_addr_)
     print("[billboard] initializing contract with users ", user_addresses)
-    ge = send_tx(w3, contract.functions.init_user_db(user_addresses, signature), admin_addr_)
+    ge = send_tx(w3, contract.functions.initialize(user_addresses, signature), admin_addr_)
     print("[billboard] gasUsed", ge)
     initialized = contract.functions.initialized().call({"from": admin_addr_})
     assert initialized
@@ -153,7 +155,7 @@ def user_add_data(user_num, encrypted_user_data_path):
     last_audit_num = contract.functions.last_audit_num().call({"from": user_addr})
     audit_num = last_audit_num+1
 
-    ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data), user_addr)
+    ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data, audit_num), user_addr)
     print("[billboard] gasUsed", ge)
 
     user_info = contract.functions.get_user(user_addr, audit_num).call({"from": user_addr})
@@ -163,7 +165,7 @@ def user_add_data(user_num, encrypted_user_data_path):
     assert user_info[2] == encrypted_user_data  # user_data
 
 
-def admin_post_audit_data(data_path, signature_path):
+def admin_post_audit_data(data_path, signature_path, merkle=True):
     with open(data_path, "rb") as f:
         audit_data_raw = f.read()
     with open(signature_path, "rb") as f:
@@ -171,12 +173,17 @@ def admin_post_audit_data(data_path, signature_path):
     res = crypto.recover_eth_data(audit_data_raw, signature, publickey=enclave_public_key)
     print(res)
     assert res
+    print("audit_data_raw", audit_data_raw.hex())
     len_unit = 32
-    audit_data = audit_data_raw
-    print("[billboard] audit_data_raw",audit_data_raw.hex())
-    start_data = 4
-    audit_num = int.from_bytes(audit_data_raw[:start_data], "big")
-    audit_data = [audit_data[i:i+len_unit] for i in range(start_data, len(audit_data_raw), 32)]
+    if merkle:
+        nodes, leaves, start_audit_num = merkletree.parse_tree(audit_data_raw)
+        merkletree.check_tree(nodes, leaves)
+        merkletree.print_tree(nodes)
+    else:
+        start_audit_num = 0
+    end_audit_num = start_audit_num + 4
+    audit_num = int.from_bytes(audit_data_raw[start_audit_num:end_audit_num], "big")
+    audit_data = [audit_data_raw[i:i+len_unit] for i in range(end_audit_num, len(audit_data_raw), 32)]
     audit_data = [audit_data[:int(len(audit_data)/2)], audit_data[int(len(audit_data)/2):]]
     audit_data = [[Web3.toChecksumAddress(x[-20:].hex()) for x in audit_data[0]], audit_data[1]]
     w3 = setup_w3()
@@ -187,30 +194,28 @@ def admin_post_audit_data(data_path, signature_path):
     # print("last_audit_num", last_audit_num)
     gas=send_tx(w3, contract.functions.audit_start(), user_addr=admin_addr)
     last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
-    print("last_audit_num", last_audit_num, "audit_num", audit_num)
+    # print("last_audit_num", last_audit_num)
     assert last_audit_num == audit_num
-    gas+=send_tx(w3, contract.functions.audit_end(signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
+    if merkle:
+        gas+=send_tx(w3, contract.functions.audit_end_merkle(signature, audit_data[0], audit_data[1], leaves, nodes), user_addr=admin_addr)
+    else:
+        gas+=send_tx(w3, contract.functions.audit_end(signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
     print("[billboard] gasUsed", gas)
-    # tmp_byte = contract.functions.tmp_byte().call({"from": admin_addr})
-    # tmp_byte2 = contract.functions.tmp_byte2().call({"from": admin_addr})
-    # tmp_hash = contract.functions.tmp_hash().call({"from": admin_addr})
-    # tmp_addr = contract.functions.tmp_addr().call({"from": admin_addr})
-    # ee = contract.functions.enclave_address().call({"from": admin_addr})
-    # print("tmp_byte", tmp_byte.hex())
-    # print("tmp_byte2", tmp_byte2.hex())
-    # print("tmp_hash", tmp_hash.hex())
-    # print("tmp_addr", tmp_addr)
-    # print("enclave_address", ee)
-    #
+    tmp_byte = contract.functions.tmp_byte().call({"from": admin_addr})
+    tmp_hash = contract.functions.tmp_hash().call({"from": admin_addr})
+    tmp_addr = contract.functions.tmp_addr().call({"from": admin_addr})
+    ee = contract.functions.enclave_address().call({"from": admin_addr})
+    print("tmp_byte", tmp_byte.hex())
+    print("tmp_hash", tmp_hash.hex())
+    print("tmp_addr", tmp_addr)
+    print("enclave_address", ee)
 
-def admin_get_bb_data(output_base_path, audit_num=None):
+
+def admin_get_bb_data(output_base_path, audit_num=1):
     w3 = setup_w3()
     contract = get_contract(w3)
     admin_addr, _ = get_account(0)
-    if audit_num is None:
-        audit_num = contract.functions.last_audit_num().call({"from": admin_addr})+1
-    else:
-        audit_num = int(audit_num)
+    audit_num = int(audit_num)
 
     user_datas = contract.functions.get_all_user_data(audit_num).call({"from": admin_addr})
     print("[billboard] user data for audit_num", audit_num, user_datas)

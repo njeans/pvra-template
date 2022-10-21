@@ -31,6 +31,7 @@
 #include "appPVRA.h"
 #include "keccak256.h"
 #include "util.h"
+#include "merkletree.h"
 
 #define BUFLEN 2048
 #define AESGCM_128_KEY_SIZE 16
@@ -138,11 +139,32 @@ sgx_status_t ecall_auditlogPVRA(
     printf("PKEY[%d]: ", i);
     print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
   }
+  char *data[NUM_USERS];
+  int block_size;
+  get_user_leaf(enclave_state, data, &block_size);
+  printf("[eaPVRA] PRINTING User Leaf Nodes block_size: %d\n", block_size);
+  for(int i = 0; i < NUM_USERS; i++) {
+    printf("User[%d]: ", i);
+    print_hexstring(data[i], block_size);
+  }
 
-  uint32_t auditlogbuf_size = sizeof(enclave_state.auditmetadata.audit_version_no)+num_entries*(sizeof(packed_address_t)+hash_size);
+   merkle_tree mt = {block_size, 0, NUM_USERS, NULL};
+   build_tree(&mt, data, NUM_USERS, block_size);
+   printf("[eaPVRA] PRINTING User Merkle Tree\n");
+   print_tree(&mt);
+
+   size_t mt_size = tree_size(&mt);
+
+
+  uint32_t auditlogbuf_size = sizeof(enclave_state.auditmetadata.audit_version_no)+num_entries*(sizeof(packed_address_t)+hash_size)+mt_size;
   uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size);
+  uint32_t auditlog_offset = serialize_tree(mt);
+
+
+  cleanup_tree(&mt);
+
   memcpy_big_uint32(auditlogbuf, enclave_state.auditmetadata.audit_version_no);
-  uint32_t auditlog_offset = sizeof(enclave_state.auditmetadata.audit_version_no);
+  auditlog_offset += sizeof(enclave_state.auditmetadata.audit_version_no);
 
   for(int i = 0; i < num_entries; i++) {
     memcpy(auditlogbuf + auditlog_offset + 12, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
@@ -152,6 +174,7 @@ sgx_status_t ecall_auditlogPVRA(
     memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], hash_size);
     auditlog_offset += hash_size;
   }
+
 
   printf("\n[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED\n", auditlog_offset, auditlogbuf_size);
   print_hexstring(auditlogbuf, auditlogbuf_size);
