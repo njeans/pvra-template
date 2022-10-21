@@ -1,0 +1,77 @@
+version: '3.9'
+
+services:
+#  aesm:
+#    image: sgx_aesm
+#    devices:
+#      - /dev/isgx
+#    volumes:
+#      - aesmd-socket:/var/run/aesmd
+#    stdin_open: true
+#    tty: true
+#    environment:
+#      - http_proxy
+#      - https_proxy
+  aesm:
+    image: initc3/linux-sgx:2.13-ubuntu20.04
+    devices:
+      - /dev/isgx
+    volumes:
+      - aesmd-socket:/var/run/aesmd
+      #- ./aesmd.conf:/etc/aesmd.conf
+    user: aesmd
+    #stdin_open: true
+    #tty: true
+    working_dir: /opt/intel/sgx-aesm-service/aesm
+    environment:
+      LD_LIBRARY_PATH: /opt/intel/sgx-aesm-service/aesm
+    command: ./aesm_service --no-daemon
+
+
+  billboard:
+    image: trufflesuite/ganache-cli:v6.12.2
+    ports:
+      - 8545:8545
+    volumes:
+      - accounts:/accounts/
+    command: ["--deterministic", "nerla","--gasLimit","0x6691b70", "--accounts", "10", "--account_keys_path", "/accounts/accounts.json", "--debug"]
+
+  enclave:
+    image: ${APP_NAME}-enclave
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        SGX_MODE: HW
+        SGX_DEBUG: 1
+        APP_NAME: ${APP_NAME}
+    environment:
+      CCF_ENABLE: ${CCF_ENABLE}
+      SGX_SPID: ${SGX_SPID}
+      IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
+      PYTHONBREAKPOINT: ipdb.set_trace
+      SGX_DEBUG: 1
+      NUM_USERS: ${NUM_USERS}
+      PROJECT_ROOT: /home/photon/${APP_NAME}
+    devices:
+      - /dev/isgx
+    volumes:
+      - aesmd-socket:/var/run/aesmd
+      - accounts:/usr/src/${APP_NAME}/accounts/
+      - ../billboard:/home/photon/${APP_NAME}/billboard/
+      - ../enclave:/home/photon/${APP_NAME}/enclave/
+      - ../app:/home/photon/${APP_NAME}/app/
+      - ../scripts:/home/photon/${APP_NAME}/scripts/
+#      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/test_sgx
+    depends_on:
+      - billboard
+      - aesm
+
+volumes:
+  accounts:
+  aesmd-socket:
+    driver: local
+    driver_opts:
+      type: "tmpfs"
+      device: "tmpfs"
+      o: "rw"
