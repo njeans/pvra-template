@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 export APP_NAME=sdt
 

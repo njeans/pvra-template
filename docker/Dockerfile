@@ -7,7 +7,7 @@ FROM ubuntu:20.04 AS demo-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED 1
-RUN apt-get update && apt-get install -y software-properties-common
+RUN apt-get update && apt-get install -y software-properties-common libssl-dev
 
 # Python 3.9
 RUN apt-get install -y \
@@ -31,12 +31,10 @@ ENV PYTHON_PIP_VERSION 21.0.1
 ENV PYTHON_GET_PIP_URL https://github.com/pypa/get-pip/raw/29f37dbe6b3842ccd52d61816a3044173962ebeb/public/get-pip.py
 ENV PYTHON_GET_PIP_SHA256 e03eb8a33d3b441ff484c56a436ff10680479d4bd14e59268e67977ed40904de
 
+# Solidity compliler
 RUN add-apt-repository -y ppa:ethereum/ethereum
 RUN apt-get install -y solc
 
-RUN pip install secp256k1 pycryptodome web3 py-solc-x
-#COPY requirements.txt .
-RUN #pip install -r requirements.txt
 
 RUN set -ex; \
 	\
@@ -129,7 +127,8 @@ ENV NIX_PATH /home/photon/.nix-defexpr/channels
 ENV NIX_SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
 ENV PATH /home/photon/.nix-profile/bin:$PATH
 
-RUN pip install --user cryptography ipython requests pyyaml ipdb blessings colorama
+RUN #pip install --user cryptography ipython requests pyyaml ipdb blessings colorama
+RUN pip install --user secp256k1 pycryptodome web3 py-solc-x requests
 RUN set -ex; \
     \
     cd /tmp; \
@@ -217,28 +216,35 @@ FROM demo-base
 ARG APP_NAME=heatmap
 ENV APP_NAME $APP_NAME
 
-ENV SGX_SDK /opt/sgxsdk
-ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
+ARG NUM_USERS=4
+ENV NUM_USERS $NUM_USERS
 
-RUN mkdir /home/photon/$APP_NAME
+ARG CCF_ENABLE=0 #todo default to 1
+ENV CCF_ENABLE $CCF_ENABLE
+
+ENV SGX_SDK /opt/sgxsdk
+#ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
+
+RUN mkdir -p /home/photon/$APP_NAME/test_sgx
 WORKDIR /home/photon/$APP_NAME
 
 COPY --chown=photon:photon common common
+COPY --chown=photon:photon app app
 COPY --chown=photon:photon enclave enclave
 COPY --chown=photon:photon interface interface
-COPY --chown=photon:photon nix nix
+COPY --chown=photon:photon billboard/solidity solidity
+COPY --chown=photon:photon trustedLib trustedLib
 COPY --chown=photon:photon scripts scripts
 #COPY --chown=photon:photon test_sgx test_sgx
-COPY --chown=photon:photon applications/$APP_NAME/client.sh ./test_sgx/client
-COPY --chown=photon:photon applications/$APP_NAME/host.sh ./test_sgx/host
+#COPY --chown=photon:photon applications/$APP_NAME/client.sh ./test_sgx/client.sh
+#COPY --chown=photon:photon applications/$APP_NAME/host.sh ./test_sgx/host.sh
 #COPY --chown=photon:photon requirements.txt requirements.txt
-RUN pip install secp256k1 pycryptodome web3 py-solc-x
+RUN #pip install secp256k1 pycryptodome web3 py-solc-x
 
-#COPY --chown=photon:photon auditee/tmp.py ./auditee_extract.py
-
-#COPY --chown=photon:photon .auditee.yml \
+COPY --chown=photon:photon makefile makefile
+COPY --chown=photon:photon docker/admin.sh admin.sh
 #                           default.nix \
-#                           makefile \
+#                          .auditee.yml \
 #                           admin.sh \
 #                           ./
 #COPY --chown=photon:photon nix.Dockerfile ./
@@ -246,3 +252,4 @@ RUN pip install secp256k1 pycryptodome web3 py-solc-x
 COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so enclave/enclave.signed.so
 COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/app app
 COPY --from=initc3/linux-sgx:2.14-ubuntu20.04 --chown=photon:photon /opt/sgxsdk /opt/sgxsdk
+RUN ./admin.sh
