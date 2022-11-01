@@ -90,27 +90,22 @@ def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths
     return contract
 
 
-def gen_keys():
+def get_keys(num_users=NUM_USERS):
+    print("num_users", num_users)
     with open(BILLBOARD_ACCOUNTS_PATH) as f:
         accounts = json.loads(f.read())
     user_addresses = list(accounts["addresses"].keys())
-    public_key = ["" for _ in range(NUM_USERS+1)]
-    keys = ["" for _ in range(NUM_USERS+1)]
-    for i in range(NUM_USERS+1):
+    public_key = ["" for _ in range(num_users+1)]
+    keys = ["" for _ in range(num_users+1)]
+    for i in range(num_users+1):
         address = user_addresses[i]  # admin is account at position 0
         priv = bytes(accounts["addresses"][address]["secretKey"]["data"])
         pub = bytes(accounts["addresses"][address]["publicKey"]["data"])
         public_key[i] = pub.hex()
         keys[i] = (Web3.toChecksumAddress(address), pub, priv)
         print_vv(f" user {i}: address: {print_hex_trunc(address)} pubkey: {print_hex_trunc(pub)}")
-        # privkey_path = os.path.join(CLIENT_PATH, f"user_{i}", f"user{i}_prikey.bin")
-        # pubkey_path = os.path.join(CLIENT_PATH, f"user_{i}", f"user{i}_pubkey.bin")
-        # with open(privkey_path, "wb") as f:
-        #     f.write(priv)
-        # with open(pubkey_path, "wb") as f:
-        #     f.write(pub)
     with open(USER_LIST_PATH, "w") as f:
-        f.write(str(NUM_USERS+1) + "\n")
+        f.write(str(num_users+1) + "\n")
         f.write("\n".join(public_key))
     return keys
 

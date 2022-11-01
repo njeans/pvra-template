@@ -14,17 +14,17 @@ then
   exit 1
 fi
 
-#if [[ -z "${SGX_SPID}" ]];
-#then
-#  echo "Error: environment variable SGX_SPID not set."
-#  exit
-#fi
-#
-#if [[ -z "${IAS_PRIMARY_KEY}" ]];
-#then
-#  echo "Error: environment variable IAS_PRIMARY_KEY not set."
-#  exit
-#fi
+if [[ -z "${SGX_SPID}" ]];
+then
+  echo "Error: environment variable SGX_SPID not set."
+  exit
+fi
+
+if [[ -z "${IAS_PRIMARY_KEY}" ]];
+then
+  echo "Error: environment variable IAS_PRIMARY_KEY not set."
+  exit
+fi
 
 if [[ -z "${NUM_USERS}" ]];
 then
@@ -51,15 +51,15 @@ do
   test -d "$PROJECT_ROOT/test_sgx/client/user_$var" || mkdir "$PROJECT_ROOT/test_sgx/client/user_$var"
 done
 
-if [ -d "$PROJECT_ROOT/${APP_NAME}/src"  ] #todo add docker env variable
-then
-  echo "Docker: copying application files"
-  cp $PROJECT_ROOT/src/appPVRA.* $PROJECT_ROOT/enclave/
-else
-  echo "Local: building"
-  cd $PROJECT_ROOT && make clean && make
-#  source ~/.venvs/pvra/bin/activate
-fi
+#if [ -d "$PROJECT_ROOT/src"  ] #todo add docker env variable
+#then
+#  echo "Docker: copying application files"
+#  cp $PROJECT_ROOT/src/appPVRA.* $PROJECT_ROOT/enclave/
+#else
+#  echo "Local: building"
+#  cd $PROJECT_ROOT && make clean && make
+##  source ~/.venvs/pvra/bin/activate
+#fi
 
 ### 0.1 SCS INIT: Request Freshness Tag for newly initialized PVRA-enclave (sets FT = 256b'00...00') ###
 

@@ -1,5 +1,6 @@
 import os
 import constants
+import billboard
 
 assert os.environ.get("APP_NAME") == "sdt"
 SECRET_DATA_SIZE = 64
@@ -16,10 +17,7 @@ constants.MERKLE(True)
 
 def get_test_data(admin, users):
     num_users = len(users)
-    assert num_users >= 4
-    test_data = [[] for _ in range(num_users)]
-    admin_data = [[] for _ in range(num_users)]
-    expected_audit = [[] for _ in range(num_users)]
+    assert num_users >= 5
     user_seq = [0 for _ in range(num_users)]
     user_seq[3] = 1
     secret_data = [bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8") for i in range(num_users)]
@@ -47,9 +45,15 @@ def get_test_data(admin, users):
          None,
          None,
          ({"tid": GET_DATA, "seq": 1, "uidx": 3}, secret_data[3]),
+         ],
+        [None,
+         None,
+         None,
+         None,
+         ({"tid": GET_DATA, "seq": 1, "uidx": 0}, secret_data[0]),
          ]
     ]
-    #user 0 data stolen
+    #user 0 data recovered
     #user 1 cancel in time
     #user 2 limit reached
     #user 3 admin didn't wait
@@ -57,19 +61,19 @@ def get_test_data(admin, users):
         [None,
          ({"tid": START_RET, "uidx": 0}, b"success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "recover_key": admin.admin_user.public_key, "uidx": 0}, b"success completeRetrieve"),
-         ({"tid": GET_DATA, "seq": 1, "uidx": 0}, secret_data[0])
+         ({"tid": COMPLETE_RET, "recover_key": users[4].public_key, "uidx": 0}, b"success completeRetrieve"),
+         None #({"tid": GET_DATA, "seq": 1, "uidx": 0}, secret_data[0])
          ],
         [None,
          ({"tid": START_RET, "uidx": 1}, b"success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "recover_key": admin.admin_user.public_key, "uidx": 1}, b"retrieval not started"),
+         ({"tid": COMPLETE_RET, "recover_key": users[4].public_key, "uidx": 1}, b"retrieval not started"),
          None
          ],
         [None,
          ({"tid": START_RET, "uidx": 2}, b"success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "recover_key": admin.admin_user.public_key, "uidx": 2}, b"retrieval wait period not over"),
+         ({"tid": COMPLETE_RET, "recover_key": users[4].public_key, "uidx": 2}, b"retrieval wait period not over"),
          None
         ],
         [None,
@@ -77,13 +81,20 @@ def get_test_data(admin, users):
          None,
          None,
          None
-        ]
+        ],
+        [None,
+         None,
+         None,
+         None,
+         None,
+         ]
     ]
     expected_audit = [
         [format_leaf(0, 0, False), format_leaf(1, 70, True), format_leaf(1, 70, True), format_leaf(1, 0, False), format_leaf(1, 0, False)],
         [format_leaf(0, 0, False), format_leaf(1, 71, True), format_leaf(1, 0, False), format_leaf(1, 0, False), format_leaf(1, 0, False)],
         [format_leaf(0, 0, False), format_leaf(1, 72, True), format_leaf(1, 72, True), format_leaf(1, 72, True), format_leaf(1, 72, True)],
         [format_leaf(0, 0, False), format_leaf(1, 73, True), format_leaf(1, 73, True), format_leaf(1, 73, True), format_leaf(1, 73, True)],
+        [None, None, None, None, None]
     ]
     return test_data, admin_data, expected_audit
 

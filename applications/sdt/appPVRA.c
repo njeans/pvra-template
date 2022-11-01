@@ -199,8 +199,6 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct
 /* Initializes the Application Data as per expectation */
 int initES(struct ES* enclave_state, struct dAppData *dAD)
 {
-    printf("initES\n");
-
     for (int i = 0; i < NUM_USERS; i++) {
         enclave_state->appdata.user_info[i].started_retrieve = false;
         enclave_state->appdata.user_info[i].retrieve_time = 0;

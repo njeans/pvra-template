@@ -306,36 +306,24 @@ sgx_status_t ecall_commandPVRA(
   if(C_DEBUGPRINT) printf("\n");
 
   int user_idx = -1;
-     //check if privileged command
-     if (CC.eCMD.CT >= NUM_COMMANDS) {
-            printf("[ecPVRA] privileged command %u\n", CC.eCMD.CT);
-        if (strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[0], sizeof(secp256k1_pubkey)) != 0){
-            printf("[ecPVRA] Failed user does not have authorization to run command %d\n", CC.eCMD.CT);
-            sprintf(cResponse, "Failed to user does not have authorization to run command %d\n", CC.eCMD.CT);
-            ret = SGX_ERROR_INVALID_PARAMETER;
-            goto seal_cleanup;
-        } else {
-            user_idx = 0;
-        }
-     } else {
-      printf("[ecPVRA] non-privileged command %u\n", CC.eCMD.CT);
-      printf("comparing:\n");
-      for(int i = 1; i <= NUM_USERS; i++) {
-        printf("%d ",i);
-        if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
-          user_idx = i;
-          printf("true ");
-        } else {
-              printf("false ");
-        }
-        print_hexstring(&enclave_state.auditmetadata.master_user_pubkeys[i], 64);
-      }
+  for(int i = 0; i < NUM_USERS+1; i++) {
+    printf("comparing\n");
+      if(C_DEBUGPRINT) print_hexstring_n(&enclave_state.auditmetadata.master_user_pubkeys[i], 3);
+      if(C_DEBUGPRINT) printf("..");
+      if(C_DEBUGPRINT) print_hexstring_n(((char *)&enclave_state.auditmetadata.master_user_pubkeys[i])+61, 3);
+      if(C_DEBUGPRINT) printf("\n");
+    if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
+      user_idx = i;
+      break;
     }
+  }
+
   if (user_idx == -1) {
     if(C_DEBUGPRINT) printf("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
     sprintf(cResponse, "user_pubkey NOT FOUND rejecting command");
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
+
   }
   if(C_DEBUGPRINT) printf("[ecPVRA] CMD user_pubkey[%d]: \n", user_idx);
 

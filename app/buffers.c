@@ -39,7 +39,6 @@ bool allocate_buffers() {
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 
 //  cResponse_buffer_size = sizeof(struct cResponse);
-  printf("cResponse_buffer_size %ld %lu\n",cResponse_buffer_size,cResponse_buffer_size); //todo delete
   cResponse_buffer = calloc(cResponse_buffer_size, 1);
 
   cRsig_buffer_size = signature_buffer_size;
