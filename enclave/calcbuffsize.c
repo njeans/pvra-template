@@ -25,14 +25,16 @@
  * @param esealedprivkey_size     Output parameter for size of sealed private
  * key.
  * @param esignature_size         Output parameter for size of signature.
+ * @param cResponse_size         Output parameter for size of cResponse struct.
  *
  * @return                        SGX_SUCCESS (Error code = 0x0000) on success,
  * some other appropriate sgx_status_t value upon failure.
  */
 
-sgx_status_t ecall_calc_buffer_sizes(size_t *esignature_size, size_t *esignature_rec_size, size_t *esealed_state_size) {
+sgx_status_t ecall_calc_buffer_sizes(size_t *esignature_size, size_t *esignature_rec_size, size_t *esealed_state_size, size_t *cResponse_size) {
   *esignature_size = sizeof(secp256k1_ecdsa_signature);
   *esignature_rec_size = sizeof(secp256k1_ecdsa_recoverable_signature);
+  *cResponse_size = sizeof(struct cResponse);
   struct ES enclave_state;
   struct dAppData dAD;
   int initES_ret = initES(&enclave_state, &dAD);

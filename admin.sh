@@ -40,7 +40,7 @@ then
 fi
 
 test -d test_sgx || mkdir test_sgx
-cd ./test_sgx
+cd $PROJECT_ROOT/test_sgx
 rm -rf *
 rm -rf ./client/
 rm -rf ./host/
@@ -99,33 +99,30 @@ cp sealedState.bin sealedState0.bin
 echo ""
 echo "[biPVRA] Running Auditee to Extract PVRA signing_key"
 
-#source ~/.venvs/auditee/bin/activate
-#python3.7 ../auditee_extract.py
+source ~/.venvs/pvra/bin/activate
 python3 ../auditee_extract.py
-#source ~/.venvs/auditee/bin/activate deactivate
 
-# [TODO][NERLA]: ask sylvain which part of ias_report to post in order to verify enclave sig offline
 
 ### 2.0 PREPARE TO RUN PVRA APPLICATION ###
 
 ### 2.1 Verify signed enclave encryption key using signingkey.pem (extracted enclave signing key) ###
 
 echo -n "[biPVRA] Verifying signed encryption key: "
-#openssl dgst -sha256 -verify signingkey.pem -signature enclave_enc_pubkey.sig enclave_enc_pubkey.bin
 python3 $PROJECT_ROOT/billboard/crypto.py verify_secp256k1_path signingkey.bin enclave_enc_pubkey.bin enclave_enc_pubkey.sig
 
 echo -n "[biPVRA] Initialize billboard and Verifying signed userpubkeys: "
 python3 $PROJECT_ROOT/billboard/billboard.py admin_init_contract pubkeys.list pubkeys.sig
 
 
-### 2.2 SETUP CLIENT ENVIRONMENT ###
-mkdir client 
+#### 2.2 SETUP CLIENT ENVIRONMENT ###
+mkdir client
 cp ../client.sh ./client
 cp ../pvraClientCommand.sh ./client
 cp ../pvraClientAuditCommand.sh ./client
 cp ./enclave_enc_pubkey.bin ./client
 cp ../encrypt_command ./client
 cp ../format_command ./client
+
 
 num=$((NUM_USERS-1))
 for var in $(eval echo "{0..$num}")
@@ -134,19 +131,22 @@ do
   cp ./user"$var"_prikey.bin ./client
 done
 
-# Otherwise copy your script to client environment
-cp ../client_ecdh.py ./client
-
 cp ../gen_ecdh.py ./client
 
 ### 2.3 SETUP HOST ENVIRONMENT ###
 mkdir host
+
+cp ./admin_pubkey.bin ./host
+cp ./admin_prikey.bin ./host
+
 cp ../host.sh ./host
 cp ../pvraHostCommand.sh ./host
 cp ../pvraAuditCommand.sh ./host
 cp ./sealedState0.bin ./host
 cp ./signingkey.pem ./host
 cp ./signingkey.bin ./host
+cp ../gen_ecdh.py ./host
+
 if [[ ${CCF_ENABLE} == "1" ]];
 then
   cp ../service_cert.pem ./host

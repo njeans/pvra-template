@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 ### PVRA HOST COMMAND SCRIPT ###
 
@@ -18,20 +19,20 @@ then
   exit
 fi
 
+echo "pvraHostCommand sc: $1 mode: [$2]"
+
 if [ "$2" = "local" ]; then
- echo "adding a local command.bin"
+   echo "adding a local command.bin"
    dd count=64 if=command.bin of=pubkeyCMD.bin bs=1 >/dev/null 2>&1
    dd skip=64 if=command.bin of=eCMD.bin bs=1 >/dev/null 2>&1
 else
- echo "[server] Received Command: HTTP/1.1 200 OK" | nc -l -p 8080 -q 0 > command.bin;
+ echo "[server] Received Command: HTTP/1.1 200 OK" | nc -l -p 8081 -q 0 > command.bin;
  dd count=64 if=command.bin of=pubkeyCMD.bin bs=1 >/dev/null 2>&1
  dd skip=64 if=command.bin of=eCMD.bin bs=1 >/dev/null 2>&1
  echo "[bcPVRA] Host<-Client eAESkey+eCMD"
 fi
 
-echo "pvraHostCommand $2"
 if [ "$2" != "omit_sig" ]; then
-
      echo "[bcPVRA] Host->SCS updateFT(...)"
      cat sealedState.bin eCMD.bin > se.bin
      openssl dgst -r -sha256 se.bin | head -c 64 > se.hash
@@ -114,6 +115,6 @@ if [ "$2" = "local" ]; then
   echo "todo upload cResponse to billboard?" #todo
 else
   echo "[bcPVRA] Host->Client cResponse"
-  nc -N localhost 8080 < cResponse.json >/dev/null
+  nc -N localhost 8081 < cResponse.json >/dev/null
   echo ""
 fi

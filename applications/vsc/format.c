@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
 	eCMD.CI.test_result = test_result;
 	eCMD.CI.uid = uid;
-	eCMD.CT.tid = tid;
+	eCMD.CT = tid;
 	eCMD.seqNo = seqNo;
 
 

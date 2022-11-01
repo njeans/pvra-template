@@ -31,11 +31,23 @@ fi
 # the "blob" that is signed is {hash(eCMD0) || cmd0_userpubkey || ... || hash(eCMDN) || cmdN_userpubkey}
 # there are print statements in the ecall for a better look
 
+python3 ../../gen_ecdh.py "admin_prikey.bin"
+./format_command "1 0 0.0 0.0 0.0 0.0 0 0" pt.bin > /dev/null
+./encrypt_command pt.bin sessionAESkey.bin > /dev/null
+cat "admin_pubkey.bin" eCMD.bin > command.bin
+state_counter=$((state_counter+1))
+./pvraHostCommand.sh $state_counter local
+
+echo "heatmap:"
+cat cResponse.json | jq .
+jq '.msg' cResponse.json | tr -d '\"' | xxd -r -p > cResponse.txt
+echo -n "[admin] cResponse: "
+cat cResponse.txt
+
+
 # audit_num is the first argument
 state_counter=$((state_counter+1))
 ./pvraAuditCommand.sh 1 $state_counter $2
-
-
 
 
 # EVENTUALLY the host should be implemented in a while loop handling commands endlessly, and potentially buffering requests

@@ -73,6 +73,7 @@ def recover_eth_data(data, sig, publickey=None, address=None):
     data = encode_defunct(primitive=data)
     res = w3.eth.account.recover_message(data, signature=sig)
     eq = address.lower() == res.lower()
+    # print("\n",address.lower(), res.lower(), eq)
     return eq
 
 

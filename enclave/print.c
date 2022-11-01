@@ -40,7 +40,6 @@ void print_hexstring_n(const void *vsrc, size_t len) {
   for (i = 0; i < len; ++i) {
     printf("%02x", sp[i]);
   }
-  //printf("\n");
 }
 
 void ocallrdtsc(void) {

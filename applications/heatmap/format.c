@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 	eCMD.CI.data.endTs = endTs;
 
 	eCMD.CI.uid = uid;
-	eCMD.CT.tid = tid;
+	eCMD.CT = tid;
 	eCMD.seqNo = seqNo;
 
 

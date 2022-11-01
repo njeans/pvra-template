@@ -56,8 +56,12 @@ client_1 () {
     cp ../enclave_enc_pubkey.bin .
     cp ../enclave_enc_pubkey.sig .
 
+    echo "_____________________________"
+    cat $PROJECT_ROOT/test_sgx/host/host.log
+    echo "_____________________________"
+
     echo "[client] tid=0 add data"
-    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "0 $uid $seq -i NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN " "omit_sig"
+    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "0 $uid $seq -i NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN " "omit_sig"
     sleep 3
     cat $PROJECT_ROOT/test_sgx/host/host.log
     set +e
@@ -81,9 +85,9 @@ host_2() {
 
 client_2() {
     cd $PROJECT_ROOT/test_sgx/client
-    echo "[client] tid=1 start recover"
+    echo "[client] tid=3 start recover"
     seq=$((seq+1))
-    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "1 $uid $seq " "omit_sig"
+    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "3 $uid $seq " "omit_sig"
     sleep 3
     cat $PROJECT_ROOT/test_sgx/host/host.log
     set +e
@@ -113,9 +117,9 @@ host_3() {
 
 client_3() {
     cd $PROJECT_ROOT/test_sgx/client
-    echo "[client] tid=3 cancel recover $1"
+    echo "[client] tid=1 cancel recover $1"
     seq=$((seq+1))
-    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "3 $uid $seq " $1
+    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "1 $uid $seq " $1
     cp cResponse.json cResponseCancel.json
     sleep 3
     cat $PROJECT_ROOT/test_sgx/host/host.log
@@ -143,9 +147,9 @@ host_4() {
 
 client_4() {
     cd $PROJECT_ROOT/test_sgx/client
-    echo "[client] tid=2 try complete recover"
+    echo "[client] tid=4 try complete recover"
     seq=$((seq+1))
-    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "2 $uid $seq " "omit_sig"
+    ./pvraClientCommand.sh $uid "user"$uid"_prikey.bin" "user"$uid"_pubkey.bin" "4 $uid $seq " "omit_sig"
     #so we can prove omission for the cancel message
     cp cResponseCancel.json cResponse.json
     sleep 3
@@ -247,22 +251,44 @@ if [ "$2" = "sig" ]; then
 
   echo -e "${Purple}~~~~~~~~~~~~~~~~~~~~~~~~User verifies signature and doesn't post data to bulletin board~~~~~~~~~~~~~~~~~~~~~~~~${NC}"
 #  ./client.sh  $3 $2
+
   client_3 "omit_sig"
 
   echo -e "${Purple}~~~~~~~~~~~~~~~~~~~~~~~~~~Admin gets data from bulletin board and does auditing~~~~~~~~~~~~~~~~~~~~~~~~~~${NC}"
 
   host_4
-
   client_4
 
-  echo -e "${Purple}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Client auditing with signature should fail~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~${NC}"
-  ./pvraClientAuditCommand.sh sig $uid
+#  echo -e "${Purple}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Client auditing with signature should fail~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~${NC}"
+#  ./pvraClientAuditCommand.sh sig $uid
+  exit 0
+fi
+
+if [ "$2" = "rec" ]; then
+  echo -e "${Purple}~~~~~~~~~~~~~~~~~~~Running auditing case for app $1 no omission fast case with signature with user $3~~~~~~~~~~~~~~~~~~~${NC}"
+  cd $PROJECT_ROOT/test_sgx/host
+#  ./host.sh &> host.log &
+  host_1
+  client_1
+  host_2
+  client_2
+
+  echo -e "${Purple}~~~~~~~~~~~~~~~~~~~~~~~~User verifies signature and doesn't post data to bulletin board~~~~~~~~~~~~~~~~~~~~~~~~${NC}"
+#  ./client.sh  $3 $2
+
+  echo -e "${Purple}~~~~~~~~~~~~~~~~~~~~~~~~~~Admin gets data from bulletin board and does auditing~~~~~~~~~~~~~~~~~~~~~~~~~~${NC}"
+
+  host_4
+  client_4
+
+#  echo -e "${Purple}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Client auditing with signature should fail~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~${NC}"
+#  ./pvraClientAuditCommand.sh sig $uid
   exit 0
 fi
 
 echo "Error: scenario name $2 not found:"
 echo "    failure cases {omit_sig, omit_data}"
-echo "    success cases {sig, data}"
+echo "    success cases {sig, data, rec}"
 exit 123
 
 #

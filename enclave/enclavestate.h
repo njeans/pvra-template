@@ -11,7 +11,7 @@
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
 
-#define MAX_USERS 5
+#define MAX_USERS 8
 #define MAX_LOG_SIZE 20
 // [TODO]: make these parameters dynamic? not sure if it is worth it right now
 
@@ -95,16 +95,16 @@ struct ES
 }; 
 
 
-struct cType 
-{
-	int tid;
-};
-
+//struct cType
+//{
+//	uint32_t tid;
+//};
+typedef uint32_t cType;
 
 struct private_command {
-	struct cType CT;
+	cType CT;
 	struct cInputs CI;
-	int seqNo;
+	uint32_t seqNo;
 };
 
 

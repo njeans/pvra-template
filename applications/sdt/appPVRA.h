@@ -6,41 +6,44 @@
 #define __APPPVRA_H__
 
 
-#define NUM_COMMANDS 4
-#define NUM_USERS 2
-#define DATA_SIZE 32
+#define NUM_COMMANDS 3
+#define NUM_ADMIN_COMMANDS 2
+#define NUM_USERS 4
+#define DATA_SIZE 64
 #define ENC_DATA_SIZE 32
-#define KEY_SIZE 32
-#define MAX_RETRIEVE 2
+#define KEY_SIZE 64
+#define MAX_RETRIEVE 3
 #define WAIT_TIME 60 //seconds
 #define RESET_TIME 60 //seconds
+#define MERKLE_TREE
 
 struct userInfo
 {
-    int retrieve_count;
-    int retrieve_time; //time when retrieve can be completed
+    uint32_t retrieve_count;
+    uint64_t retrieve_time; //time when retrieve can be completed
     char secret_data[DATA_SIZE];
     bool started_retrieve;
-	int uidx;
+	uint32_t uidx;
 };
 
 struct userLeaf
 {
-    int retrieve_count;
-    int retrieve_time; //time when retrieve can be completed
+    uint32_t retrieve_count;
+    uint64_t retrieve_time; //time when retrieve can be completed
     bool started_retrieve;
+	uint32_t uidx;
 };
 
 struct cInputs
 {
-	int uidx;
+	uint32_t uidx;
 	char input_data[DATA_SIZE];
 	char recover_key[KEY_SIZE];
 };
 
 struct cResponse
 {
-	int error;
+	uint32_t error;
 	char message[100];
 	char output_data[DATA_SIZE];
 };

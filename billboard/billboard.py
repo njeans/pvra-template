@@ -80,12 +80,12 @@ def deploy_contract(w3, admin_addr=""):
     print(f'[billboard] Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}')
     with open(CONTRACT_ADDRESS_PATH, "w") as f:
         f.write(contract_address)
-    return contract_address, contract, tx_hash
+    return contract_address, contract, contract_id
 
 
 def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths=SOLIDITY_PATHS):
     base_path, contract_source_path, allowed = solidity_paths
-    contract_id,abis,bins = compile_source_file(base_path, contract_source_path, allowed)
+    contract_id,abis,bins = compile_source_file(solidity_paths)
     with open(contract_address_path) as f:
         contract_address = f.read()
     # print("contract_address", contract_address)
@@ -152,10 +152,10 @@ def user_add_data(user_num, encrypted_user_data_path):
     w3 = setup_w3()
     contract = get_contract(w3)
     user_addr, _ = get_account(user_num)
-    last_audit_num = contract.functions.last_audit_num().call({"from": user_addr})
+    last_audit_num = contract.functions.audit_num().call({"from": user_addr})
     audit_num = last_audit_num+1
 
-    ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data, audit_num), user_addr)
+    ge = send_tx(w3, contract.functions.add_user_data(encrypted_user_data), user_addr)
     print("[billboard] gasUsed", ge)
 
     user_info = contract.functions.get_user(user_addr, audit_num).call({"from": user_addr})
@@ -190,25 +190,22 @@ def admin_post_audit_data(data_path, signature_path, merkle=True):
     contract = get_contract(w3)
     admin_addr, _ = get_account(0)
     print("[billboard] posting audit_data for audit_num", audit_num, audit_data)
-    # last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
-    # print("last_audit_num", last_audit_num)
-    gas=send_tx(w3, contract.functions.audit_start(), user_addr=admin_addr)
-    last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
-    # print("last_audit_num", last_audit_num)
+    gas = send_tx(w3, contract.functions.audit_start(), user_addr=admin_addr)
+    last_audit_num = contract.functions.audit_num().call({"from": admin_addr})
     assert last_audit_num == audit_num
     if merkle:
-        gas+=send_tx(w3, contract.functions.audit_end_merkle(signature, audit_data[0], audit_data[1], leaves, nodes), user_addr=admin_addr)
+        gas += send_tx(w3, contract.functions.audit_end_merkle(signature, audit_data[0], audit_data[1], leaves, nodes), user_addr=admin_addr)
     else:
-        gas+=send_tx(w3, contract.functions.audit_end(signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
+        gas += send_tx(w3, contract.functions.audit_end(signature, audit_data[0], audit_data[1]), user_addr=admin_addr)
     print("[billboard] gasUsed", gas)
-    tmp_byte = contract.functions.tmp_byte().call({"from": admin_addr})
-    tmp_hash = contract.functions.tmp_hash().call({"from": admin_addr})
-    tmp_addr = contract.functions.tmp_addr().call({"from": admin_addr})
-    ee = contract.functions.enclave_address().call({"from": admin_addr})
-    print("tmp_byte", tmp_byte.hex())
-    print("tmp_hash", tmp_hash.hex())
-    print("tmp_addr", tmp_addr)
-    print("enclave_address", ee)
+    # tmp_byte = contract.functions.tmp_byte().call({"from": admin_addr})
+    # tmp_hash = contract.functions.tmp_hash().call({"from": admin_addr})
+    # tmp_addr = contract.functions.tmp_addr().call({"from": admin_addr})
+    # ee = contract.functions.enclave_address().call({"from": admin_addr})
+    # print("tmp_byte", tmp_byte.hex())
+    # print("tmp_hash", tmp_hash.hex())
+    # print("tmp_addr", tmp_addr)
+    # print("enclave_address", ee)
 
 
 def admin_get_bb_data(output_base_path, audit_num=1):
@@ -235,7 +232,7 @@ def admin_sign_confirmation(user_cmd_path, sig_out_path, msg_out_path):
     w3 = setup_w3()
     contract = get_contract(w3)
     admin_addr, private_key = get_account(0)
-    last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
+    last_audit_num = contract.functions.audit_num().call({"from": admin_addr})
     audit_num = last_audit_num+1
     user_addr = bytes.fromhex(crypto.convert_publickey_address(user_pubkey.hex())[2:])
     m = hashlib.sha3_256()
@@ -272,11 +269,11 @@ def user_verify_confirmation(user_num, cResponse_path, data_path):
     listed_data_hash = msg[len_audit_num+20:]
     assert listed_address.hex() == user_addr.lower()[2:]
     assert listed_data_hash == data_hash
-    last_audit_num = contract.functions.last_audit_num().call({"from": admin_addr})
+    last_audit_num = contract.functions.audit_num().call({"from": admin_addr})
     assert listed_audit_num == last_audit_num+1
 
 
-def user_prove_omission_sig(user_num, cResponse_path):
+def user_verify_omission_sig(user_num, cResponse_path):
     with open(cResponse_path, "r") as f:
         cResponse = json.loads(f.read())
     msg = bytes.fromhex(cResponse["msg_admin"])
@@ -289,22 +286,22 @@ def user_prove_omission_sig(user_num, cResponse_path):
     audit_num = int(msg[:len_audit_num])
     listed_address = msg[len_audit_num:len_audit_num+20]
     listed_data_hash = msg[len_audit_num+20:]
-    ge = send_tx(w3, contract.functions.prove_omission_sig(listed_address, audit_num, listed_data_hash, sig), user_addr)
+    ge = send_tx(w3, contract.functions.verify_omission_sig(listed_address, audit_num, listed_data_hash, sig), user_addr)
     omission_detected = contract.functions.omission_detected().call({"from": user_addr})
     print(omission_detected)
     print("[billboard] gasUsed", ge)
     assert omission_detected
 
 
-def user_prove_omission_data(user_num, audit_num=None):
+def user_verify_omission_data(user_num, audit_num=None):
     user_num = int(user_num)+1
     user_addr, _ = get_account(user_num)
     w3 = setup_w3()
     contract = get_contract(w3)
     if audit_num is None:
-        audit_num = contract.functions.last_audit_num().call({"from": user_addr})
+        audit_num = contract.functions.audit_num().call({"from": user_addr})
     audit_num = int(audit_num)
-    ge = send_tx(w3, contract.functions.prove_omission_data(user_addr, audit_num), user_addr)
+    ge = send_tx(w3, contract.functions.verify_omission_data(user_addr, audit_num), user_addr)
     omission_detected = contract.functions.omission_detected().call({"from": user_addr})
     print(omission_detected)
     print("[billboard] gasUsed", ge)

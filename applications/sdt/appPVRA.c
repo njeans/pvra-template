@@ -7,49 +7,83 @@
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
 {
-    printf("[sdt] addPersonalData\n");
+    printf("[sdt] addPersonalData %d\n", CI->uidx);
+    struct cResponse ret;
+    memset(ret.output_data, 0, DATA_SIZE);
+    memset(ret.message, 0, 100);
+    ret.error = 0;
+    if(CI->uidx >= NUM_USERS) {
+        sprintf(ret.message, "[apPVRA] invalid uid %d > %d", CI->uidx, NUM_USERS);
+        printf("%s\n", ret.message);
+        ret.error = 1;
+        return ret;
+
+    }
+    printf("[sdt] before uidx %d rc %d rt %d st %d\n",enclave_state->appdata.user_info[CI->uidx].uidx, enclave_state->appdata.user_info[CI->uidx].retrieve_count, enclave_state->appdata.user_info[CI->uidx].retrieve_time, enclave_state->appdata.user_info[CI->uidx].started_retrieve);
+    memcpy(enclave_state->appdata.user_info[CI->uidx].secret_data, CI->input_data, DATA_SIZE);
+    printf("[sdt] addPersonalData uidx %d rc %d rt %d st %d\n",CI->uidx, enclave_state->appdata.user_info[CI->uidx].retrieve_count, enclave_state->appdata.user_info[CI->uidx].retrieve_time, enclave_state->appdata.user_info[CI->uidx].started_retrieve);
+    sprintf(ret.message, "success addPersonalData");
+    printf("secret data %d: ", CI->uidx);
+    print_hexstring(enclave_state->appdata.user_info[CI->uidx].secret_data, DATA_SIZE);
+    printf("final cRet: [%d]\n", sizeof(struct cResponse));
+    print_hexstring(&ret, sizeof(struct cResponse));
+    return ret;
+}
+
+struct cResponse getPersonalData(struct ES *enclave_state, struct cInputs *CI)
+{
+    printf("[sdt] getPersonalData %d\n", CI->uidx);
     struct cResponse ret;
     ret.error = 0;
+    memset(ret.output_data, 0, DATA_SIZE);
+    memset(ret.message, 0, 100);
 
     if(CI->uidx >= NUM_USERS) {
-        sprintf(ret.message, "[apPVRA] invalid uid %d > %d", CI->uidx, NUM_USERS-1);
+        sprintf(ret.message, "[apPVRA] invalid uid %d > %d", CI->uidx, NUM_USERS);
         printf("%s\n", ret.message);
         ret.error = 1;
         return ret;
     }
-    struct userInfo ui;
-    ui.uidx = CI->uidx;
-    ui.retrieve_count = 0;
-    ui.retrieve_time = 0;
-    ui.started_retrieve = false;
-    memcpy(ui.secret_data, CI->input_data, DATA_SIZE);
-    enclave_state->appdata.user_info[CI->uidx] =  ui;
-    sprintf(ret.message, "success addPersonalData");
+    memcpy(ret.output_data, enclave_state->appdata.user_info[CI->uidx].secret_data, sizeof(enclave_state->appdata.user_info[CI->uidx].secret_data));
+    printf("secret data %d: ", CI->uidx);
+    print_hexstring(enclave_state->appdata.user_info[CI->uidx].secret_data, DATA_SIZE);
+    sprintf(ret.message, "success getPersonalData");
     return ret;
 }
 
 /* COMMAND1 Kernel Definition */
 struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI)
 {
-    printf("[sdt] startRetrieve\n");
+    printf("[sdt] startRetrieve %d\n", CI->uidx);
+    printf("[sdt] startRetrieve uidx %d rc %d rt %d st %d\n", CI->uidx, enclave_state->appdata.user_info[CI->uidx].retrieve_count,enclave_state->appdata.user_info[CI->uidx].retrieve_time,enclave_state->appdata.user_info[CI->uidx].started_retrieve);
     struct cResponse ret;
     ret.error = 0;
-    if (enclave_state->appdata.retrieve_count >= MAX_RETRIEVE) {
-        sprintf(ret.message, "[apPVRA] retrieve_count %d >= %d", enclave_state->appdata.retrieve_count, MAX_RETRIEVE);
+    memset(ret.output_data, 0, DATA_SIZE);
+    memset(ret.message, 0, 100);
+    if(CI->uidx >= NUM_USERS) {
+        sprintf(ret.message, "[apPVRA] invalid uid %d > %d", CI->uidx, NUM_USERS);
         printf("%s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
+    if (enclave_state->appdata.retrieve_count >= MAX_RETRIEVE) {
+        sprintf(ret.message, "retrieve_count limit reached %d > %d", enclave_state->appdata.retrieve_count, MAX_RETRIEVE);
+        printf("[apPVRA] %s\n", ret.message);
         ret.error = 2;
         return ret;
     }
     struct userInfo ui = enclave_state->appdata.user_info[CI->uidx];
     if (ui.started_retrieve) {
-        sprintf(ret.message, "[apPVRA] retrieval already started");
-        printf("%s\n", ret.message);
+        sprintf(ret.message, "retrieval already started");
+        printf("[apPVRA] %s\n", ret.message);
         ret.error = 3;
         return ret;
     }
-    enclave_state->appdata.user_info[CI->uidx].retrieve_count++;
-    enclave_state->appdata.user_info[CI->uidx].retrieve_time = 10 + WAIT_TIME;;//get_timestamp();
+    enclave_state->appdata.user_info[CI->uidx].retrieve_count++; // todo delete
+    enclave_state->appdata.user_info[CI->uidx].retrieve_time = WAIT_TIME + 10 + CI->uidx;//get_timestamp();
     enclave_state->appdata.user_info[CI->uidx].started_retrieve = true;
+    enclave_state->appdata.retrieve_count++;
+    printf("[sdt] success startRetrieve global rt %d uidx %d rc %d rt %d st %d\n", enclave_state->appdata.retrieve_count, CI->uidx, enclave_state->appdata.user_info[CI->uidx].retrieve_count,enclave_state->appdata.user_info[CI->uidx].retrieve_time,enclave_state->appdata.user_info[CI->uidx].started_retrieve);
     sprintf(ret.message, "success startRetrieve");
     return ret;
 }
@@ -57,53 +91,45 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI)
 /* COMMAND2 Kernel Definition */
 struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI)
 {
-    printf("[sdt] completeRetrieve\n");
+    printf("[sdt] completeRetrieve %d\n", CI->uidx);
+    printf("[sdt] completeRetrieve uidx %d rc %u rt %u st %u\n", CI->uidx, enclave_state->appdata.user_info[CI->uidx].retrieve_count,enclave_state->appdata.user_info[CI->uidx].retrieve_time,enclave_state->appdata.user_info[CI->uidx].started_retrieve);
     struct cResponse ret;
+    memset(ret.output_data, 0, DATA_SIZE);
+    memset(ret.message, 0, 100);
     ret.error = 0;
     int err;
+    if(CI->uidx >= NUM_USERS) {
+        sprintf(ret.message, "[apPVRA] invalid uid %d > %d", CI->uidx, NUM_USERS);
+        printf("%s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
     struct userInfo ui = enclave_state->appdata.user_info[CI->uidx];
     if (!ui.started_retrieve) {
-        sprintf(ret.message, "[apPVRA] retrieval not yet started");
+        sprintf(ret.message, "retrieval not started");
         printf("%s\n", ret.message);
         ret.error = 4;
         return ret;
     }
-    int curr = 71;//get_timestamp() TODO
+
+    uint32_t curr = 71;//get_timestamp() TODO
     if (curr < ui.retrieve_time) {
-        sprintf(ret.message, "[apPVRA] retrieval wait period not over");
+        sprintf(ret.message, "retrieval wait period not over %u < %u", curr, ui.retrieve_time);
         printf("%s\n", ret.message);
         ret.error = 5;
         return ret;
     }
-//    mbedtls_aes_context *ctx;
-//    mbedtls_aes_init(ctx);
-//    err = mbedtls_aes_setkey_enc(ctx, &CI->recover_key, 256);
-//    if( err != 0) {
-//        sprintf(ret.message, "[apPVRA] encryption error");
-//        printf("%s\n", ret.message);
-//        ret.error = 6;
-//        mbedtls_aes_free(ctx);
-//        return ret;
-//    }
-//    size_t nc_off = 0;
-//    unsigned char nonce_counter[16] = "nonce_counter<3 ";
-//    unsigned char stream_block[16] =  "stream_block <3 ";
-//    err = mbedtls_aes_crypt_ctr(ctx, DATA_SIZE, &nc_off, nonce_counter, stream_block,
-//                                 &enclave_state->appdata.user_info[CI->uidx].secret_data,
-//                                 &ret.output_data);
-//    if (err != 0) {
-//        sprintf(ret.message, "[apPVRA] encryption error");
-//        printf("%s\n", ret.message);
-//        ret.error = 6;
-//        mbedtls_aes_free(ctx);
-//        return ret;
-//    }
-//    mbedtls_aes_free(ctx);
 
-    memcpy(&ret.output_data, &enclave_state->appdata.user_info[CI->uidx].secret_data, sizeof(enclave_state->appdata.user_info[CI->uidx].secret_data));
+    memcpy(&enclave_state->auditmetadata.master_user_pubkeys[CI->uidx+1], &CI->recover_key, KEY_SIZE);
+    printf("changing user pubkey to %d\n", KEY_SIZE);
+    print_hexstring(&CI->recover_key, KEY_SIZE);
 
     enclave_state->appdata.user_info[CI->uidx].started_retrieve = false;
     enclave_state->appdata.user_info[CI->uidx].retrieve_time = 0;
+
+    printf("new user pubkey for %d\n", CI->uidx);
+    print_hexstring(&enclave_state->auditmetadata.master_user_pubkeys[CI->uidx+1], KEY_SIZE);
+
     sprintf(ret.message, "success completeRetrieve");
     return ret;
 }
@@ -111,45 +137,59 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI)
 /* COMMAND3 Kernel Definition */
 struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI)
 {
-    printf("[sdt] cancelRetrieve\n");
+    printf("[sdt] cancelRetrieve %d\n", CI->uidx);
+    printf("[sdt] cancelRetrieve uidx %d rc %d rt %d st %d\n", CI->uidx, enclave_state->appdata.user_info[CI->uidx].retrieve_count,enclave_state->appdata.user_info[CI->uidx].retrieve_time,enclave_state->appdata.user_info[CI->uidx].started_retrieve);
     struct cResponse ret;
-    int err;
+    memset(ret.output_data, 0, DATA_SIZE);
+    memset(ret.message, 0, 100);
     ret.error = 0;
-    struct userInfo ui = enclave_state->appdata.user_info[CI->uidx];
-    if (!ui.started_retrieve) {
-        sprintf(ret.message, "[apPVRA] retrieval not started");
+    if(CI->uidx >= NUM_USERS) {
+        sprintf(ret.message, "[apPVRA] invalid uid %d > %d", CI->uidx, NUM_USERS);
         printf("%s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
+    if (!enclave_state->appdata.user_info[CI->uidx].started_retrieve) {
+        sprintf(ret.message, "retrieval not started");
+        printf("retrieval not started\n");
         ret.error = 7;
         return ret;
     }
-    sprintf(ret.message, "[apPVRA] retrieval canceled");
-    printf("%s\n", ret.message);
     ret.error = 0;
     enclave_state->appdata.user_info[CI->uidx].started_retrieve = false;
     enclave_state->appdata.user_info[CI->uidx].retrieve_time = 0;
+    printf("success cancelRetrieve\n");
     sprintf(ret.message, "success cancelRetrieve");
     return ret;
 }
 
-void get_user_leaf(struct ES *enclave_state, char * out[NUM_USERS], int * block_size) {
+#ifdef MERKLE_TREE
+size_t get_user_leaf(struct ES *enclave_state, char ** out) {
+    printf("[sdt] get_user_leaf\n");
+    size_t block_size = sizeof(struct userLeaf);
     for (int i=0; i< NUM_USERS; i++) {
-        out[i] = (char *)malloc(sizeof(struct userLeaf));
+        out[i] = (char *) malloc(block_size);
         struct userInfo info = enclave_state->appdata.user_info[i];
-        struct userLeaf leaf = {info.retrieve_count, info.retrieve_time, info.started_retrieve};
-        memcpy(out[i], &leaf, sizeof(struct userLeaf));
+        struct userLeaf leaf = {info.retrieve_count, info.retrieve_time, info.started_retrieve, info.uidx};
+        memcpy(out[i], &leaf, block_size);
+//        memcpy_big_uint32(out[i], info.retrieve_count) todo
+        printf("uidx %d: rc %d rt %d sr %d uidx %d ", info.uidx, enclave_state->appdata.user_info[i].retrieve_count, enclave_state->appdata.user_info[i].retrieve_time, enclave_state->appdata.user_info[i].started_retrieve, enclave_state->appdata.user_info[i].uidx);
+        print_hexstring(out[i], block_size);
     }
-    *block_size = sizeof(struct userLeaf);
+    return block_size;
 }
+#endif
 
 
 
 /* Initializes the Function Pointers to Function Names Above */
-int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*))
-{
+int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*)){
     (functions[0]) = &addPersonalData;
-    (functions[1]) = &startRetrieve;
-    (functions[2]) = &completeRetrieve;
-    (functions[3]) = &cancelRetrieve;
+    (functions[1]) = &cancelRetrieve;
+    (functions[2]) = &getPersonalData;
+
+    (functions[3]) = &startRetrieve; //admin
+    (functions[4]) = &completeRetrieve; //admin
 
     //printf("Initialized Application Kernels\n");
     return 0;
@@ -159,6 +199,17 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInput
 /* Initializes the Application Data as per expectation */
 int initES(struct ES* enclave_state, struct dAppData *dAD)
 {
+    printf("initES\n");
+
+    for (int i = 0; i < NUM_USERS; i++) {
+        enclave_state->appdata.user_info[i].started_retrieve = false;
+        enclave_state->appdata.user_info[i].retrieve_time = 0;
+        enclave_state->appdata.user_info[i].retrieve_count = 0;
+        memset(enclave_state->appdata.user_info[i].secret_data, 0, DATA_SIZE);
+        enclave_state->appdata.user_info[i].uidx = i;
+    }
+    enclave_state->appdata.retrieve_count = 0;
+    enclave_state->appdata.last_reset_time = 0;
 //    struct userInfo * user_info = calloc(NUM_USERS,sizeof(struct userInfo));
 //    if(user_info == NULL) return -1;
 
@@ -192,6 +243,7 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
 //    dDS[0] = nDS;
 //    dDS[1] = tDS;
     dAD->dDS = dDS;
+//
     return 0;
 }
 
@@ -199,15 +251,14 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
 {
 //    enclave_state->appdata.user_info = dAD->dDS[0]->buffer;
 //    enclave_state->appdata.retrieve_list = dAD->dDS[1]->buffer;
-    enclave_state->appdata.last_reset_time = 0;//todo get timestamp
-    enclave_state->appdata.retrieve_count = 0;
+//
     return 0;
 }
 
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[", CC->eCMD.CT.tid, CC->eCMD.CI.uidx);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[", CC->eCMD.CT, CC->eCMD.CI.uidx);
   print_hexstring_n(CC->eCMD.CI.input_data, 3);
   printf("...");
   print_hexstring_n(CC->eCMD.CI.input_data+(DATA_SIZE-3), 3);
@@ -215,6 +266,6 @@ void print_clientCommand(struct clientCommand *CC){
   print_hexstring_n(CC->eCMD.CI.recover_key , 3);
   printf("...");
   print_hexstring_n(CC->eCMD.CI.recover_key+(KEY_SIZE-3) , 3);
-  printf("] [SN]:%d} ", CC->eCMD.seqNo);
+  printf("] [SN]:%d}\n", CC->eCMD.seqNo);
 }
 

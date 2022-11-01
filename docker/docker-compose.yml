@@ -3,32 +3,16 @@ version: '3.9'
 
 services:
   aesm:
-    image: sgx_aesm #TODO build
+    image: initc3/linux-sgx:2.13-ubuntu20.04
     devices:
-      - /dev/sgx/enclave
-      - /dev/sgx/provision
+      - /dev/isgx
     volumes:
       - aesmd-socket:/var/run/aesmd
-    stdin_open: true
-    tty: true
+    user: aesmd
+    working_dir: /opt/intel/sgx-aesm-service/aesm
     environment:
-      - http_proxy
-      - https_proxy
-#      - LD_LIBRARY_PATH=/opt/intel/sgxpsw/aesm
-#  aesm:
-#    image: initc3/linux-sgx:2.13-ubuntu20.04
-#    devices:
-#      - /dev/isgx
-#    volumes:
-#      - aesmd-socket:/var/run/aesmd
-#      #- ./aesmd.conf:/etc/aesmd.conf
-#    user: aesmd
-#    #stdin_open: true
-#    #tty: true
-#    working_dir: /opt/intel/sgx-aesm-service/aesm
-#    environment:
-#      LD_LIBRARY_PATH: /opt/intel/sgx-aesm-service/aesm
-#    command: ./aesm_service --no-daemon
+      LD_LIBRARY_PATH: /opt/intel/sgx-aesm-service/aesm
+    command: ./aesm_service --no-daemon
 
   billboard:
     image: trufflesuite/ganache-cli:v6.12.2
@@ -37,6 +21,38 @@ services:
     volumes:
       - accounts:/accounts/
     command: ["--deterministic", "nerla","--gasLimit","0x6691b70", "--accounts", "10", "--account_keys_path", "/accounts/accounts.json", "--debug"]
+
+  enclave-sim:
+    image: ${APP_NAME}-enclave-sim
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        SGX_MODE: SW
+        SGX_DEBUG: 1
+        APP_NAME: ${APP_NAME}
+    depends_on:
+      - billboard
+    environment:
+      SGX_MODE: SW
+      PYTHONBREAKPOINT: ipdb.set_trace
+      SGX_DEBUG: 1
+      CCF_ENABLE: 0
+      SGX_SPID: ${SGX_SPID}
+      IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
+      NUM_USERS: ${NUM_USERS}
+      PROJECT_ROOT: /home/photon/${APP_NAME}
+    volumes:
+      - accounts:/home/photon/${APP_NAME}/accounts/
+      - ../billboard/solidity:/home/photon/${APP_NAME}/billboard/
+      - ../enclave:/home/photon/${APP_NAME}/enclave/
+      - ../app:/home/photon/${APP_NAME}/app/
+      - ../interface:/home/photon/${APP_NAME}/interface/
+      - ../scripts:/home/photon/${APP_NAME}/scripts/
+      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
+      - ../tmp:/home/photon/${APP_NAME}/tmp
+    command: python demo.py
 
   enclave:
     image: ${APP_NAME}-enclave
@@ -47,7 +63,6 @@ services:
         SGX_MODE: HW
         SGX_DEBUG: 1
         APP_NAME: ${APP_NAME}
-    working_dir: /home/photon/${APP_NAME}/scripts/
     environment:
       CCF_ENABLE: ${CCF_ENABLE}
       SGX_SPID: ${SGX_SPID}
@@ -59,13 +74,14 @@ services:
       http_proxy: ${http_proxy}
       https_proxy: ${https_proxy}
     devices:
-      - /dev/sgx/enclave
+      - /dev/isgx
     volumes:
       - aesmd-socket:/var/run/aesmd
       - accounts:/home/photon/${APP_NAME}/accounts/
-      - ../billboard/solidity:/home/photon/${APP_NAME}/solidity/
+      - ../billboard/solidity:/home/photon/${APP_NAME}/billboard/
       - ../enclave:/home/photon/${APP_NAME}/enclave/
       - ../app:/home/photon/${APP_NAME}/app/
+      - ../interface:/home/photon/${APP_NAME}/interface/
       - ../scripts:/home/photon/${APP_NAME}/scripts/
       - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
     stdin_open: true
@@ -73,6 +89,7 @@ services:
     depends_on:
       - billboard
       - aesm
+    working_dir: /home/photon/${APP_NAME}/scripts
     command: python demo.py
 
 volumes:

@@ -10,8 +10,12 @@ void hash_node(char* out, char *left, char *right, size_t size) {
   struct SHA3_CTX ctx_sha3;
   keccak_init(&ctx_sha3);
   keccak_update(&ctx_sha3, left, size);
+  print_hexstring_n(left, size);
   keccak_update(&ctx_sha3, right, size);
+  print_hexstring_n(right, size);
   keccak_final(&ctx_sha3, out);
+  printf(" -> ");
+  print_hexstring(out, 32);
 }
 
 void hash_leaf(char* out, char *leaf, size_t size) {
@@ -31,12 +35,17 @@ int build_tree(merkle_tree *mt, char *leaves[], uint32_t num_leaves, uint32_t bl
         mt->leaves[i] = leaves[i];
         mt->nodes[i] = (char *) malloc(32);
         hash_leaf(mt->nodes[i], leaves[i], mt->block_size);
+        printf("hashing leaf %d ", i);
+        print_hexstring_n(leaves[i], block_size);
+        printf(" -> ");
+        print_hexstring(mt->nodes[i], 32);
     }
     int index = num_leaves;
     for (int j = 0; j < mt->num_nodes-1; j+=2) {
         char * l = mt->nodes[j];
         char * r = mt->nodes[j+1];
         mt->nodes[index] = (char *) malloc(32);
+        printf("hashing %d+%d for index %d: ", j,j+1,index);
         hash_node(mt->nodes[index], l, r, 32);
         index++;
     }
@@ -80,8 +89,10 @@ size_t tree_size(merkle_tree * mt) {
 int serialize_tree(char * out, merkle_tree *mt) {
      int offset = 0;
      int hash_size = 32;
-     memcpy_big_uint32(out + offset, mt->block_size);
+     memcpy_big_uint32(out, mt->block_size);
+     printf("serialize block size %u; ", mt->block_size);
      offset+= sizeof(mt->block_size);
+     print_hexstring(out, 4);
      memcpy_big_uint32(out + offset, mt->num_leaves);
      offset+= sizeof(mt->num_leaves);
 
@@ -107,18 +118,17 @@ int serialize_tree(char * out, merkle_tree *mt) {
 
 void print_tree(merkle_tree *mt) {
     int i;
-    printf("[ ");
+    printf("leaves: %d [ ", mt->num_leaves);
     for(i=0; i<mt->num_leaves; i++){
         printf("\"");
         print_hexstring_n(mt->nodes[i], mt->block_size);
-        printf("\", ");
+        if (i == mt->num_leaves-1)
+            printf("\"]\n");
+        else
+            printf("\", ");
     }
-    for(i=0; i<mt->num_leaves; i++){
-        printf("\"");
-        print_hexstring_n(mt->nodes[i], 32);
-        printf("\", ");
-    }
-    for(i=mt->num_leaves; i<mt->num_nodes; i++){
+    printf("nodes: %d [ ", mt->num_nodes);
+    for(i=0; i<mt->num_nodes; i++){
         printf("\"");
         print_hexstring_n(mt->nodes[i], 32);
         if (i == mt->num_nodes-1)
@@ -126,6 +136,7 @@ void print_tree(merkle_tree *mt) {
         else
             printf("\", ");
     }
+    printf("\n");
     return;
 }
 

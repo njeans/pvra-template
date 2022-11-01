@@ -34,20 +34,19 @@ then
 fi
 
 test -d "$PROJECT_ROOT/test_sgx" || mkdir "$PROJECT_ROOT/test_sgx"
-test -d "$PROJECT_ROOT/client" || mkdir "$PROJECT_ROOT/client"
-test -d "$PROJECT_ROOT/host" || mkdir "$PROJECT_ROOT/host"
+test -d "$PROJECT_ROOT/test_sgx/client" || mkdir "$PROJECT_ROOT/test_sgx/client"
+test -d "$PROJECT_ROOT/test_sgx/host" || mkdir "$PROJECT_ROOT/test_sgx/host"
 
 rm -rf "*"
-rm -rf "$PROJECT_ROOT/client/*"
-rm -rf "$PROJECT_ROOT/host/*"
+rm -rf "$PROJECT_ROOT/test_sgx/client/*"
+rm -rf "$PROJECT_ROOT/test_sgx/host/*"
 
 cd "$PROJECT_ROOT/test_sgx"
 
 for var in $(eval echo "{0..$NUM_USERS}")
 do
-  test -d "$PROJECT_ROOT/client/user_$var" || mkdir "$PROJECT_ROOT/client/user_$var"
+  test -d "$PROJECT_ROOT/test_sgx/client/user_$var" || mkdir "$PROJECT_ROOT/test_sgx/client/user_$var"
 done
-echo "trying to see somethin"
 
 exit 1
 if [ -d "$PROJECT_ROOT/src"  ]
@@ -58,7 +57,7 @@ then
 else
   echo "Error: Application Directory ./applications/$APP_NAME/ does not exist."
 fi
-\
+
 ### 0.1 SCS INIT: Request Freshness Tag for newly initialized PVRA-enclave (sets FT = 256b'00...00') ###
 
 if [[ ${CCF_ENABLE} == "1" ]];

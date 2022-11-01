@@ -46,7 +46,6 @@ bool commandPVRA() {
   t = clock() - t;
   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
   printf("[hcPVRA] ecall_commandPVRA took %f seconds\n", time_taken);
-   
 
   for(int i = 0; i < tsc_idx; i++)
     printf("%lu\n", tsc_dump[i]);

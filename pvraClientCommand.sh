@@ -35,8 +35,6 @@ echo "formatting $4"
 
 
 
-
-
 # concatenates <user0_pubkey.bin> to <encrypted_command.bin> for sending to host
 cat $3 eCMD.bin > command.bin
 

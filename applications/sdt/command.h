@@ -18,13 +18,10 @@ typedef struct {
 
 
 
-struct cType 
-{
-	int tid;
-};
+typedef uint32_t cType;
 
 struct private_command {
-	struct cType CT;
+	cType CT;
 	struct cInputs CI;
 	int seqNo;
 };

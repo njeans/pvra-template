@@ -48,7 +48,8 @@ int main(int argc, char **argv) {
 
 	eCMD.CI.uidx = uid;
 
-	eCMD.CT.tid = tid;
+//	  char na[DATA_SIZE] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+	eCMD.CT = tid;
 	eCMD.seqNo = seqNo;
 	if (strcmp(args[3], "-r")==0) {
 	    memcpy(&eCMD.CI.recover_key, args[4], KEY_SIZE);
@@ -64,7 +65,7 @@ int main(int argc, char **argv) {
 //        printf("\t-i <data> for input data of input of a %d size input data\n",DATA_SIZE);
 //	    ret = -1;
 	}
-
+//    printf("\n");
 	char* output_path = argv[2];
 	FILE *sk_file = open_file(argv[2], "wb");
 

@@ -50,7 +50,8 @@ enclave
         public sgx_status_t ecall_calc_buffer_sizes(
             [out] size_t* esignature_size,
             [out] size_t* esignature_rec_size,
-            [out] size_t* esealed_state_size);
+            [out] size_t* esealed_state_size,
+            [out] size_t* cResponse_size);
 
 
         #undef BUFLEN

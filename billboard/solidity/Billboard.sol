@@ -10,6 +10,7 @@ contract Billboard {
 
     struct AuditData {
         bytes32 merkle_root;
+        uint block_num;
         address[] included_user_ids;
         bytes32[] included_data_hashes;
     }
@@ -25,10 +26,11 @@ contract Billboard {
 
     mapping (uint => AuditData) audit_data;
 
-    uint32 public last_audit_num;
-    uint last_audit_block_num;
-    uint audit_time = 10;
-    uint post_time = 5;
+    uint32 public audit_num;
+    uint audit_block_num;
+    uint next_audit_time;
+    uint AUDIT_TIME = 10;
+    uint POST_TIME = 5;
 
     bool public initialized; //require that can only initialize once
     bool public omission_detected;
@@ -60,11 +62,12 @@ contract Billboard {
         bytes32 users_hash = hash_address_list(user_addresses);
         address signer = recover(users_hash, signature);
         require(signer == enclave_address);
-        tmp_addr = signer;
-        tmp_hash = users_hash;
-        last_audit_block_num = block.number;//starts timer for next audit
+        require(user_addresses[0] == admin_addr);
+//        tmp_addr = signer;
+//        tmp_hash = users_hash;
+        audit_block_num = block.number;//starts timer for next audit
         initialized = true;
-        last_audit_num = 0;
+        audit_num = 0;
         user_list = user_addresses;
         omission_detected=false;
         timeout_detected=false;
@@ -73,35 +76,33 @@ contract Billboard {
     function add_user_data(bytes memory encrypted_command_and_data) public {
         require(initialized);
         User storage user = user_info[msg.sender];
-        uint32 audit_num = last_audit_num+1;
-        require(user.called_add_data[audit_num] == false);
-        user.last_audit_num = audit_num;
-        //users can only add 1 set
+        uint32 nex_audit_num = audit_num+1;
+        require(user.called_add_data[nex_audit_num] == false);
+        user.last_audit_num = nex_audit_num;
+        //users can only add 1 set TODO
         //of data per audit time period
-        user.user_data[audit_num] = encrypted_command_and_data;
-        user.called_add_data[audit_num] = true;
+        user.user_data[nex_audit_num] = encrypted_command_and_data;
+        user.called_add_data[nex_audit_num] = true;
     }
 
     function audit_start() public {
         require(msg.sender == admin_addr);
         require(initialized);
-        require(last_audit_block_num + audit_time >= block.number);
-        last_audit_num++;
+        require(block.number < audit_block_num + AUDIT_TIME);
+        audit_num++;
+        next_audit_time = audit_block_num + AUDIT_TIME + POST_TIME;
     }
 
-    function audit_end(bytes memory audit_log_signature,
-        address[] memory included_user_ids,
-        bytes32[] memory included_data_hashes) public {
+    function audit_end(bytes memory signature,
+                        address[] memory included_ids,
+                        bytes32[] memory included_hashes) public {
         require(msg.sender == admin_addr);
         require(initialized);
-        // last_audit_num was incremented in audit_start()
-        last_audit_block_num = block.number;
-        bytes32 audit_log_hash = hash_audit_data(last_audit_num, included_user_ids, included_data_hashes);
-        address signer = recover(audit_log_hash, audit_log_signature);
-//        tmp_addr = signer;
-//        tmp_hash = audit_log_hash;
-        require(enclave_address == signer);
-        audit_data[last_audit_num] = AuditData("", included_user_ids, included_data_hashes);
+        audit_block_num = block.number;
+        bytes32 hash = hash_audit_data(audit_num, included_ids, included_hashes);
+        address signer = recover(hash, signature);
+        require(signer == enclave_address);
+        audit_data[audit_num] = AuditData("", audit_block_num, included_ids, included_hashes);
     }
 
     function audit_end_merkle(bytes memory audit_log_signature,
@@ -109,67 +110,67 @@ contract Billboard {
          bytes[] calldata leaves, bytes32[] calldata proof) public {
         require(msg.sender == admin_addr);
         require(initialized);
-        // last_audit_num was incremented in audit_start()
-        last_audit_block_num = block.number;
-        bytes32 audit_log_hash = hash_audit_data_merkle(leaves, proof, last_audit_num, included_user_ids, included_data_hashes);
+        audit_block_num = block.number;
+        bytes32 audit_log_hash = hash_audit_data_merkle(leaves, proof, audit_num, included_user_ids, included_data_hashes);
         address signer = recover(audit_log_hash, audit_log_signature);
-        require(enclave_address == signer);
-        check_proof(proof, leaves);
-        audit_data[last_audit_num].merkle_root = proof[proof.length-1];
-    }
-
-    function prove_omission_data(address user_id, uint32 audit_num) public {
-        require(initialized);
-        require(last_audit_num >= audit_num);
-        User storage user = user_info[user_id];
-        require(user.called_add_data[audit_num] == true);
-        AuditData memory audit_log = audit_data[audit_num];
-
-        int index = find_address(audit_log.included_user_ids, user_id);
-//        tmp_idx = index;
-        if (index == -1 ) {
-            omission_detected = true;
-        } else {
-            bytes32 user_data_hash = keccak256(user.user_data[audit_num]);
-            if (audit_log.included_data_hashes[uint(index)] != user_data_hash) {
-                omission_detected = true;
-            }
-        }
-    }
-
-    function prove_omission_sig(address user_id, uint32 audit_num, bytes32 data_hash, bytes memory confirm_signature) public {
-        require(initialized);
-        require(last_audit_num >= audit_num);
-        bytes32 confirm_hash = hash_confirmation(user_id, audit_num, data_hash);
-        address signer = recover(confirm_hash, confirm_signature);
-        require(admin_addr == signer);
 //        tmp_addr = signer;
-        AuditData memory audit_log = audit_data[audit_num];
-        int index = find_address(audit_log.included_user_ids, user_id);
-        if (index == -1 ) {
-            omission_detected = true;
+//        tmp_hash = audit_log_hash;
+        require(signer == enclave_address);
+        check_proof(proof, leaves);
+        audit_data[audit_num] = AuditData(proof[proof.length-1], audit_block_num, included_user_ids, included_data_hashes);
+    }
+
+    function verify_omission_data(address user_id, uint32 omit_audit_num) public {
+        require(initialized);
+        require(audit_num >= omit_audit_num);
+        if (audit_num == omit_audit_num) {
+            require(next_audit_time <= block.number);
         }
+
+        User storage user = user_info[user_id];
+        require(user.called_add_data[omit_audit_num] == true);
+        bytes32 user_posted_hash = keccak256(user.user_data[omit_audit_num]);
+
+        AuditData memory audit_log = audit_data[omit_audit_num];
+        bytes32 admin_posted_hash = find_data(audit_log, user_id);
+        omission_detected = user_posted_hash != admin_posted_hash;
+    }
+
+    function verify_omission_sig(address user_id, uint32 omit_audit_num,
+                                bytes32 signed_data_hash, bytes memory signature) public {
+        require(initialized);
+        require(audit_num >= omit_audit_num);
+        if (audit_num == omit_audit_num) {
+            require(next_audit_time <= block.number);
+        }
+
+        bytes32 hash = hash_confirmation(user_id, omit_audit_num, signed_data_hash);
+        address signer = recover(hash, signature);
+        require(signer == admin_addr);
+
+        AuditData memory audit_log = audit_data[omit_audit_num];
+        bytes32 admin_posted_hash = find_data(audit_log, user_id);
+        omission_detected = signed_data_hash != admin_posted_hash;
     }
 
     function detect_timeout() public {
-        if ((last_audit_block_num + audit_time + post_time) < block.number) {
-            timeout_detected = true;
-        }
+        timeout_detected = next_audit_time < block.number;
     }
 
     function hash_address_list(address[] memory _addresses) internal pure returns (bytes32) {
         bytes memory packed = abi.encodePacked(_addresses);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix,uint2str(packed.length),packed);
+//        tmp_byte = packed;
         bytes32 hash = keccak256(packed);
         return hash;
     }
 
     //todo change packing audit_num?
     //todo pure
-    function hash_audit_data(uint32 audit_num, address[] memory _addresses, bytes32[] memory _data) internal pure returns (bytes32) {
+    function hash_audit_data(uint32 audit_num_, address[] memory _addresses, bytes32[] memory _data) internal pure returns (bytes32) {
         require(_addresses.length == _data.length);
-        bytes memory packed = abi.encodePacked(audit_num, _addresses, _data);
+        bytes memory packed = abi.encodePacked(audit_num_, _addresses, _data);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
 //        tmp_byte = packed;
@@ -179,57 +180,53 @@ contract Billboard {
 
 
     function hash_audit_data_merkle(bytes[] calldata leaves, bytes32[] calldata proof,
-        uint32 audit_num, address[] memory _addresses, bytes32[] memory _data) public pure returns (bytes32) {
+        uint32 audit_num_, address[] memory _addresses, bytes32[] memory _data) public pure returns (bytes32) {
         require(_addresses.length == _data.length);
         bytes memory packed = abi.encodePacked(uint32(leaves[0].length), uint32(leaves.length));
         for (uint i = 0; i < leaves.length; i++){
             packed = abi.encodePacked(packed, leaves[i]);
         }
-        packed = abi.encodePacked(packed, proof, audit_num, _addresses, _data);
+        packed = abi.encodePacked(packed, proof, audit_num_, _addresses, _data);
 //        tmp_byte = packed;
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
         bytes32 hash = keccak256(packed);
         return hash;
     }
-    function hash_confirmation(address _addresses, uint32 audit_num, bytes32 data_hash) internal pure returns (bytes32) {
-        bytes memory packed = abi.encodePacked(uint2str(audit_num), _addresses, data_hash);
+
+    function hash_confirmation(address _addresses, uint32 audit_num_, bytes32 data_hash) internal pure returns (bytes32) {
+        bytes memory packed = abi.encodePacked(uint2str(audit_num_), _addresses, data_hash);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
         bytes32 hash = keccak256(packed);
         return hash;
     }
 
-   function hash_root(bytes32 root) internal pure returns(bytes32) {
-//        bytes memory packed = abi.encodePacked(uint2str(audit_num), root);
-        bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
-        bytes memory packed = abi.encodePacked(eth_prefix, "32", root);
-        bytes32 hash = keccak256(packed);
-        return hash;
-    }
-
-    function find_address(address[] memory list, address val) internal pure returns (int) {
-        uint len = list.length;
+    function find_data(AuditData memory audit_log, address val) internal pure returns (bytes32) {
+        uint len = audit_log.included_user_ids.length;
         for (uint i = 0; i < len; i++) {
-            if (list[i] == val) {
-                return int(i);
+            if (audit_log.included_user_ids[i] == val) {
+                return audit_log.included_data_hashes[i];
             }
         }
-        return -1;
+        return "";
     }
 
-    function get_user(address user_addr, uint32 audit_num) public view returns (UserData memory) {
+    function get_user(address user_addr, uint32 audit_num_) public view returns (UserData memory) {
         User storage user = user_info[msg.sender];
-        return UserData(user_addr, user.last_audit_num, user.user_data[audit_num]);
+        if (audit_num_ == 0) {
+            return UserData(user_addr, user.last_audit_num, user.user_data[user.last_audit_num]);
+        }
+        return UserData(user_addr, user.last_audit_num, user.user_data[audit_num_]);
     }
 
 
-    function get_all_user_data(uint32 audit_num) public view returns (UserData[] memory) {
+    function get_all_user_data(uint32 audit_num_) public view returns (UserData[] memory) {
         uint user_count = 0;
         for (uint i = 0; i < user_list.length; i++) {
             address addr = user_list[i];
             User storage user = user_info[addr];
-            if (user.called_add_data[audit_num] == true) {
+            if (user.called_add_data[audit_num_] == true) {
                 user_count++;
             }
         }
@@ -239,8 +236,8 @@ contract Billboard {
         for (uint i = 0; i < user_list.length; i++) {
             address addr = user_list[i];
             User storage user = user_info[addr];
-            if (user.called_add_data[audit_num] == true) {
-                UserData memory user_datum = UserData(addr, user.last_audit_num, user.user_data[audit_num]);
+            if (user.called_add_data[audit_num_] == true) {
+                UserData memory user_datum = UserData(addr, user.last_audit_num, user.user_data[audit_num_]);
                 user_data[index] = user_datum;
                 index++;
             }

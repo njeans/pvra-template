@@ -55,7 +55,6 @@ cp sealedOut.bin $filename
 mv sealedOut.bin sealedState.bin
 
 
-
 key="$PROJECT_ROOT/test_sgx/signingkey.bin"
 curr_dir=$(pwd)
 data="$curr_dir/auditlog.bin"

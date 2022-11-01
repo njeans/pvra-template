@@ -206,7 +206,7 @@ cleanup:
 bool save_quote(const char *const quote_file) {
   bool ret_status = true;
 
-  //printf("[GatewayApp]: Saving quote\n");
+  printf("[GatewayApp]: Saving quote %p %lu\n", quote_buffer, quote_buffer_size);
 
   FILE *fquote = open_file(quote_file, "wb");
 
@@ -216,7 +216,7 @@ bool save_quote(const char *const quote_file) {
     return false;
   }
 
-  //printf("\n[GatewayApp]: MRENCLAVE: \t");
+  //printf("\n[GatewayApp]: MRENCLAVE: \n");
   if (fwrite((char *)quote_buffer, quote_buffer_size, 1, fquote) != 1) {
     fprintf(stderr, "[GatewayApp]: Quote only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
@@ -288,7 +288,7 @@ bool save_cResponse(const char *const cResponse_file) {
     return false;
   }
 
-  if (fwrite(cResponse_buffer, strlen(cResponse_buffer), 1, sk_file) != 1) {
+  if (fwrite(cResponse_buffer, cResponse_buffer_size, 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: cResponse only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;

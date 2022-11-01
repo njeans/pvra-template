@@ -167,7 +167,6 @@ sgx_status_t ecall_commandPVRA(
   char defaultcResponse[12] = "eCMD Failed\0";
   memcpy(cResponse, &defaultcResponse, sizeof(defaultcResponse));
 
-
   /*    (3) SCS Verification    */
 
 
@@ -297,7 +296,6 @@ sgx_status_t ecall_commandPVRA(
   
   /*    (4) Command Decryption    */
 
-
   /*    Reading the user_pubkey    */
   memcpy(&CC.user_pubkey, cmdpubkey, sizeof(secp256k1_pubkey));
 
@@ -308,14 +306,34 @@ sgx_status_t ecall_commandPVRA(
   if(C_DEBUGPRINT) printf("\n");
 
   int user_idx = -1;
-  for(int i = 0; i < MAX_USERS; i++) {
-    if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
-      user_idx = i;
+     //check if privileged command
+     if (CC.eCMD.CT >= NUM_COMMANDS) {
+            printf("[ecPVRA] privileged command %u\n", CC.eCMD.CT);
+        if (strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[0], sizeof(secp256k1_pubkey)) != 0){
+            printf("[ecPVRA] Failed user does not have authorization to run command %d\n", CC.eCMD.CT);
+            sprintf(cResponse, "Failed to user does not have authorization to run command %d\n", CC.eCMD.CT);
+            ret = SGX_ERROR_INVALID_PARAMETER;
+            goto seal_cleanup;
+        } else {
+            user_idx = 0;
+        }
+     } else {
+      printf("[ecPVRA] non-privileged command %u\n", CC.eCMD.CT);
+      printf("comparing:\n");
+      for(int i = 1; i <= NUM_USERS; i++) {
+        printf("%d ",i);
+        if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
+          user_idx = i;
+          printf("true ");
+        } else {
+              printf("false ");
+        }
+        print_hexstring(&enclave_state.auditmetadata.master_user_pubkeys[i], 64);
+      }
     }
-  }
   if (user_idx == -1) {
     if(C_DEBUGPRINT) printf("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
-    sprintf(cResponse, "[ecPVRA] user_pubkey NOT FOUND rejecting command");
+    sprintf(cResponse, "user_pubkey NOT FOUND rejecting command");
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
   }
@@ -357,14 +375,13 @@ sgx_status_t ecall_commandPVRA(
   size_t ct_len = eCMD_size;
   //size_t ct_len = exp_ct_len;
   size_t ct_src_len = ct_len - AESGCM_128_MAC_SIZE - AESGCM_128_IV_SIZE;
-  
+
   if (ct_src_len != sizeof(struct private_command)) {
     printf("[ecPVRA] BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
-    sprintf(cResponse, "[ecPVRA] BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
+    sprintf(cResponse, "BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
   }
-
   uint8_t *ct_src = &eCMD_full[AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE];
   uint8_t *iv_src = &eCMD_full[AESGCM_128_MAC_SIZE];
   uint8_t *tag_src = eCMD_full;
@@ -379,9 +396,10 @@ sgx_status_t ecall_commandPVRA(
   );
 
   if(decrypt_status) {
-    printf("[ecPVRA] Failed to Decrypt Command decrypt_status: %d\n", decrypt_status);
-    sprintf(cResponse, "[ecPVRA] Failed to Decrypt Command decrypt_status: %d\n", decrypt_status);
-    ret = SGX_ERROR_INVALID_PARAMETER;
+    printf("[ecPVRA] Failed to Decrypt Command decrypt_status: %d\n????", decrypt_status);
+    print_hexstring(plain_dst, sizeof(struct private_command));
+    sprintf(cResponse, "Failed to Decrypt Command decrypt_status: %d\n", decrypt_status);
+    ret = decrypt_status;
     goto seal_cleanup;
   }
 
@@ -392,23 +410,20 @@ sgx_status_t ecall_commandPVRA(
   if(C_DEBUGPRINT) print_hexstring_n(plain_dst, sizeof(struct private_command));
   if(C_DEBUGPRINT) printf(" success\n");
   if(C_DEBUGPRINT) print_clientCommand(&CC);
-
   if(C_DEBUGRDTSC) ocall_rdtsc();
-
-
 
 
   
   /*    (5) SEQNO Verification    */
-
-  if(CC.eCMD.seqNo < enclave_state.antireplay.seqno[user_idx]) {
-    printf("SeqNo failure received [%d] < [%d] logged\n", CC.eCMD.seqNo, enclave_state.antireplay.seqno[user_idx]);
-    sprintf(cResponse, "SeqNo failure received [%d] <= [%d] logged\n", CC.eCMD.seqNo, enclave_state.antireplay.seqno[user_idx]);
-    goto seal_cleanup;
+  if (user_idx > 0) {
+      if(CC.eCMD.seqNo < enclave_state.antireplay.seqno[user_idx-1]) {//todo
+        printf("SeqNo failure received [%d] < [%d] logged\n", CC.eCMD.seqNo, enclave_state.antireplay.seqno[user_idx-1]);
+        sprintf(cResponse, "SeqNo failure received [%d] <= [%d] logged\n", CC.eCMD.seqNo, enclave_state.antireplay.seqno[user_idx-1]);
+        goto seal_cleanup;
+      }
+      if(C_DEBUGPRINT) printf("SeqNo success [%d]\n", enclave_state.antireplay.seqno[user_idx-1]);
+      enclave_state.antireplay.seqno[user_idx-1]=CC.eCMD.seqNo+1;
   }
-  if(C_DEBUGPRINT) printf("SeqNo success [%d]\n", enclave_state.antireplay.seqno[user_idx]);
-  enclave_state.antireplay.seqno[user_idx]=CC.eCMD.seqNo+1;
-
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
@@ -426,9 +441,11 @@ sgx_status_t ecall_commandPVRA(
   }
   struct cResponse cRet;
   /*   APPLICATION KERNEL INVOKED    */
-  cRet = (*functions[CC.eCMD.CT.tid])(&enclave_state, &CC.eCMD.CI);
-  char* cRstring = cRet.message;
-  //printf("[ecPVRA] cRet.message: [%d] %s\n", strlen(cRstring), cRstring);
+  cRet = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI);
+//  char cRstring[sizeof(struct cResponse)];
+//   memcpy(cRstring, cRet, sizeof(struct cResponse));
+  printf("[ecPVRA] cRet.message: [%d]\n", sizeof(struct cResponse));
+  print_hexstring(&cRet, sizeof(struct cResponse));
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
@@ -446,18 +463,20 @@ sgx_status_t ecall_commandPVRA(
 
   
   /*   (8) SIGN CRESPONSE   */
-
+    printf("a\n");
   unsigned char cR_hash[32];
   ret = mbedtls_md(
       mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 
-      (const unsigned char *)cRstring, 
-      strlen(cRstring), 
+      (const unsigned char *)&cRet,
+      sizeof(cResponse),
       cR_hash);
   if(ret != 0) {
     printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
+    printf("cR_hash\n");
+  print_hexstring(cR_hash, sizeof(cR_hash));
 
   secp256k1_ecdsa_signature sig;
   unsigned char randomize[32];
@@ -470,7 +489,8 @@ sgx_status_t ecall_commandPVRA(
   //printf("[eiPVRA] PUBKEYS SIGNATURE %d\n", sizeof(secp256k1_ecdsa_signature));
   //print_hexstring(&sig, sizeof(secp256k1_ecdsa_signature));
 
-  memcpy(cResponse, cRstring, strlen(cRstring));
+  memcpy(cResponse, &cRet, sizeof(struct cResponse));
+  memcpy(cResponse_size, sizeof(struct cResponse));
   memcpy(cResponse_signature, &sig, 64);
   secp256k1_context_destroy(ctx);
 

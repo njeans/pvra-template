@@ -131,18 +131,20 @@ sgx_status_t ecall_auditlogPVRA(
   // PRINTS AUDIT LOG 
   
   int hash_size = 32;
-  printf("[eaPVRA] PRINTING READABLE AUDITLOG\n");
   int num_entries = enclave_state.auditmetadata.audit_offset;
+  printf("[eaPVRA] PRINTING READABLE AUDITLOG len: %d\n", num_entries);
   for(int i = 0; i < num_entries; i++) {
     printf("HASH[%d]: ", i);
     print_hexstring(&enclave_state.auditmetadata.auditlog.command_hashes[i], hash_size);
     printf("PKEY[%d]: ", i);
     print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
   }
+  size_t mt_size = 0;
+
+#ifdef MERKLE_TREE
   char *data[NUM_USERS];
-  int block_size;
-  get_user_leaf(enclave_state, data, &block_size);
-  printf("[eaPVRA] PRINTING User Leaf Nodes block_size: %d\n", block_size);
+  size_t block_size = get_user_leaf(&enclave_state, &data);
+  printf("[eaPVRA] PRINTING User Leaf Nodes leaf_size: %d %p\n", block_size, data);
   for(int i = 0; i < NUM_USERS; i++) {
     printf("User[%d]: ", i);
     print_hexstring(data[i], block_size);
@@ -153,17 +155,19 @@ sgx_status_t ecall_auditlogPVRA(
    printf("[eaPVRA] PRINTING User Merkle Tree\n");
    print_tree(&mt);
 
-   size_t mt_size = tree_size(&mt);
-
+   mt_size = tree_size(&mt);
+#endif
 
   uint32_t auditlogbuf_size = sizeof(enclave_state.auditmetadata.audit_version_no)+num_entries*(sizeof(packed_address_t)+hash_size)+mt_size;
   uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size);
-  uint32_t auditlog_offset = serialize_tree(mt);
+  uint32_t auditlog_offset = mt_size;
 
-
+#ifdef MERKLE_TREE
+  serialize_tree(auditlogbuf, &mt);
   cleanup_tree(&mt);
+#endif
 
-  memcpy_big_uint32(auditlogbuf, enclave_state.auditmetadata.audit_version_no);
+  memcpy_big_uint32(auditlogbuf + auditlog_offset, enclave_state.auditmetadata.audit_version_no);
   auditlog_offset += sizeof(enclave_state.auditmetadata.audit_version_no);
 
   for(int i = 0; i < num_entries; i++) {
@@ -176,7 +180,7 @@ sgx_status_t ecall_auditlogPVRA(
   }
 
 
-  printf("\n[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED\n", auditlog_offset, auditlogbuf_size);
+  printf("\n[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED: %d\n", auditlogbuf_size);
   print_hexstring(auditlogbuf, auditlogbuf_size);
 
   *actual_auditlog_size = auditlogbuf_size;
@@ -191,6 +195,10 @@ sgx_status_t ecall_auditlogPVRA(
   keccak_update(&ctx_sha3, auditlogbuf, auditlogbuf_size);
   keccak_final(&ctx_sha3, &auditlog_hash);
 
+  printf("\n[eaPVRA] Audit log hash: %d\n", sizeof(auditlog_hash));
+  print_hexstring(auditlog_hash, sizeof(auditlog_hash));
+
+
   secp256k1_ecdsa_recoverable_signature sig;
   unsigned char randomize[32];
 
@@ -198,7 +206,7 @@ sgx_status_t ecall_auditlogPVRA(
   sgx_read_rand(randomize, sizeof(randomize));
   int secp25k1_ret = secp256k1_context_randomize(ctx, randomize);
 //  secp25k1_ret = secp256k1_ecdsa_sign(ctx, &sig, auditlog_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
-  secp25k1_ret = secp256k1_ecdsa_sign_recoverable(ctx, &sig, &auditlog_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
+  secp25k1_ret = secp256k1_ecdsa_sign_recoverable(ctx, &sig, &auditlog_hash, &enclave_state.enclavekeys.enc_prikey, NULL, NULL);
 
   unsigned char sig_serialized[65];
   int recovery;
@@ -218,6 +226,7 @@ sgx_status_t ecall_auditlogPVRA(
   memcpy(auditlog_signature, &sig_serialized, 65);
 
   enclave_state.auditmetadata.audit_offset = 0;
+
   enclave_state.auditmetadata.audit_version_no+=1;
   printf("[eiPVRA] Reseting audit log audit_num %d\n", enclave_state.auditmetadata.audit_version_no);
 

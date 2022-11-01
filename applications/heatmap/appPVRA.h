@@ -6,7 +6,8 @@
 #define __APPPVRA_H__
 
 
-#define NUM_COMMANDS 2
+#define NUM_COMMANDS 1
+#define NUM_ADMIN_COMMANDS 1
 #define NUM_USERS 2
 #define MAX_DATA 10
 #define PUBLIC_KEY_SIZE 64

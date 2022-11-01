@@ -218,12 +218,13 @@ ENV APP_NAME $APP_NAME
 
 ARG NUM_USERS=4
 ENV NUM_USERS $NUM_USERS
-
-ARG CCF_ENABLE=0 #todo default to 1
+ENV PROJECT_ROOT="/home/photon/${APP_NAME}"
+#todo default to 1
+ARG CCF_ENABLE=0
 ENV CCF_ENABLE $CCF_ENABLE
 
 ENV SGX_SDK /opt/sgxsdk
-#ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
+ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
 RUN mkdir -p /home/photon/$APP_NAME/test_sgx
 WORKDIR /home/photon/$APP_NAME
@@ -235,21 +236,13 @@ COPY --chown=photon:photon interface interface
 COPY --chown=photon:photon billboard/solidity solidity
 COPY --chown=photon:photon trustedLib trustedLib
 COPY --chown=photon:photon scripts scripts
-#COPY --chown=photon:photon test_sgx test_sgx
-#COPY --chown=photon:photon applications/$APP_NAME/client.sh ./test_sgx/client.sh
-#COPY --chown=photon:photon applications/$APP_NAME/host.sh ./test_sgx/host.sh
 #COPY --chown=photon:photon requirements.txt requirements.txt
 RUN #pip install secp256k1 pycryptodome web3 py-solc-x
 
 COPY --chown=photon:photon makefile makefile
-COPY --chown=photon:photon docker/admin.sh admin.sh
-#                           default.nix \
-#                          .auditee.yml \
-#                           admin.sh \
-#                           ./
-#COPY --chown=photon:photon nix.Dockerfile ./
 
 COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so enclave/enclave.signed.so
 COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/app app
 COPY --from=initc3/linux-sgx:2.14-ubuntu20.04 --chown=photon:photon /opt/sgxsdk /opt/sgxsdk
+WORKDIR /home/photon/$APP_NAME/scripts
 RUN ./admin.sh

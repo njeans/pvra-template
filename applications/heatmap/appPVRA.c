@@ -89,10 +89,10 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
 
 
 /* Initializes the Function Pointers to Function Names Above */
-int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*)) 
+int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*))
 {
     (functions[0]) = &addPersonalData;
-    (functions[1]) = &getHeatMap;
+    (functions[1]) = &getHeatMap; //admin
     //printf("Initialized Application Kernels\n");
     return 0;
 }
@@ -147,6 +147,6 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d} ", CC->eCMD.CT.tid, CC->eCMD.CI.uid, CC->eCMD.CI.data.lat, CC->eCMD.CI.data.lng, CC->eCMD.CI.data.startTs, CC->eCMD.CI.data.endTs, CC->eCMD.CI.data.result, CC->eCMD.seqNo);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d} ", CC->eCMD.CT, CC->eCMD.CI.uid, CC->eCMD.CI.data.lat, CC->eCMD.CI.data.lng, CC->eCMD.CI.data.startTs, CC->eCMD.CI.data.endTs, CC->eCMD.CI.data.result, CC->eCMD.seqNo);
 }
 

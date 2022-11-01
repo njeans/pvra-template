@@ -42,6 +42,10 @@
 *.idb
 *.pdb
 
+# Python
+__pycache__/
+venv
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
@@ -55,8 +59,10 @@ test_sgx/
 scratch/
 trash/
 enclave/trash/
+enclave/appPVRA.*
 enclave/enclave.key.pem
 app/trash/
+app/app
 
 interface/enclave_t.h
 interface/enclave_t.c
