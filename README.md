@@ -15,16 +15,22 @@ There are five application-specific files that need to be modified for implement
 
 1. ```appPVRA.h``` This is the header file for the application; it defines the types of commands the enclave processes, the structure of command inputs/outputs, and the structure of application data.
 
-2. ```appPVRA.c``` This is enclave executable application code. Every command should have an associated execution kernel. There are two auxillary functions that are required: ```initES()``` which initializes the application data structures, and ```initFP()``` which associates functions to enumerated commands (COMMAND<sub>0</sub>-COMMAND<sub>N</sub>);
+2. ```appPVRA.c``` This is enclave executable application code. Every command should have an associated execution kernel. There are two auxillary functions that are required: 
 
-3. ```host.sh``` This is a script that defines the untrusted host or enclave administrator's behavior. In the examples provided the simple host waits for client commands, executes them, and returns the associated cResponses.
+   - [ ] ```initES()``` initializes the application data structures
+   - [ ] ```initFP()``` which associates functions to enumerated commands (COMMAND<sub>0</sub>-COMMAND<sub>N</sub>);
+     - optional: add admin specific commands by defining `NUM_ADMIN_COMMANDS` and initializing them to the end of function list
+   - optional: user accounts auditing with merkle tree by setting ```#define MERKLE_TREE```
+     - [ ] ```get_user_leaf``` generate a list of leaf nodes for each user account
 
-4. ```client.sh``` This is a script that defines the client behavior. It is mainly setup for testing purposes, to simulate multiple client commands in a sequence sent to the host for execution.
+3. ```application.py``` This is a python file that specifies generates user input data and admin input data for deploying the application
 
-5. ```format_command``` This is a C program executable that takes as input space-deliminated arguements, places them in a private_command struct and outputs the raw binary information ready for encryption. The result is fed to the ```encrypt_command``` executable which AES-128-GCM encrypts the binary file.
-
-    - [ ] The reason this is currently in C was because ```openssl enc``` does not support AEAD for aes-128-gcm
-
+   - [ ] ```get_test_data``` Returns data for testing application functionality
+   - [ ] ```get_test_data_omission``` Returns data for testing data omission scenarios
+   - [ ] ```format_command``` convert test data to serialized C `struct private_command`.
+   - [ ] ```print_cResponse``` convert serialized C `struct cResponse` to a printable python string
+   - optional: user accounts auditing with merkle tree by setting ```constants.MERKLE(True)```
+     - [ ] ```print_leaf``` convert serialized C struct generated in ```get_user_leaf``` to a printable python string
 
 
 ### How to compile and run a PVRA application:
@@ -32,79 +38,72 @@ There are five application-specific files that need to be modified for implement
 
 #### Prerequisites
 
-In order to run an existing application pass the APP_NAME to ```./setup.sh``` script.
+* Environment variables
 
-- [ ] Add python requirements, make, gcc, etc.
+```bash
+export PROJECT_ROOT=$(pwd)
+export CCF_ENABLE=<0 or 1>
+export SGX_SPID=<SGX_SPID>
+export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>	
+export NUM_USERS=<NUM_USERS>
+export APP_NAME=<APP_NAME>
+export SGX_MODE=<HW or SW>
+```
 
-	```
- 	export PROJECT_ROOT=$(pwd)
-	export CCF_ENABLE=<0 or 1>
-	export SGX_SPID=<SGX_SPID>
-	export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>	
- 	source ~/.venvs/pvra/bin/activate
-	```
+* CCF public key is hardcoded in the enclave image as a root of trust and must be updated in initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
 
+* In order to run an existing application pass the APP_NAME to ```./setup.sh``` script.
+  
+    * ```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the directory in `$PROJECT_ROOT/application` and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
+
+```bash
+./setup.sh -a $APP_NAME
+```
 
 #### Usage
 
-* Build the application and initialize the enclave + client/host environments. 
-	```
-	./setup.sh -a|--app <APP_NAME>
-	make clean
-	make
-	./admin.sh
-	```
-	_```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the application directory and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
+##### Optional: Use Docker
 
-	_CCF public key is hardcoded in the enclave image as a root of trust and must be updated in initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
+* Hardware mode
+```bash
+export SGX_MODE=HW
+cd $PROJECT_ROOT/docker
+docker-compose build enclave
+docker-compose run --rm enclave bash
+```
 
-	_```SGX_SPID``` and ```IAS_PRIMARY_KEY``` are EPID parameters required for generating SGX  *unlinkable* quotes and reports from IAS. To enroll in Intel SGX Attestation Service refer to: https://api.portal.trustedservices.intel.com/EPID-attestation_
+* Simulation mode
+```bash
+export SGX_MODE=SW
+cd $PROJECT_ROOT/docker
+docker-compose build enclave-sim
+docker-compose run --rm enclave-sim bash
+```
 
-	- [ ]  Auditee: admin.sh sources a python venv for auditee, give instructions on how to setup that python environment and isolate that from admin.sh script
+##### Build (required if not using docker)
+```bash
+export SGX_MODE=<HW or SW>
+cd $PROJECT_ROOT/scripts
+./admin.sh
+./build.sh
+```
 
-	- [ ]  Auditee: MRENCLAVE MATCH FROM DOCKER BUILD
+#### Run python scripts
 
+* run demo with ```get_test_data``` output
+    ```bash
+    python demo.py demo <optional: NUM_USERS>
+    ```
+* run test with ```get_test_data``` output (checks the expected responses and leaf nodes for correctness)
+    ```bash
+    python demo.py test <optional: NUM_USERS>
+    ```
+* run data omission demo with ```get_test_data_omission``` output
+    ```bash
+    python demo.py data_omission_demo <optional: NUM_USERS>
+    ```
 
-* Running the Host.
-	```
-	Terminal 1:
-	cd ./test_sgx/host
-	./host.sh
-	```
-
-* Running the Client.
-	```
-	Terminal 2:
-	cd ./test_sgx/client
-	./client.sh
-	```
-
-
-
-## Bulletin Board Auditing Tests
-
-* Test auditing with admin signature
-
-	```
-	cd billboard
-	./test_auditing.sh heatmap omit_sig
-	```
-
-* Test auditing with data bosted on bulletin board
-
-	```
-	cd billboard
-	./test_auditing.sh heatmap omit_data
-	```
-
-* Test auditing with user omitting data and admin getting data from bulletin board
-
-	```
-	cd billboard
-	./test_auditing.sh heatmap omit_user
-	```
-
-
+	
 ### Sample VSC Run:
 
 ![alt text](./readme/setup.png)
