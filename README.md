@@ -26,7 +26,7 @@ export SGX_MODE=SW
 
 ```bash
 cd $PROJECT_ROOT
-./setup.sh -a sdt
+./setup.sh -a $APP_NAME
 cd $PROJECT_ROOT/docker
 ./run.sh
 ```
@@ -72,6 +72,7 @@ export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>
 export NUM_USERS=<NUM_USERS>
 export APP_NAME=<APP_NAME>
 export SGX_MODE=<HW or SW>
+export CCF_PATH=<optional> #todo how to run CCF
 ```
 
 * CCF public key is hardcoded in the enclave image as a root of trust and must be updated in initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
@@ -81,10 +82,10 @@ export SGX_MODE=<HW or SW>
     * ```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the directory in `$PROJECT_ROOT/application` and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
 
 ```bash
-./setup.sh -a $APP_NAME
+./setup.sh -a $APP_NAME -c $CCF_PATH
 ```
 
-#### Usage
+#### Running
 
 ##### Use Docker
 
@@ -135,6 +136,11 @@ export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networ
 
 ### Cleanup
 
+```bash
+cd $PROJECT_ROOT
+make clean
+```
+
 #### Stop docker containers
 
 * Docker deployment
@@ -150,14 +156,15 @@ cd $PROJECT_ROOT/scripts
 ./stop_BB.sh
 ```
 	
-### Sample VSC Run:
+### Sample VSC Run: 
+# TODO update
 
-![alt text](./docs/setup.png)
+![setup step i.e. result of ./setup.sh](./images/setup.png)
 
-![alt text](./docs/admin.png)
+![admin setup i.e. result of ./admin.sh](./images/admin.png)
 
-![alt text](./docs/host.png)
+![host/admin view i.e. output of ./host.sh](./images/host.png)
 
-![alt text](./docs/client.png)
+![client/user view i.e. output of ./client.sh](./images/client.png)
 
 

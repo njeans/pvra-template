@@ -52,7 +52,7 @@ services:
       - ../scripts:/home/photon/${APP_NAME}/scripts/
       - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
       - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
-    command: python demo.py test
+    command: python demo.py
 
   enclave:
     image: ${APP_NAME}-enclave
@@ -91,7 +91,7 @@ services:
       - billboard
       - aesm
     working_dir: /home/photon/${APP_NAME}/scripts
-    command: python demo.py test
+    command: python demo.py
 
 volumes:
   accounts:

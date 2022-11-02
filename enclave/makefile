@@ -22,7 +22,10 @@ CFLAGS+=-fcompare-debug-second
 
 .PHONY: all clean
 
-all: ../interface/libenclave_stub_t.a enclave.signed.so 
+all: ../interface/libenclave_stub_t.a enclave.signed.so
+	@mkdir -p ../bin
+	@mv enclave.signed.so  enclave.unsigned.so enclave.key.pem ../bin
+	@mv *.o ../bin
 
 ../interface/libenclave_stub_t.a: ../trustedLib/mbedtls_SGX-2.6.0/lib/mbedtls_SGX.edl ../interface/enclave.edl
 
@@ -34,4 +37,4 @@ enclave.key.pem:
 	openssl genrsa -3 -out $@ 3072
 
 clean:
-	rm -f ../interface/*_t.* enclave.key.pem enclave.unsigned.so enclave.signed.so *.o
+	rm -f ../interface/*_t.* enclave.key.pem enclave.unsigned.so enclave.signed.so *.o ../bin/enclave.unsigned.so  ../bin/enclave.signed.so  ../bin/*.o
