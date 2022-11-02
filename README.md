@@ -25,6 +25,8 @@ export SGX_MODE=SW
 * build and run docker image
 
 ```bash
+cd $PROJECT_ROOT
+./setup.sh -a sdt
 cd $PROJECT_ROOT/docker
 ./run.sh
 ```
