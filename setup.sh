@@ -16,10 +16,16 @@ then
 fi
 
 
+if [[ -z "${PROJECT_ROOT}" ]];
+then
+  echo "Error: environment variable PROJECT_ROOT not set."
+  exit
+fi
+
 POSITIONAL_ARGS=()
 
 DEFAULT_APP_NAME=vsc
-DEFAULT_CCF_PATH=/home/azureuser/mbehnia/ccf-2.0.1/build/workspace/sandbox_common/
+DEFAULT_CCF_PATH=$PROJECT_ROOT/ccf-2.0.1/build/workspace/sandbox_common/
 
 APP_NAME=""
 CCF_PATH=""
@@ -63,13 +69,8 @@ while [[ $# -gt 0 ]]; do
       ;;
     --clean)
       echo "Removing ALL setup.sh application-specific and CCF-specific files"
-      rm ./enclave/appPVRA.*
-      rm ./client.sh
-      rm ./host.sh
-      rm ./format_command
-      rm ./service_cert.pem
-      rm ./user0_cert.pem
-      rm ./user0_privk.pem
+      rm $PROJECT_ROOT/enclave/appPVRA.*
+      rm $PROJECT_ROOT/scripts/application.py
       exit 0
       ;;
     -*|--*)
@@ -95,15 +96,12 @@ then
   CCF_PATH=$DEFAULT_CCF_PATH
 fi
 
-if [ -d "./applications/$APP_NAME/"  ] 
+if [ -d "$PROJECT_ROOT/applications/$APP_NAME/"  ]
 then
-  cp ./applications/$APP_NAME/appPVRA.* ./enclave/
-  cp ./applications/$APP_NAME/client.sh ./
-  cp ./applications/$APP_NAME/host.sh ./
-  cp ./applications/$APP_NAME/format_command ./
-  cp ./encrypt_command ./applications/$APP_NAME/
+  cp $PROJECT_ROOT/applications/$APP_NAME/appPVRA.* $PROJECT_ROOT/enclave/
+  cp $PROJECT_ROOT/applications/$APP_NAME/application.py $PROJECT_ROOT/scripts/
 else
-  echo "Error: Application Directory ./applications/$APP_NAME/ does not exist."
+  echo "Error: Application Directory $PROJECT_ROOT/applications/$APP_NAME/ does not exist."
 fi
 
 if [ -d "$CCF_PATH"  ] 

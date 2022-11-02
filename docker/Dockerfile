@@ -157,7 +157,7 @@ COPY trustedLib /usr/src/trustedLib
 COPY applications/$APP_NAME/* enclave/
 
 COPY nix /usr/src/nix
-COPY default.nix /usr/src/default.nix
+COPY nix/default.nix /usr/src/default.nix
 
 RUN nix-build
 
@@ -226,14 +226,16 @@ ENV CCF_ENABLE $CCF_ENABLE
 ENV SGX_SDK /opt/sgxsdk
 ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
-RUN mkdir -p /home/photon/$APP_NAME/test_sgx
+RUN mkdir -p $PROJECT_ROOT/test_sgx/client
+RUN mkdir -p $PROJECT_ROOT/test_sgx/host
+
 WORKDIR /home/photon/$APP_NAME
 
 COPY --chown=photon:photon common common
 COPY --chown=photon:photon app app
 COPY --chown=photon:photon enclave enclave
 COPY --chown=photon:photon interface interface
-COPY --chown=photon:photon billboard/solidity solidity
+COPY --chown=photon:photon solidity solidity
 COPY --chown=photon:photon trustedLib trustedLib
 COPY --chown=photon:photon scripts scripts
 #COPY --chown=photon:photon requirements.txt requirements.txt
@@ -245,4 +247,6 @@ COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.sign
 COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/app app
 COPY --from=initc3/linux-sgx:2.14-ubuntu20.04 --chown=photon:photon /opt/sgxsdk /opt/sgxsdk
 WORKDIR /home/photon/$APP_NAME/scripts
-RUN ./admin.sh
+
+
+RUN ls -la /home/photon/$APP_NAME/

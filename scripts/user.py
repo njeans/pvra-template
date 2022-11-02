@@ -156,22 +156,7 @@ class User:
         return True, (listed_audit_num, listed_address, listed_data_hash)
 
     def _encrypt(self, key, data):
-        import subprocess
-        keypath = os.path.join(CLIENT_PATH, f"user_{self.user_num}.key")
-        datapath = os.path.join(CLIENT_PATH, f"user_{self.user_num}.data")
-        with open(keypath, "wb") as f:
-            f.write(key)
-        with open(datapath, "wb") as f:
-            f.write(data)
-        cmd = f"{FORMAT_CMD} {datapath} {keypath}"
-        print(f"called encrypt_command {cmd}")
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        if res.returncode != 0:
-            print_(f"./encrypt_command failed with code {res.returncode}\n{res.stdout.decode('utf-8')}{res.stderr.decode('utf-8')}", c=ERRORc)
-            exit(res.returncode)
-        with open("eCMD.bin", "rb") as f:
-            buff = f.read()
-        return buff
+        return encrypt_aes(key, data)
 
     def print_(self, *args, c=None):
         print_(*args, c=c, u=self.user_num)

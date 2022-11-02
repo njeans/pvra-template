@@ -3,7 +3,7 @@ let
   pkgs = import sources.nixpkgs { };
 in
 pkgs.stdenv.mkDerivation {
-  name = "sgx-iot";
+  name = "pvraApp";
   # FIXME not sure why but the build is non-deterministic if using src = ./.;
   # Possibly some untracked file(s) causing the problem ...?
   src = ./.;

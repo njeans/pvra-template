@@ -1,1 +1,0 @@
-gcc format.c -o format_command

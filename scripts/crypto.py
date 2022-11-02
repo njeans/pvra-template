@@ -19,7 +19,7 @@ def derive_key_aes(my_privatekey, other_publickey):
     if len(other_publickey) == 64:
         other_publickey = b'\x04' + other_publickey
     key = secp256k1.PublicKey(other_publickey, raw=True)
-    shared_key = key.ecdh(my_privatekey, hashfn=secp256k1.lib.secp256k1_ecdh_hash_function_sha256)
+    shared_key = key.ecdh(my_privatekey, hashfn=secp256k1.lib.secp256k1_ecdh_hash_function_sha256)[:16]
     return shared_key
 
 

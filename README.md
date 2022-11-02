@@ -84,7 +84,6 @@ docker-compose run --rm enclave-sim bash
 ```bash
 export SGX_MODE=<HW or SW>
 cd $PROJECT_ROOT/scripts
-./admin.sh
 ./build.sh
 ```
 
@@ -106,12 +105,12 @@ cd $PROJECT_ROOT/scripts
 	
 ### Sample VSC Run:
 
-![alt text](./readme/setup.png)
+![alt text](./docs/setup.png)
 
-![alt text](./readme/admin.png)
+![alt text](./docs/admin.png)
 
-![alt text](./readme/host.png)
+![alt text](./docs/host.png)
 
-![alt text](./readme/client.png)
+![alt text](./docs/client.png)
 
 
