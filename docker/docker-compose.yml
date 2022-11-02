@@ -34,6 +34,7 @@ services:
     depends_on:
       - billboard
     environment:
+      deployment_location: DOCKER
       SGX_MODE: SW
       PYTHONBREAKPOINT: ipdb.set_trace
       SGX_DEBUG: 1
@@ -51,7 +52,7 @@ services:
       - ../scripts:/home/photon/${APP_NAME}/scripts/
       - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
       - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
-    command: python demo.py
+    command: python demo.py test
 
   enclave:
     image: ${APP_NAME}-enclave
@@ -63,6 +64,7 @@ services:
         SGX_DEBUG: 1
         APP_NAME: ${APP_NAME}
     environment:
+      deployment_location: DOCKER
       CCF_ENABLE: ${CCF_ENABLE}
       SGX_SPID: ${SGX_SPID}
       IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
@@ -89,7 +91,7 @@ services:
       - billboard
       - aesm
     working_dir: /home/photon/${APP_NAME}/scripts
-    command: python demo.py
+    command: python demo.py test
 
 volumes:
   accounts:

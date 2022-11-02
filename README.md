@@ -7,6 +7,28 @@ PVRA (Publically Verifiable Remote Attestation) aims to provide a framework for 
 
 The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SecureDataTransfer. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 229 LoC and HeatMap at 205 LoC.
 
+## Quick Start
+Run an existing application secure data transfer (sdt) in docker without CCF in SGX simulation mode
+
+* set Environment variables
+
+```bash
+export PROJECT_ROOT=$(pwd)
+export CCF_ENABLE=0
+export SGX_SPID=None
+export IAS_PRIMARY_KEY=None
+export NUM_USERS=5
+export APP_NAME=sdt
+export SGX_MODE=SW
+```
+
+* build and run docker image
+
+```bash
+cd $PROJECT_ROOT/docker
+./run.sh
+```
+
 ## Getting Started
 
 ### How to write a PVRA application:
@@ -62,7 +84,7 @@ export SGX_MODE=<HW or SW>
 
 #### Usage
 
-##### Optional: Use Docker
+##### Use Docker
 
 * Hardware mode
 ```bash
@@ -80,11 +102,18 @@ docker-compose build enclave-sim
 docker-compose run --rm enclave-sim bash
 ```
 
-##### Build (required if not using docker)
+##### Build Locally
+* python 3 required
+
 ```bash
+pip install -r requirements.txt
+export SGX_SDK=/opt/sgxsdk #or your local sgx sdk path
+export LD_LIBRARY_PATH=$SGX_SDK/sdk_libs:$LD_LIBRARY_PATH
 export SGX_MODE=<HW or SW>
 cd $PROJECT_ROOT/scripts
 ./build.sh
+./run_BB.sh
+export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' billboard):8545"
 ```
 
 #### Run python scripts
@@ -102,6 +131,22 @@ cd $PROJECT_ROOT/scripts
     python demo.py data_omission_demo <optional: NUM_USERS>
     ```
 
+### Cleanup
+
+#### Stop docker containers
+
+* Docker deployment
+
+```bash
+cd $PROJECT_ROOT/docker
+docker-compose down
+```
+
+* Local deployment
+```bash
+cd $PROJECT_ROOT/scripts
+./stop_BB.sh
+```
 	
 ### Sample VSC Run:
 

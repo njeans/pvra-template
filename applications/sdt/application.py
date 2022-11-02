@@ -137,6 +137,7 @@ def print_cResponse(buff):
                 "output_data": strip(buff[104:]).decode("utf-8"),
                 })
 
+
 def strip(buff):
     if b'\x00' in buff:
         return buff[:buff.index(b'\x00')]

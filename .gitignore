@@ -42,6 +42,12 @@
 *.idb
 *.pdb
 
+# IDEs
+out/
+.idea/
+.vscode/
+**/*.iml
+
 # Python
 __pycache__/
 venv
@@ -54,16 +60,10 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-demo_sgx/
-test_sgx/
 scratch/
 trash/
-enclave/trash/
-enclave/appPVRA.*
-enclave/enclave.key.pem
-app/trash/
-app/app
 
+# SGX Files
 interface/enclave_t.h
 interface/enclave_t.c
 interface/enclave_u.h
@@ -71,17 +71,26 @@ interface/enclave_u.c
 interface/libenclave_stub_u.a
 interface/libenclave_stub_t.a
 
+# user-specific configuration (e.g. SGX_SPID, IAS_PRIMARY_KEY)
+docker/.env
+
+#CCF credentials
 service_cert.pem
 user0_cert.pem
 user0_privk.pem
 
-
-enclave/appPVRA.h
-enclave/appPVRA.c
-
-
-# user-specific configuration (e.g. SGX_SPID, IAS_PRIMARY_KEY)
-.env
-
 # nix-build output dir
 result
+
+## solidity
+#solidity/output
+
+# application specific
+test_sgx/
+enclave/appPVRA.*
+enclave/enclave.key.pem
+app/app
+accounts
+*.bin
+
+*tmp*

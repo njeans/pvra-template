@@ -127,13 +127,8 @@ ENV NIX_PATH /home/photon/.nix-defexpr/channels
 ENV NIX_SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
 ENV PATH /home/photon/.nix-profile/bin:$PATH
 
-RUN #pip install --user cryptography ipython requests pyyaml ipdb blessings colorama
-RUN pip install --user secp256k1 pycryptodome web3 py-solc-x requests
-RUN set -ex; \
-    \
-    cd /tmp; \
-    git clone --recurse-submodules https://github.com/sbellem/auditee.git; \
-    pip install --user auditee/
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 
 ENV PATH="/home/photon/.local/bin:${PATH}"
 
@@ -219,8 +214,8 @@ ENV APP_NAME $APP_NAME
 ARG NUM_USERS=4
 ENV NUM_USERS $NUM_USERS
 ENV PROJECT_ROOT="/home/photon/${APP_NAME}"
-#todo default to 1
-ARG CCF_ENABLE=0
+ENV deployment_location=DOCKER
+ARG CCF_ENABLE=1
 ENV CCF_ENABLE $CCF_ENABLE
 
 ENV SGX_SDK /opt/sgxsdk
@@ -238,15 +233,14 @@ COPY --chown=photon:photon interface interface
 COPY --chown=photon:photon solidity solidity
 COPY --chown=photon:photon trustedLib trustedLib
 COPY --chown=photon:photon scripts scripts
-#COPY --chown=photon:photon requirements.txt requirements.txt
-RUN #pip install secp256k1 pycryptodome web3 py-solc-x
+COPY --chown=photon:photon requirements.txt requirements.txt
 
 COPY --chown=photon:photon makefile makefile
 
 COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so enclave/enclave.signed.so
 COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/app app
 COPY --from=initc3/linux-sgx:2.14-ubuntu20.04 --chown=photon:photon /opt/sgxsdk /opt/sgxsdk
+
 WORKDIR /home/photon/$APP_NAME/scripts
 
-
-RUN ls -la /home/photon/$APP_NAME/
+CMD python demo.py test
