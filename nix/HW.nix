@@ -42,8 +42,9 @@ pkgs.stdenv.mkDerivation {
     runHook preInstall
 
     mkdir -p $out/bin
-    cp enclave/enclave.unsigned.so $out/bin/
-    cp enclave/enclave.signed.so $out/bin/
+    cp bin/enclave.unsigned.so $out/bin/
+    cp bin/enclave.signed.so $out/bin/
+
 
     runHook postInstall
     '';

@@ -86,11 +86,11 @@ result
 #solidity/output
 
 # application specific
+bin/
 test_sgx/
 enclave/appPVRA.*
 enclave/enclave.key.pem
-app/app
-accounts
+accounts/
 *.bin
 
 *tmp*

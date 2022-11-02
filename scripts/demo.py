@@ -130,7 +130,7 @@ def data_omission_demo(num_users=NUM_USERS):
 
 
 if __name__ == '__main__':
-    print(sys.argv[1:])
+    # print(sys.argv[1:])
     if len(sys.argv) == 2:
         globals()[sys.argv[1]]()
     elif len(sys.argv) == 3:
@@ -142,4 +142,4 @@ if __name__ == '__main__':
     elif len(sys.argv) == 6:
         globals()[sys.argv[1]](sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     else:
-        demo(test_=True)
+        test()

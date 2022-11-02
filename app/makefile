@@ -18,11 +18,14 @@ LDLIBS += -L ../interface -lenclave_stub_u $(SGX_HOST_LDLIBS) -lcrypto -ldl
 .PHONY: all clean
 
 all: ../interface/libenclave_stub_u.a app
+	@mkdir -p ../bin
+	@mv app ../bin/app
+	@mv *.o ../bin
 
 ../interface/libenclave_stub_u.a: ../interface/enclave.edl
 
 app: app.o globals.o ocall_print_string.o decode_sgx_status.o enclave.o buffers.o enclave_state.o endianswap.o readfile.o ecall_buffer.o  open_file.o hexutil.o base64.o initPVRA.o commandPVRA.o auditlogPVRA.o
-#ocall_print_int.o
+
 
 clean:
-	rm -f ../interface/*_u.* app *.o
+	rm -f ../interface/*_u.* app *.o  ../bin/app ../bin/*.o

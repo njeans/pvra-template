@@ -144,6 +144,9 @@ WORKDIR /usr/src
 ARG APP_NAME=heatmap
 ENV APP_NAME $APP_NAME
 
+ARG SGX_MODE=HW
+ENV SGX_MODE $SGX_MODE
+
 COPY common /usr/src/common
 COPY enclave /usr/src/enclave
 COPY interface /usr/src/interface
@@ -152,7 +155,7 @@ COPY trustedLib /usr/src/trustedLib
 COPY applications/$APP_NAME/* enclave/
 
 COPY nix /usr/src/nix
-COPY nix/default.nix /usr/src/default.nix
+COPY nix/$SGX_MODE.nix /usr/src/default.nix
 
 RUN nix-build
 
@@ -223,6 +226,7 @@ ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
 RUN mkdir -p $PROJECT_ROOT/test_sgx/client
 RUN mkdir -p $PROJECT_ROOT/test_sgx/host
+RUN mkdir -p $PROJECT_ROOT/bin
 
 WORKDIR /home/photon/$APP_NAME
 
@@ -237,10 +241,10 @@ COPY --chown=photon:photon requirements.txt requirements.txt
 
 COPY --chown=photon:photon makefile makefile
 
-COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so enclave/enclave.signed.so
-COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/app app
+COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
+COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
 COPY --from=initc3/linux-sgx:2.14-ubuntu20.04 --chown=photon:photon /opt/sgxsdk /opt/sgxsdk
 
 WORKDIR /home/photon/$APP_NAME/scripts
 
-CMD python demo.py test
+CMD python demo.py
