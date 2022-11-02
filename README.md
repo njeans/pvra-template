@@ -1,61 +1,161 @@
 # PVRA Template
 
-To browse the trace of a PVRA application look under ```./applications/``` for the sample applications. VSC currently at 153 LoC and HeatMap at 171 LoC.
+<!-- ABOUT THE PROJECT -->
+## About The Project
 
-## How to write a PVRA application:
+PVRA (Publically Verifiable Remote Attestation) aims to provide a framework for developers to bootstrap a range of auditting capabilities and security properties for their enclave based applications that are otherwise vulnerable.
 
+The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SecureDataTransfer. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 229 LoC and HeatMap at 205 LoC.
 
-Make new directory under ```./applications/``` named after your application.
+## Quick Start
+Run an existing application secure data transfer (sdt) in docker without CCF in SGX simulation mode
 
-Edit appPVRA.h and appPVRA.c based on application functionality.
+* set Environment variables
 
-Edit host.sh and client.sh based on host/client behavior model.
-
-Edit executables ./format_command and ./encrypt_command for client->host BB bypass.
-
-Upload all files (6) to same application directory.
-
-
-## How to compile and run a PVRA application:
-
-In order to run an existing application pass the APP_NAME to ./setup.sh script
-
-
+```bash
+export PROJECT_ROOT=$(pwd)
+export CCF_ENABLE=0
+export SGX_SPID=None
+export IAS_PRIMARY_KEY=None
+export NUM_USERS=5
+export APP_NAME=sdt
+export SGX_MODE=SW
 ```
-Terminal 1:
-./setup.sh -a|--app <APP_NAME> -c|--ccf <CCF_PATH>
-make clean
-make
+
+* build and run docker image
+
+```bash
+cd $PROJECT_ROOT/docker
+./run.sh
+```
+
+## Getting Started
+
+### How to write a PVRA application:
+
+There are five application-specific files that need to be modified for implementing an application.
+
+1. ```appPVRA.h``` This is the header file for the application; it defines the types of commands the enclave processes, the structure of command inputs/outputs, and the structure of application data.
+
+2. ```appPVRA.c``` This is enclave executable application code. Every command should have an associated execution kernel. There are two auxillary functions that are required: 
+
+   - [ ] ```initES()``` initializes the application data structures
+   - [ ] ```initFP()``` which associates functions to enumerated commands (COMMAND<sub>0</sub>-COMMAND<sub>N</sub>);
+     - optional: add admin specific commands by defining `NUM_ADMIN_COMMANDS` and initializing them to the end of function list
+   - optional: user accounts auditing with merkle tree by setting ```#define MERKLE_TREE```
+     - [ ] ```get_user_leaf``` generate a list of leaf nodes for each user account
+
+3. ```application.py``` This is a python file that specifies generates user input data and admin input data for deploying the application
+
+   - [ ] ```get_test_data``` Returns data for testing application functionality
+   - [ ] ```get_test_data_omission``` Returns data for testing data omission scenarios
+   - [ ] ```format_command``` convert test data to serialized C `struct private_command`.
+   - [ ] ```print_cResponse``` convert serialized C `struct cResponse` to a printable python string
+   - optional: user accounts auditing with merkle tree by setting ```constants.MERKLE(True)```
+     - [ ] ```print_leaf``` convert serialized C struct generated in ```get_user_leaf``` to a printable python string
+
+
+### How to compile and run a PVRA application:
+
+
+#### Prerequisites
+
+* Environment variables
+
+```bash
+export PROJECT_ROOT=$(pwd)
+export CCF_ENABLE=<0 or 1>
 export SGX_SPID=<SGX_SPID>
-export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>
-./admin.sh
-
-cd ./test_sgx/host
-./host.sh
-
-Terminal 2:
-cd ./test_sgx/client
-./client.sh
+export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>	
+export NUM_USERS=<NUM_USERS>
+export APP_NAME=<APP_NAME>
+export SGX_MODE=<HW or SW>
 ```
-**NOTE:** setup.sh with no arguments uses VSC application and sources my local CCF directory (assuming CCF is running which it usually is)
 
-**NOTE:** setup.sh --clean to undo effects of the script
+* CCF public key is hardcoded in the enclave image as a root of trust and must be updated in initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
 
-**NOTE:** CCF_pubkey is hardcoded in enclave image as a root of trust, this must be updated in enclave/initPVRA.c to reflect the live CCF pubkey
+* In order to run an existing application pass the APP_NAME to ```./setup.sh``` script.
+  
+    * ```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the directory in `$PROJECT_ROOT/application` and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
 
-**\[TODO\]\[AUDITEE\]:** admin.sh sources a python venv for auditee, give instructions on how to setup that python environment and isolate that from admin.sh script
+```bash
+./setup.sh -a $APP_NAME
+```
 
-**\[TODO\]\[AUDITEE\]:** MRENCLAVE MATCH FROM DOCKER BUILD
+#### Usage
 
-**\[TODO\]\[ACCESSIBILITY\]:** make available ./debug/aes/encrypt.c and ./debug/aes/format.c for generation of ```encrypt_command``` and ```format_command``` executables OR EVEN BETTER, MAKE these files completely seamless and adaptive to struct clientCommand 
+##### Use Docker
 
-Sample VSC Run:
+* Hardware mode
+```bash
+export SGX_MODE=HW
+cd $PROJECT_ROOT/docker
+docker-compose build enclave
+docker-compose run --rm enclave bash
+```
 
-![alt text](./readme/setup.png)
+* Simulation mode
+```bash
+export SGX_MODE=SW
+cd $PROJECT_ROOT/docker
+docker-compose build enclave-sim
+docker-compose run --rm enclave-sim bash
+```
 
-![alt text](./readme/admin.png)
+##### Build Locally
+* python 3 required
 
-![alt text](./readme/host.png)
+```bash
+pip install -r requirements.txt
+export SGX_SDK=/opt/sgxsdk #or your local sgx sdk path
+export LD_LIBRARY_PATH=$SGX_SDK/sdk_libs:$LD_LIBRARY_PATH
+export SGX_MODE=<HW or SW>
+cd $PROJECT_ROOT/scripts
+./build.sh
+./run_BB.sh
+export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' billboard):8545"
+```
 
-![alt text](./readme/client.png)
+#### Run python scripts
+
+* run demo with ```get_test_data``` output
+    ```bash
+    python demo.py demo <optional: NUM_USERS>
+    ```
+* run test with ```get_test_data``` output (checks the expected responses and leaf nodes for correctness)
+    ```bash
+    python demo.py test <optional: NUM_USERS>
+    ```
+* run data omission demo with ```get_test_data_omission``` output
+    ```bash
+    python demo.py data_omission_demo <optional: NUM_USERS>
+    ```
+
+### Cleanup
+
+#### Stop docker containers
+
+* Docker deployment
+
+```bash
+cd $PROJECT_ROOT/docker
+docker-compose down
+```
+
+* Local deployment
+```bash
+cd $PROJECT_ROOT/scripts
+./stop_BB.sh
+```
+	
+### Sample VSC Run:
+
+![alt text](./docs/setup.png)
+
+![alt text](./docs/admin.png)
+
+![alt text](./docs/host.png)
+
+![alt text](./docs/client.png)
+
 

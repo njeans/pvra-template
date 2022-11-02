@@ -16,6 +16,7 @@ static struct option long_options[] = {
   {"initPVRA", no_argument, 0, 0},
   {"commandPVRA", no_argument, 0, 0},
   {"restartPVRA", no_argument, 0, 0},
+  {"auditlogPVRA", no_argument, 0, 0},
 
   {"enclave-path", required_argument, 0, 0},
   {"sealedState", required_argument, 0, 0},
@@ -28,6 +29,10 @@ static struct option long_options[] = {
   {"cResponse", required_argument, 0, 0},
   {"cRsig", required_argument, 0, 0},
   {"sealedOut", required_argument, 0, 0},
+  {"userpubkeys", required_argument, 0, 0},
+  {"sigpubkeys", required_argument, 0, 0},
+  {"auditlog", required_argument, 0, 0},
+  {"auditlogsig", required_argument, 0, 0},
 
   {0, 0, 0, 0}
 
@@ -40,6 +45,7 @@ int main(int argc, char **argv) {
   bool opt_initPVRA = false;
   bool opt_commandPVRA = false;
   bool opt_restartPVRA = false;
+  bool opt_auditlogPVRA = false;
 
   const char *opt_enclave_path = NULL;
   const char *opt_sealedstate_file = NULL;
@@ -52,7 +58,10 @@ int main(int argc, char **argv) {
   const char *opt_cResponse_file = NULL;
   const char *opt_cRsig_file = NULL;
   const char *opt_sealedout_file = NULL;
-
+  const char *opt_userpubkeys_file = NULL;
+  const char *opt_sigpubkeys_file = NULL;
+  const char *opt_auditlog_file = NULL;
+  const char *opt_auditlogsig_file = NULL;
 
   int option_index = -1;
 
@@ -70,53 +79,70 @@ int main(int argc, char **argv) {
       opt_restartPVRA = true;
       break;
     case 3:
-      opt_enclave_path = optarg;
+      opt_auditlogPVRA = true;
       break;
     case 4:
-      opt_sealedstate_file = optarg;
+      opt_enclave_path = optarg;
       break;
     case 5:
-      opt_quote_file = optarg;
+      opt_sealedstate_file = optarg;
       break;
     case 6:
-      opt_signature_file = optarg;
+      opt_quote_file = optarg;
       break;
     case 7:
-      opt_signedFT_file = optarg;
+      opt_signature_file = optarg;
       break;
     case 8:
-      opt_FT_file = optarg;
+      opt_signedFT_file = optarg;
       break;
     case 9:
-      opt_eCMD_file = optarg;
+      opt_FT_file = optarg;
       break;
     case 10:
-      opt_eAESkey_file = optarg;
+      opt_eCMD_file = optarg;
       break;
     case 11:
-      opt_cResponse_file = optarg;
+      opt_eAESkey_file = optarg;  //its not an aes key
       break;
     case 12:
-      opt_cRsig_file = optarg;
+      opt_cResponse_file = optarg;
       break;
     case 13:
+      opt_cRsig_file = optarg;
+      break;
+    case 14:
       opt_sealedout_file = optarg;
+      break;
+    case 15:
+      opt_userpubkeys_file = optarg;
+      break;
+    case 16:
+      opt_sigpubkeys_file = optarg;
+      break;
+    case 17:
+      opt_auditlog_file = optarg;
+      break;
+    case 18:
+      opt_auditlogsig_file = optarg;
       break;
     }
   }
 
 
-  if (!opt_initPVRA && !opt_commandPVRA && !opt_restartPVRA) {
+  if (!opt_initPVRA && !opt_commandPVRA && !opt_restartPVRA && !opt_auditlogPVRA) {
     fprintf(stderr, "Error: Must specify either --initPVRA OR --commandPVRA OR --restartPVRA\n");
     return EXIT_FAILURE;
   }
 
-  if (opt_initPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_quote_file) && (!opt_signature_file)) {
+  if (opt_initPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_quote_file) && (!opt_signature_file) && (!opt_userpubkeys_file) && (!opt_sigpubkeys_file)) {
     fprintf(stderr, "Error Usage:\n");
     fprintf(stderr, "  %s --initPVRA --enclave-path /path/to/enclave.signed.so \
       --sealedState sealedState.bin \
       --quotefile quote.bin \
-      --signature enckey.sig\n", argv[0]);
+      --signature enckey.sig\
+      --userpubkeys pubkeys.list\
+      --sigpubkeys pubkeys.sig\n", argv[0]);
     return EXIT_FAILURE;
   }
 
@@ -140,19 +166,26 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
+  if (opt_auditlogPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_auditlog_file) && (!opt_auditlogsig_file)) {
+    fprintf(stderr, "Error Usage:\n");
+    fprintf(stderr, "  %s --auditlogPVRA --enclave-path /path/to/enclave.signed.so\n", argv[0]);
+    return EXIT_FAILURE;
+  }
+
 
   OpenSSL_add_all_algorithms(); /* Init OpenSSL lib */
-
 
   bool success_status =
     create_enclave(opt_enclave_path) && 
     enclave_get_buffer_sizes() &&
     allocate_buffers() && 
 
+    (opt_initPVRA ? load_keys(opt_userpubkeys_file) : true) &&
     (opt_initPVRA ? initPVRA() : true) &&
     (opt_initPVRA ? save_seal(opt_sealedstate_file) : true) &&
     (opt_initPVRA ? save_quote(opt_quote_file) : true) &&
-    (opt_initPVRA ? save_signature(opt_signature_file) : true) &&
+    (opt_initPVRA ? save_signature(opt_signature_file, signature_buffer, signature_buffer_size) : true) &&
+    (opt_initPVRA ? save_signature(opt_sigpubkeys_file, sigpubkeys_buffer, sigpubkeys_buffer_size) : true) &&
     (opt_initPVRA ? save_message() : true) &&
 
     (opt_commandPVRA ? load_seal(opt_sealedstate_file) : true) &&
@@ -164,7 +197,14 @@ int main(int argc, char **argv) {
     (opt_commandPVRA ? commandPVRA() : true) &&
     (opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
     (opt_commandPVRA ? save_cRsig(opt_cRsig_file) : true) &&
-    (opt_commandPVRA ? save_sealO(opt_sealedout_file) : true);
+    (opt_commandPVRA ? save_sealO(opt_sealedout_file) : true) &&
+
+    (opt_auditlogPVRA ? load_seal(opt_sealedstate_file) : true) &&     
+    (opt_auditlogPVRA ? auditlogPVRA() : true) &&
+    (opt_auditlogPVRA ? save_auditlog(opt_auditlog_file) : true) &&
+    (opt_auditlogPVRA ? save_signature(opt_auditlogsig_file, auditlog_signature_buffer, auditlog_signature_buffer_size) : true) &&
+    (opt_auditlogPVRA ? save_sealO(opt_sealedout_file) : true);
+
 
   if (sgx_lasterr != SGX_SUCCESS) {
     fprintf(stderr, "[agPVRA]: ERROR: %s\n", decode_sgx_status(sgx_lasterr));

@@ -37,6 +37,17 @@ void ocall_rdtsc(void) {
 }
 
 
+void ocall_allocate_seal(uint32_t init_sealsize) {
+  sealed_state_buffer_size = init_sealsize;
+  free(sealed_state_buffer);
+  sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
+
+  sealed_out_buffer_size = init_sealsize;
+  free(sealed_out_buffer);
+  sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
+  printf("DONE ALLOCATING %p %p\n", sealed_out_buffer, sealed_state_buffer);
+}
+
 
 
 // void ocall_print_int(const int num) {

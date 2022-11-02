@@ -40,10 +40,19 @@ void print_hexstring_n(const void *vsrc, size_t len) {
   for (i = 0; i < len; ++i) {
     printf("%02x", sp[i]);
   }
-  //printf("\n");
 }
 
 void ocallrdtsc(void) {
     ocall_rdtsc();
 }
 
+int sprintf(char * out, const char* fmt, ...)
+{
+    char buf[BUFSIZ] = {'\0'};
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, BUFSIZ, fmt, ap);
+    va_end(ap);
+    memcpy(out, &buf, (int)strnlen(buf, BUFSIZ - 1) + 1);
+    return (int)strnlen(buf, BUFSIZ - 1) + 1;
+}

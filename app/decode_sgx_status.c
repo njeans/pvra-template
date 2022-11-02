@@ -15,6 +15,7 @@ typedef struct _sgx_errlist_t {
 } sgx_errlist_t;
 
 static sgx_errlist_t sgx_errlist[] = {
+    {SGX_SUCCESS, "Success."},
     {SGX_ERROR_UNEXPECTED, "Unexpected error occurred."},
     {SGX_ERROR_INVALID_PARAMETER, "Invalid parameter."},
     {SGX_ERROR_OUT_OF_MEMORY, "Out of memory."},
@@ -51,7 +52,6 @@ static sgx_errlist_t sgx_errlist[] = {
 
 const char *decode_sgx_status(sgx_status_t status) {
   size_t ttl = sizeof sgx_errlist / sizeof sgx_errlist[0];
-
   for (size_t idx = 0; idx < ttl; idx++) {
     if (status == sgx_errlist[idx].err) {
       return sgx_errlist[idx].msg;

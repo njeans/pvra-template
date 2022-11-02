@@ -9,7 +9,7 @@
 
 #include "app.h"
 
-#define INITSEALSIZE 7092
+//#define INITSEALSIZE 7184
 //#define INITSEALSIZE 7024
 
 bool allocate_buffers() {
@@ -17,16 +17,28 @@ bool allocate_buffers() {
 
   signature_buffer = calloc(signature_buffer_size, 1);
 
-  sealed_state_buffer_size = INITSEALSIZE;
+  sigpubkeys_buffer_size = signature_rec_buffer_size;
+  sigpubkeys_buffer = calloc(sigpubkeys_buffer_size, 1);
+
+  auditlog_buffer_size = 8000;
+  auditlog_buffer = calloc(auditlog_buffer_size, 1);
+
+  auditlog_signature_buffer_size = signature_rec_buffer_size;
+  auditlog_signature_buffer = calloc(auditlog_signature_buffer_size, 1);
+
+
+  // SET using ecall calc_buffer_sizes
+  //sealed_state_buffer_size = INITSEALSIZE;
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
-  sealed_out_buffer_size = INITSEALSIZE;
+  sealed_out_buffer_size = sealed_state_buffer_size;
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
 
-  pub_enckey_buffer_size = 451;
+  //pub_enckey_buffer_size = 451;
+  pub_enckey_buffer_size = 64;
   pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 
-  cResponse_buffer_size = 100;
+//  cResponse_buffer_size = sizeof(struct cResponse);
   cResponse_buffer = calloc(cResponse_buffer_size, 1);
 
   cRsig_buffer_size = signature_buffer_size;

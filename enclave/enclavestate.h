@@ -6,18 +6,68 @@
 #include <mbedtls/rsa.h>
 
 #include "appPVRA.h"
+#include <secp256k1.h>
 
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
 
+#define MAX_USERS 8
+#define MAX_LOG_SIZE 20
+// [TODO]: make these parameters dynamic? not sure if it is worth it right now
+
+
+typedef struct {
+    unsigned char data[32];
+} secp256k1_prikey;
+
+
 struct EK
 {
-  	uint8_t priv_key_buffer[2049];
-  	uint8_t pub_key_buffer[2049];
-	sgx_ec256_private_t sign_prikey;
-	sgx_ec256_public_t sign_pubkey;
+  	//uint8_t priv_key_buffer[2049];
+  	//uint8_t pub_key_buffer[2049];
+	//sgx_ec256_private_t sign_prikey;
+	//sgx_ec256_public_t sign_pubkey;
 
+
+	secp256k1_pubkey sig_pubkey;
+	secp256k1_prikey sig_prikey;
+	secp256k1_pubkey enc_pubkey;
+	secp256k1_prikey enc_prikey;
 };
+
+
+
+typedef struct _sha256_hash_t
+{
+    uint8_t bytes[32];
+} sha256_hash_t;
+
+
+typedef unsigned char address_t[20];
+typedef unsigned char packed_address_t[32];
+
+struct AL
+{
+	address_t user_pubkeys[MAX_LOG_SIZE];
+	sha256_hash_t command_hashes[MAX_LOG_SIZE];
+};
+
+
+
+struct AUD
+{
+	int num_pubkeys;
+	secp256k1_pubkey master_user_pubkeys[MAX_USERS];
+	
+	struct AL auditlog;
+	int audit_offset;
+	uint32_t audit_version_no;
+};
+
+
+
+
+
 
 struct SCS
 {
@@ -31,9 +81,8 @@ struct SCS
 
 struct AR
 {
-	int seqno[10];
+	int seqno[MAX_USERS];
 };
-
 
 
 struct ES
@@ -42,26 +91,41 @@ struct ES
 	struct SCS counter;
 	struct AR antireplay;
 	struct AD appdata;
+	struct AUD auditmetadata;
 }; 
 
 
-struct cType 
-{
-	int tid;
+//struct cType
+//{
+//	uint32_t tid;
+//};
+typedef uint32_t cType;
+
+struct private_command {
+	cType CT;
+	struct cInputs CI;
+	uint32_t seqNo;
 };
+
 
 struct clientCommand
 {
-	struct cType CT;
-	struct cInputs CI;
-	int seqNo;
-	int cid;
+	secp256k1_pubkey user_pubkey;
+	struct private_command eCMD;
 };
 
-struct ADS
+
+
+struct dynamicDS
 {
 	uint8_t *buffer;
-	int buffer_size;
+	size_t buffer_size;
+};
+
+struct dAppData
+{
+	struct dynamicDS **dDS;
+	int num_dDS;
 };
 
 

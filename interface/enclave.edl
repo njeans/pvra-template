@@ -19,26 +19,39 @@ enclave
         public sgx_status_t ecall_initPVRA(
             [out] sgx_report_t *report,
             [in] sgx_target_info_t *target_info,
-            [out, size=sealedstate_size] char *sealedstate,
-            size_t sealedstate_size,
-            [out, size=signature_size] char *enckey_signature, size_t signature_size,
-            [out, size=enckey_size] char *pub_enckey, size_t enckey_size);
+            [out, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
+            [out, size=encpubkey_size] char *encpubkey, size_t encpubkey_size,
+            [out, size=encpubkey_signature_size] char *encpubkey_signature, size_t encpubkey_signature_size,
+            [in, size=userpubkeys_size] char *userpubkeys, size_t userpubkeys_size,
+            [out, size=userpubkeys_signature_size] char *userpubkeys_signature, size_t userpubkeys_signature_size
+            );
 
         public sgx_status_t ecall_commandPVRA(
             [in, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
-            [in, size=signedFT_size] char *signedFT, size_t signedFT_size,
             [in, size=FT_size] char *FT, size_t FT_size,
+            [in, size=FT_signature_size] char *FT_signature, size_t FT_signature_size,
             [in, size=eCMD_size] char *eCMD, size_t eCMD_size,
-            [in, size=eAESkey_size] char *eAESkey, size_t eAESkey_size,
+            [in, size=cmdpubkey_size] char *cmdpubkey, size_t cmdpubkey_size,
             [out, size=cResponse_size] char *cResponse, size_t cResponse_size, 
-            [out, size=cRsig_size] char *cRsig, size_t cRsig_size,
-            [out, size=sealedout_size] char *sealedout, size_t sealedout_size
+            [out, size=cResponse_signature_size] char *cResponse_signature, size_t cResponse_signature_size,
+            [out, size=newsealedstate_size] char *newsealedstate, size_t newsealedstate_size
             );
 
-        
+        public sgx_status_t ecall_auditlogPVRA(
+            [in, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
+            [out, size=auditlog_size] char *auditlog, size_t auditlog_size,
+            [out, size=auditlog_signature_size] char *auditlog_signature, size_t auditlog_signature_size,
+            [out] uint32_t* actual_auditlog_size,
+            [out, size=newsealedstate_size] char *newsealedstate, size_t newsealedstate_size
+            );
+
+
 
         public sgx_status_t ecall_calc_buffer_sizes(
-            [out] size_t* esignature_size);
+            [out] size_t* esignature_size,
+            [out] size_t* esignature_rec_size,
+            [out] size_t* esealed_state_size,
+            [out] size_t* cResponse_size);
 
 
         #undef BUFLEN
@@ -51,6 +64,7 @@ enclave
         void ocall_print_string([in, string] const char *str);
         void ocall_rdtsc(void);
         void ocallbuf(int size);
+        void ocall_allocate_seal(uint32_t initseal_size);
         //void ocall_print_int([in, int] const int num);
     };
 };

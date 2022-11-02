@@ -89,30 +89,64 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
 
 
 /* Initializes the Function Pointers to Function Names Above */
-int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*)) 
+int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*))
 {
     (functions[0]) = &addPersonalData;
-    (functions[1]) = &getHeatMap;
+    (functions[1]) = &getHeatMap; //admin
     //printf("Initialized Application Kernels\n");
     return 0;
 }
 
 
 /* Initializes the Application Data as per expectation */
-int initES(struct ES* enclave_state)
+int initES(struct ES* enclave_state, struct dAppData *dAD)
 {
+    char *user_info = calloc(NUM_USERS*PUBLIC_KEY_SIZE,sizeof(char));
+    if(user_info == NULL) return -1;
+
+    struct locationData *user_data = calloc(NUM_USERS*MAX_DATA,sizeof(struct locationData));
+    if(user_data == NULL) return -1;
+
+    enclave_state->appdata.user_info = user_info;
+    enclave_state->appdata.user_data = user_data;
+
     enclave_state->appdata.num_data = 0;
-    struct locationData * new_buffer = calloc(1024,sizeof(struct locationData));
-    if (new_buffer == NULL) {
-        printf("calloc locationData return null\n");
-    }
-    enclave_state->appdata.user_data = new_buffer;
+
+
+    /* Initialize metadata regarding dynamic data-structures for sealing purposes */
+
+    // Number of dynamic data structures
+    dAD->num_dDS = 2;
+
+    // For each dDS, assign the pointer and the size of the DS
+    struct dynamicDS *tDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
+    if(tDS == NULL) return -1;
+    tDS->buffer = user_info;
+    tDS->buffer_size = NUM_USERS*PUBLIC_KEY_SIZE*sizeof(char);
+
+    struct dynamicDS *nDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
+    if(nDS == NULL) return -1;
+    nDS->buffer = user_data;
+    nDS->buffer_size = NUM_USERS*MAX_DATA*sizeof(struct locationData);
+
+    struct dynamicDS **dDS = (struct dynamicDS **)calloc(dAD->num_dDS, sizeof(struct dynamicDS *));
+    if(dDS == NULL) return -1;
+    dDS[0] = tDS;
+    dDS[1] = nDS;
+    dAD->dDS = dDS;
+    return 0;
+}
+
+int initAD(struct ES* enclave_state, struct dAppData *dAD)
+{
+    enclave_state->appdata.user_info = dAD->dDS[0]->buffer;
+    enclave_state->appdata.user_data = dAD->dDS[1]->buffer;
     return 0;
 }
 
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d [ID]:%d} ", CC->CT.tid, CC->CI.uid, CC->CI.data.lat, CC->CI.data.lng, CC->CI.data.startTs, CC->CI.data.endTs, CC->CI.data.result, CC->seqNo, CC->cid);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d} ", CC->eCMD.CT, CC->eCMD.CI.uid, CC->eCMD.CI.data.lat, CC->eCMD.CI.data.lng, CC->eCMD.CI.data.startTs, CC->eCMD.CI.data.endTs, CC->eCMD.CI.data.result, CC->eCMD.seqNo);
 }
 
