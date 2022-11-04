@@ -25,22 +25,38 @@ void hash_leaf(char* out, char *leaf, size_t size) {
   keccak_final(&ctx_sha3, out);
 }
 
+uint32_t next_root_2(uint32_t num) {
+    int v = num;
+    v -= 1;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v += 1;
+    return v;
+}
+
 int build_tree(merkle_tree *mt, char *leaves[], uint32_t num_leaves, uint32_t block_size) {
-    mt->num_leaves = num_leaves;
+    uint32_t total_leaves = next_root_2(num_leaves);
+    mt->num_leaves = total_leaves;
     mt->block_size = block_size;
-    mt->num_nodes = (1 << (num_leaves-1)) - 1;
+    mt->num_nodes = 2*total_leaves - 1;
+    printf("num_nodes %d total_leaves %d\n",mt->num_nodes, total_leaves);
     mt->nodes = (char **) malloc(sizeof(char*) * mt->num_nodes);
-    mt->leaves = (char **) malloc(sizeof(char*) * num_leaves);
-    for (int i=0; i < num_leaves ; i++) {
-        mt->leaves[i] = leaves[i];
+    mt->leaves = (char **) malloc(sizeof(char*) * total_leaves);
+    char empty_leaf[1];
+    for (int i=0; i < total_leaves ; i++) {
+        if (i < num_leaves) mt->leaves[i] = leaves[i];
+        else mt->leaves[i] = (char *) malloc(block_size);
         mt->nodes[i] = (char *) malloc(32);
-        hash_leaf(mt->nodes[i], leaves[i], mt->block_size);
+        hash_leaf(mt->nodes[i], mt->leaves[i], mt->block_size);
         printf("hashing leaf %d ", i);
-        print_hexstring_n(leaves[i], block_size);
+        print_hexstring_n(mt->leaves[i], block_size);
         printf(" -> ");
         print_hexstring(mt->nodes[i], 32);
     }
-    int index = num_leaves;
+    int index = total_leaves;
     for (int j = 0; j < mt->num_nodes-1; j+=2) {
         char * l = mt->nodes[j];
         char * r = mt->nodes[j+1];
