@@ -23,7 +23,6 @@ struct userInfo
     uint64_t retrieve_time; //time when retrieve can be completed
     char secret_data[DATA_SIZE];
     bool started_retrieve;
-	uint32_t uidx;
 };
 
 struct userLeaf
@@ -36,9 +35,9 @@ struct userLeaf
 
 struct cInputs
 {
-	uint32_t uidx;
 	char input_data[DATA_SIZE];
 	char recover_key[KEY_SIZE];
+	char user_pubkey[KEY_SIZE];
 };
 
 struct cResponse

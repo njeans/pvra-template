@@ -6,24 +6,22 @@
 #define __APPPVRA_H__
 
 #define NUM_COMMANDS 2
-#define NUM_USERS 2
+#define NUM_USERS 8
 #define NUM_TESTS 100
-#define INIT_NUM_USERS 2
+#define INIT_NUM_USERS 8
 #define INIT_NUM_TESTS 100
 
 
 struct cInputs
 {
-	int uid;
-	int test_result;
+	bool test_result;
 };
 
 struct cResponse
 {
-	bool access;
-	int error;
+	uint32_t error;
 	char message[100];
-
+	bool access;
 };
 
 struct AD

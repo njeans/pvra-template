@@ -1,9 +1,11 @@
 import os
+import ctypes
+
 import constants
 
 assert os.environ.get("APP_NAME") == "sdt"
 SECRET_DATA_SIZE = 64
-RECOVER_KEY_SIZE = 64
+KEY_SIZE = 64
 
 ADD_DATA = 0
 GET_DATA = 2
@@ -16,129 +18,160 @@ constants.MERKLE(True)
 
 def get_test_data(admin, users):
     num_users = len(users)
-    assert num_users >= 4
-    test_data = [[] for _ in range(num_users)]
-    admin_data = [[] for _ in range(num_users)]
-    expected_audit = [[] for _ in range(num_users)]
-    user_seq = [0 for _ in range(num_users)]
-    user_seq[3] = 1
-    secret_data = [bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8") for i in range(num_users)]
-    test_data = [
-        [({"tid": ADD_DATA, "input_data": secret_data[0], "seq": 0, "uidx": 0}, b"success addPersonalData"),
+    assert num_users <= 5
+    secret_data = lambda i: bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8")
+    base_test_data = [
+        [({"tid": ADD_DATA, "input_data": secret_data(0), "seq": 0}, "success addPersonalData"),
          None,
          None,
          None,
          None,
          ],
-        [({"tid": ADD_DATA, "input_data": secret_data[1], "seq": 0, "uidx": 1}, b"success addPersonalData"),
+        [({"tid": ADD_DATA, "input_data": secret_data(1), "seq": 0}, "success addPersonalData"),
          None,
-         ({"tid": CANCEL_RET, "seq": 1, "uidx": 1}, b"success cancelRetrieve"),
+         ({"tid": CANCEL_RET, "seq": 1}, "success cancelRetrieve"),
          None,
-         ({"tid": GET_DATA, "seq": 2, "uidx": 1}, secret_data[1]),
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(1))),
          ],
-        [({"tid": ADD_DATA, "input_data": secret_data[2], "seq": 0, "uidx": 2}, b"success addPersonalData"),
+        [({"tid": ADD_DATA, "input_data": secret_data(2), "seq": 0}, "success addPersonalData"),
          None,
          None,
          None,
-         ({"tid": GET_DATA, "seq": 2, "uidx": 2}, secret_data[2]),
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(2))),
          ],
-        [({"tid": ADD_DATA, "input_data": secret_data[3], "seq": 0, "uidx": 3}, b"success addPersonalData"),
+        [({"tid": ADD_DATA, "input_data": secret_data(3), "seq": 0}, "success addPersonalData"),
          None,
          None,
          None,
-         ({"tid": GET_DATA, "seq": 1, "uidx": 3}, secret_data[3]),
+         ({"tid": GET_DATA, "seq": 1}, str(secret_data(3))),
+         ],
+        [None,
+         None,
+         None,
+         None,
+         ({"tid": GET_DATA, "seq": 1}, str(secret_data(0))),
          ]
     ]
-    #user 0 data stolen
+    #user 0 data stolen by user 4
     #user 1 cancel in time
     #user 2 limit reached
     #user 3 admin didn't wait
-    admin_data = [
+    base_admin_data = [
         [None,
-         ({"tid": START_RET, "uidx": 0}, b"success startRetrieve"),
+         ({"tid": START_RET, "user_pubkey": users[0].public_key}, "success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "recover_key": admin.admin_user.public_key, "uidx": 0}, b"success completeRetrieve"),
-         ({"tid": GET_DATA, "seq": 1, "uidx": 0}, secret_data[0])
-         ],
-        [None,
-         ({"tid": START_RET, "uidx": 1}, b"success startRetrieve"),
-         None,
-         ({"tid": COMPLETE_RET, "recover_key": admin.admin_user.public_key, "uidx": 1}, b"retrieval not started"),
+         ({"tid": COMPLETE_RET, "user_pubkey": users[0].public_key, "recover_key": users[4].public_key}, "success completeRetrieve"),
          None
          ],
         [None,
-         ({"tid": START_RET, "uidx": 2}, b"success startRetrieve"),
+         ({"tid": START_RET, "user_pubkey": users[1].public_key}, "success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "recover_key": admin.admin_user.public_key, "uidx": 2}, b"retrieval wait period not over"),
+         ({"tid": COMPLETE_RET, "recover_key": users[4].public_key, "user_pubkey": users[1].public_key}, "retrieval not started"),
          None
          ],
         [None,
-         ({"tid": START_RET, "uidx": 3}, b"retrieve_count limit reached"),
+         ({"tid": START_RET, "user_pubkey": users[2].public_key}, "success startRetrieve"),
+         None,
+         ({"tid": COMPLETE_RET, "recover_key": users[4].public_key, "user_pubkey": users[2].public_key}, "retrieval wait period not over"),
+         None
+         ],
+        [None,
+         ({"tid": START_RET, "user_pubkey": users[3].public_key}, "retrieve_count limit reached"),
          None,
          None,
          None
-         ]
+         ],
+        [None, None, None, None, None]
     ]
-    expected_audit = [
-        [format_leaf(0, 0, False), format_leaf(1, 70, True), format_leaf(1, 70, True), format_leaf(1, 0, False), format_leaf(1, 0, False)],
-        [format_leaf(0, 0, False), format_leaf(1, 71, True), format_leaf(1, 0, False), format_leaf(1, 0, False), format_leaf(1, 0, False)],
-        [format_leaf(0, 0, False), format_leaf(1, 72, True), format_leaf(1, 72, True), format_leaf(1, 72, True), format_leaf(1, 72, True)],
-        [format_leaf(0, 0, False), format_leaf(1, 73, True), format_leaf(1, 73, True), format_leaf(1, 73, True), format_leaf(1, 73, True)],
+    base_expected_audit = [
+        [format_leaf(0, 0, False, 0), format_leaf(1, 70, True, 0), format_leaf(1, 70, True, 0), format_leaf(1, 0, False, 0), format_leaf(1, 0, False, 0)],
+        [format_leaf(0, 0, False, 1), format_leaf(1, 71, True, 1), format_leaf(1, 0, False, 1), format_leaf(1, 0, False, 1), format_leaf(1, 0, False, 1)],
+        [format_leaf(0, 0, False, 2), format_leaf(1, 72, True, 2), format_leaf(1, 72, True, 2), format_leaf(1, 72, True, 2), format_leaf(1, 72, True, 2)],
+        [format_leaf(0, 0, False, 3), format_leaf(1, 73, True, 3), format_leaf(1, 73, True, 3), format_leaf(1, 73, True, 3), format_leaf(1, 73, True, 3)],
+        [None, None, None, None, None]
     ]
+    test_data = [base_test_data[i] for i in range(num_users)]
+    admin_data = [base_admin_data[i] for i in range(num_users)]
+    expected_audit = [base_expected_audit[i] for i in range(num_users)]
     return test_data, admin_data, expected_audit
 
 
 def get_test_data_omission(admin, users):
     num_users = len(users)
-    test_data = [[{"tid": ADD_DATA, "input_data": chr(ord("N") + i) * SECRET_DATA_SIZE, "seq": 0},
+    test_data = [[{"tid": ADD_DATA, "input_data": bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8"), "seq": 0},
                   None,
                   {"tid": CANCEL_RET, "seq": 1},
                   None,
-                  {"tid": GET_DATA, "uid": users[i].public_key}] for i in range(num_users)]
+                  {"tid": GET_DATA, "seq": 2}] for i in range(num_users)]
     admin_data = [[None,
-                   {"tid": START_RET, "uid": users[i].public_key},
+                   {"tid": START_RET, "user_pubkey": users[i].public_key},
                    None,
-                   {"tid": COMPLETE_RET, "uid": users[i].public_key, "recover_key": admin.public_key},
-                   {"tid": GET_DATA, "uid": admin.public_key}] for i in range(num_users)]
+                   {"tid": COMPLETE_RET, "user_pubkey": users[i].public_key, "recover_key": admin.public_key},
+                   {"tid": GET_DATA, "user_pubkey": admin.public_key}] for i in range(num_users)]
     return test_data, [2], admin_data
 
-
+#[admin.py] encrypting user data {'tid': 4
 def format_command(cmd):
-    res = cmd["tid"].to_bytes(constants.U32_SIZE, "little")
-    res += (cmd["uidx"]).to_bytes(constants.U32_SIZE, "little")
-    if "input_data" in cmd:
-        res += cmd["input_data"]
-    else:
-        res += b'-' * SECRET_DATA_SIZE
-    if "recover_key" in cmd:
-        res += cmd["recover_key"]
-    else:
-        res += b'-' * RECOVER_KEY_SIZE
-    res += cmd["seq"].to_bytes(constants.U32_SIZE, "little")
+    if "input_data" not in cmd:
+        cmd["input_data"] = b'-' * SECRET_DATA_SIZE
+    if "recover_key" not in cmd:
+        cmd["recover_key"] = b'-' * KEY_SIZE
+    if "user_pubkey" not in cmd:
+        cmd["user_pubkey"] = b'-' * KEY_SIZE
+    id = ByteArrData.from_buffer_copy(cmd["input_data"])
+    rc = ByteArrKey.from_buffer_copy(cmd["recover_key"])
+    pk = ByteArrKey.from_buffer_copy(cmd["user_pubkey"])
+    CI = cInputs(id, rc, pk)
+    pc = private_command(cmd["tid"], cmd["seq"], CI)
+    res = bytes(pc)
+    assert len(CI.recover_key) == KEY_SIZE
     return res
 
 
-def format_leaf(retrieve_count, retrieve_time, started_retrieve):
-    return retrieve_count.to_bytes(constants.U32_SIZE, "big") + retrieve_time.to_bytes(constants.U64_SIZE, "big") + bytes([int(started_retrieve)])
+def format_leaf(retrieve_count, retrieve_time, started_retrieve, uidx):
+    return bytes(userLeaf(retrieve_count, retrieve_time, started_retrieve, uidx))
 
 
 def print_leaf(buff):
-    # print("uidx",len(buff[-4:]),buff[-4:].hex(),int.from_bytes(buff[-4:], "big"),int.from_bytes(buff[-4:], "little"))
-    return str({"retrieve_count": int.from_bytes(buff[:4], "little"),
-                "retrieve_time": int.from_bytes(buff[4:12], "little"),
-                "started_retrieve": False if buff[13] == 0 else True,
-                "uidx": int.from_bytes(buff[-4:], "little"),
-                })
+    leaf = userLeaf.from_buffer_copy(buff)
+    return str({"retrieve_count": leaf.retrieve_count,
+                "retrieve_time": leaf.retrieve_time,
+                "started_retrieve": leaf.started_retrieve,
+                "uidx": leaf.uidx})
 
 
 def print_cResponse(buff):
-    return str({"error": int.from_bytes(buff[:4], "little"),
-                "message": strip(buff[4:104]).decode("utf-8"),
-                "output_data": strip(buff[104:]).decode("utf-8"),
-                })
+    resp = cResponse.from_buffer_copy(buff)
+    ret = {"error": resp.error,
+           "message": resp.message}
+    if b'success getPersonalData' in resp.message:
+        ret["output_data"] = bytes(resp.output_data)
+    return str(ret)
 
 
-def strip(buff):
-    if b'\x00' in buff:
-        return buff[:buff.index(b'\x00')]
-    return buff
+ByteArrData = ctypes.c_byte * SECRET_DATA_SIZE
+ByteArrKey = ctypes.c_byte * KEY_SIZE
+
+
+class cResponse(ctypes.Structure):
+    _fields_ = [('error', ctypes.c_uint32),
+                ('message', ctypes.c_char * 100),
+                ('output_data', ByteArrData)]
+
+
+class cInputs(ctypes.Structure):
+    _fields_ = [('input_data', ByteArrData),
+                ('recover_key', ByteArrKey),
+                ('user_pubkey', ByteArrKey)]
+
+
+class private_command(ctypes.Structure):
+    _fields_ = [('tid', ctypes.c_uint32),
+                ('seq', ctypes.c_uint32),
+                ('cInputs', cInputs)]
+
+class userLeaf(ctypes.Structure):
+    _fields_ = [('retrieve_count', ctypes.c_uint32),
+                ('retrieve_time', ctypes.c_uint64),
+                ('started_retrieve', ctypes.c_bool),
+                ('uidx', ctypes.c_uint32)]

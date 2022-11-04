@@ -307,11 +307,6 @@ sgx_status_t ecall_commandPVRA(
 
   int user_idx = -1;
   for(int i = 0; i < NUM_USERS+1; i++) {
-    printf("comparing\n");
-      if(C_DEBUGPRINT) print_hexstring_n(&enclave_state.auditmetadata.master_user_pubkeys[i], 3);
-      if(C_DEBUGPRINT) printf("..");
-      if(C_DEBUGPRINT) print_hexstring_n(((char *)&enclave_state.auditmetadata.master_user_pubkeys[i])+61, 3);
-      if(C_DEBUGPRINT) printf("\n");
     if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
       user_idx = i;
       break;
@@ -329,14 +324,12 @@ sgx_status_t ecall_commandPVRA(
 
 
   /*    ECDH protocol to generate shared secret AESKey    */
-
   unsigned char randomize_e[32];
   secp256k1_context* ctx_e = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
   // Handle NULL
   sgx_read_rand(randomize_e, sizeof(randomize_e));
   int secp25k1_ret = secp256k1_context_randomize(ctx_e, randomize_e);
   unsigned char shared_secret[32];
-
   secp256k1_pubkey user_pubkey;
   char user_pubkey_buff[65];
   user_pubkey_buff[0] = 4;
@@ -344,9 +337,9 @@ sgx_status_t ecall_commandPVRA(
   secp256k1_ec_pubkey_parse(ctx_e, &user_pubkey, &user_pubkey_buff, 65);
 
   secp25k1_ret = secp256k1_ecdh(ctx_e, shared_secret, &user_pubkey, &enclave_state.enclavekeys.enc_prikey, NULL, NULL);
-  //if(C_DEBUGPRINT) printf("[eiPVRA] Enclave Generated User0 Shared Secret\n");
-  //if(C_DEBUGPRINT) print_hexstring(&shared_secret, 32);
-  //if(C_DEBUGPRINT) printf("\n");
+//  if(C_DEBUGPRINT) printf("[eiPVRA] Enclave Generated Shared Secret\n");
+//  if(C_DEBUGPRINT) print_hexstring(&shared_secret, 32);
+//  if(C_DEBUGPRINT) printf("\n");
   unsigned char AESkey[16];
   size_t AESkey_len = 16;
   memcpy(AESkey, shared_secret, 16);
@@ -363,7 +356,6 @@ sgx_status_t ecall_commandPVRA(
   size_t ct_len = eCMD_size;
   //size_t ct_len = exp_ct_len;
   size_t ct_src_len = ct_len - AESGCM_128_MAC_SIZE - AESGCM_128_IV_SIZE;
-
   if (ct_src_len != sizeof(struct private_command)) {
     printf("[ecPVRA] BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
     sprintf(cResponse, "BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
@@ -397,7 +389,7 @@ sgx_status_t ecall_commandPVRA(
   if(C_DEBUGPRINT) printf("[ecPVRA] Decrypted eCMD hexstring: ");
   if(C_DEBUGPRINT) print_hexstring_n(plain_dst, sizeof(struct private_command));
   if(C_DEBUGPRINT) printf(" success\n");
-  if(C_DEBUGPRINT) print_clientCommand(&CC);
+  if(C_DEBUGPRINT) print_clientCommand(&CC, user_idx-1);
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
@@ -420,7 +412,7 @@ sgx_status_t ecall_commandPVRA(
   
   /*   (6) PROCESS COMMAND    */
 
-  struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*);
+  struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*, uint32_t);
   int init_ret = initFP(functions);
   if(init_ret != 0) {
     printf("[ecPVRA] Init Function Pointers Failed\n");
@@ -429,9 +421,7 @@ sgx_status_t ecall_commandPVRA(
   }
   struct cResponse cRet;
   /*   APPLICATION KERNEL INVOKED    */
-  cRet = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI);
-//  char cRstring[sizeof(struct cResponse)];
-//   memcpy(cRstring, cRet, sizeof(struct cResponse));
+  cRet = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI, user_idx-1);
   printf("[ecPVRA] cRet.message: [%d]\n", sizeof(struct cResponse));
   print_hexstring(&cRet, sizeof(struct cResponse));
   if(C_DEBUGRDTSC) ocall_rdtsc();

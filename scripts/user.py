@@ -87,7 +87,7 @@ class User:
         self.print_v(f"server response {resp}")
         msg = bytes.fromhex(resp["msg"])
         sig = bytes.fromhex(resp["sig"])
-        res_enclave = True#recover_eth_data(msg, sig, address=self.enclave_addr) todo
+        res_enclave = True  # recover_eth_data(msg, sig, address=self.enclave_addr) todo
         msg_conf = bytes.fromhex(resp["msg_conf"])
         sig_conf = bytes.fromhex(resp["sig_conf"])
         res_admin, conf_data = self._verify_confirmation(msg_conf, sig_conf, encrypted_user_data)
@@ -106,7 +106,10 @@ class User:
         assert user_info[0] == self.address
         # assert user_info[1] == self.audit_num  # last_audit_num todo get last_audit_num to compare?
         assert user_info[2] == encrypted_user_data  # user_data
-        self.sent_commands[encrypted_user_data.hex()]["audit_num"] = user_info[1]
+        if encrypted_user_data.hex() in self.sent_commands:
+            self.sent_commands[encrypted_user_data.hex()]["audit_num"] = user_info[1]
+        else:
+            self.sent_commands[encrypted_user_data.hex()] = {"audit_num": user_info[1]}
         self.print_vv(f"contract.functions.add_user_data: gasUsed {gas}")
 
     def check_leaf(self, leaf):
@@ -119,12 +122,14 @@ class User:
         res = self.sent_commands[encrypted_user_data.hex()]
         if mode == OMIT_DATA:
             audit_num = res["audit_num"]
+            self.print_vv(f"verifying proof of omission with data for audit_num {audit_num}")
             gas = bb.send_tx(self.w3, self.contract.functions.verify_omission_data(self.address, audit_num), self.address)
             omission_detected = self.contract.functions.omission_detected().call({"from": self.address})
             self.print_v(f"verifying proof of omission with data for audit_num {audit_num}: omission_detected {omission_detected}")
             self.print_vv(f"contract.functions.verify_omission_data: gasUsed {gas}")
         else:
             audit_num, listed_address, listed_data_hash = res["msg_conf"]
+            self.print_vv(f"verifying proof of omission with admin signature for audit_num {audit_num}")
             sig = res["sig_conf"]
             gas = bb.send_tx(self.w3, self.contract.functions.verify_omission_sig(listed_address, audit_num, listed_data_hash, sig), self.address)
             omission_detected = self.contract.functions.omission_detected().call({"from": self.address})
@@ -139,15 +144,15 @@ class User:
         # auditee.verify_ias_report()
 
     def _verify_confirmation(self, msg, sig, cmd):
-        len_audit_num = len(msg) - 32 - 32  # todo change to 32 bit audit num
+        len_audit_num = len(msg) - 20 - 32  # todo change to 32 bit audit num
         listed_audit_num = int(msg[:len_audit_num])
         last_audit_num = self.contract.functions.audit_num().call({"from": self.address})
-        listed_address = get_address_from_packed(msg[len_audit_num:len_audit_num+32])
-        listed_data_hash = msg[len_audit_num+32:]
+        listed_address = msg[len_audit_num:len_audit_num+20] #get_address_from_packed(msg[len_audit_num:len_audit_num+32])
+        listed_data_hash = msg[len_audit_num+20:]
         if listed_audit_num not in [last_audit_num+1, last_audit_num]:
             return False, f"audit_num {listed_audit_num} not in {[last_audit_num, last_audit_num+1]}"
-        if listed_address != self.address:
-            return False, f"address {print_hex_trunc(listed_address)} != {print_hex_trunc(self.address)}"
+        if "0x"+listed_address.hex() != self.address.lower():
+            return False, f"address {print_hex_trunc(listed_address)} != {print_hex_trunc(self.address.lower())}"
         correct_hash = sha3(cmd)
         if listed_data_hash != correct_hash:
             return False, f"data hash {print_hex_trunc(listed_data_hash)} != {print_hex_trunc(correct_hash)}"

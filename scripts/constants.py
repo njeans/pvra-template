@@ -28,10 +28,15 @@ NUM_USERS = int(os.environ.get('NUM_USERS', 4))
 
 ADMIN_IP = 'localhost'
 ADMIN_PORT = 8081
+APP_NAME = os.environ.get("APP_NAME")
 
-APP_PATH = os.environ.get('APP_PATH', os.path.join(PROJECT_ROOT, "bin", "app"))
-SIGNED_ENCLAVE_PATH = os.environ.get('ENCLAVE_PATH',  os.path.join(PROJECT_ROOT, "bin", "enclave.signed.so"))
-FORMAT_CMD = os.path.join(PROJECT_ROOT, "src", "encrypt_command")
+if os.environ.get("deployment_location", "") == "DOCKER":
+    APP_SRC_PATH = os.path.join(PROJECT_ROOT, "src")
+else:
+    APP_SRC_PATH = os.path.join(PROJECT_ROOT, "applications", APP_NAME)
+
+APP_PATH = os.path.join(PROJECT_ROOT, "bin", "app")
+SIGNED_ENCLAVE_PATH = os.path.join(PROJECT_ROOT, "bin", "enclave.signed.so")
 TEST_PATH = os.path.join(PROJECT_ROOT, "test_sgx")
 
 HOST_PATH = os.path.join(TEST_PATH, "host")

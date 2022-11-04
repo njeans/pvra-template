@@ -13,6 +13,7 @@ contract Billboard {
         uint block_num;
         address[] included_user_ids;
         bytes32[] included_data_hashes;
+        bool posted;
     }
 
     struct UserData {
@@ -76,13 +77,13 @@ contract Billboard {
     function add_user_data(bytes memory encrypted_command_and_data) public {
         require(initialized);
         User storage user = user_info[msg.sender];
-        uint32 nex_audit_num = audit_num+1;
-        require(user.called_add_data[nex_audit_num] == false);
-        user.last_audit_num = nex_audit_num;
+        uint32 audit_num_ = audit_num+1;
+        require(user.called_add_data[audit_num_] == false);
+        user.last_audit_num = audit_num_;
         //users can only add 1 set TODO
         //of data per audit time period
-        user.user_data[nex_audit_num] = encrypted_command_and_data;
-        user.called_add_data[nex_audit_num] = true;
+        user.user_data[audit_num_] = encrypted_command_and_data;
+        user.called_add_data[audit_num_] = true;
     }
 
     function audit_start() public {
@@ -102,7 +103,7 @@ contract Billboard {
         bytes32 hash = hash_audit_data(audit_num, included_ids, included_hashes);
         address signer = recover(hash, signature);
         require(signer == enclave_address);
-        audit_data[audit_num] = AuditData("", audit_block_num, included_ids, included_hashes);
+        audit_data[audit_num] = AuditData("", audit_block_num, included_ids, included_hashes, true);
     }
 
     function audit_end_merkle(bytes memory audit_log_signature,
@@ -117,14 +118,14 @@ contract Billboard {
 //        tmp_hash = audit_log_hash;
         require(signer == enclave_address);
         check_proof(proof, leaves);
-        audit_data[audit_num] = AuditData(proof[proof.length-1], audit_block_num, included_user_ids, included_data_hashes);
+        audit_data[audit_num] = AuditData(proof[proof.length-1], audit_block_num, included_user_ids, included_data_hashes, true);
     }
 
     function verify_omission_data(address user_id, uint32 omit_audit_num) public {
         require(initialized);
         require(audit_num >= omit_audit_num);
         if (audit_num == omit_audit_num) {
-            require(next_audit_time <= block.number);
+            require(next_audit_time <= block.number || audit_data[omit_audit_num].posted);
         }
 
         User storage user = user_info[user_id];
@@ -141,7 +142,7 @@ contract Billboard {
         require(initialized);
         require(audit_num >= omit_audit_num);
         if (audit_num == omit_audit_num) {
-            require(next_audit_time <= block.number);
+            require(next_audit_time <= block.number || audit_data[omit_audit_num].posted);
         }
 
         bytes32 hash = hash_confirmation(user_id, omit_audit_num, signed_data_hash);
@@ -154,7 +155,7 @@ contract Billboard {
     }
 
     function detect_timeout() public {
-        timeout_detected = next_audit_time < block.number;
+        timeout_detected = next_audit_time < block.number && !audit_data[audit_num].posted;
     }
 
     function hash_address_list(address[] memory _addresses) internal pure returns (bytes32) {

@@ -8,39 +8,44 @@
 
 #define NUM_COMMANDS 1
 #define NUM_ADMIN_COMMANDS 1
-#define NUM_USERS 2
-#define MAX_DATA 10
+#define NUM_USERS 4
 #define PUBLIC_KEY_SIZE 64
-#define  HEATMAP_GRANULARITY 5
+#define HEATMAP_GRANULARITY 10
+#define MAX_DATA 100
+
 
 
 struct locationData
 {
     float lat;
     float lng;
-    int startTs;
-    int endTs;
+    uint64_t startTs;
+    uint64_t endTs;
     bool result;
 };
 
 struct cInputs
 {
-	int uid;
-	struct locationData data;
+    float lat;
+    float lng;
+    uint64_t startTs;
+    uint64_t endTs;
+    bool result;
 };
+
 
 struct cResponse
 {
-	int error;
+	uint32_t error;
 	char message[100];
-	int heatmap_data[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
+	uint32_t heatmap_data[HEATMAP_GRANULARITY*HEATMAP_GRANULARITY];
 };
 
 struct AD
 {
 	char *user_info;
 	int num_data;
-	struct locationData *user_data;
+	struct cInputs *user_data;
 };
 
 #endif
