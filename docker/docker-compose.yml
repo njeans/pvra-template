@@ -1,0 +1,105 @@
+version: '3.9'
+
+
+services:
+  aesm:
+    image: initc3/linux-sgx:2.13-ubuntu20.04
+    devices:
+      - /dev/isgx
+    volumes:
+      - aesmd-socket:/var/run/aesmd
+    user: aesmd
+    working_dir: /opt/intel/sgx-aesm-service/aesm
+    environment:
+      LD_LIBRARY_PATH: /opt/intel/sgx-aesm-service/aesm
+    command: ./aesm_service --no-daemon
+
+  billboard:
+    image: trufflesuite/ganache-cli:v6.12.2
+    ports:
+      - 8545:8545
+    environment:
+      NUM_USERS: ${NUM_USERS}+1
+    volumes:
+      - accounts:/accounts/
+    command: ["--deterministic", "nerla","--gasLimit","0x6691b70", "--accounts", "10", "--account_keys_path", "/accounts/accounts.json", "--debug"]
+
+  enclave-sim:
+    image: ${APP_NAME}-enclave-sim
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        SGX_MODE: SW
+        SGX_DEBUG: 1
+        APP_NAME: ${APP_NAME}
+    depends_on:
+      - billboard
+    environment:
+      deployment_location: DOCKER
+      SGX_MODE: SW
+      PYTHONBREAKPOINT: ipdb.set_trace
+      SGX_DEBUG: 1
+      CCF_ENABLE: 0
+      SGX_SPID: ${SGX_SPID}
+      IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
+      NUM_USERS: ${NUM_USERS}
+      PROJECT_ROOT: /home/photon/${APP_NAME}
+    volumes:
+      - accounts:/home/photon/${APP_NAME}/accounts/
+      - ../solidity:/home/photon/${APP_NAME}/solidity/
+      - ../enclave:/home/photon/${APP_NAME}/enclave/
+      - ../app:/home/photon/${APP_NAME}/app/
+      - ../interface:/home/photon/${APP_NAME}/interface/
+      - ../scripts:/home/photon/${APP_NAME}/scripts/
+      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
+    command: python demo.py
+
+  enclave:
+    image: ${APP_NAME}-enclave
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        SGX_MODE: HW
+        SGX_DEBUG: 1
+        APP_NAME: ${APP_NAME}
+    environment:
+      deployment_location: DOCKER
+      CCF_ENABLE: ${CCF_ENABLE}
+      SGX_SPID: ${SGX_SPID}
+      IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
+      PYTHONBREAKPOINT: ipdb.set_trace
+      SGX_DEBUG: 1
+      NUM_USERS: ${NUM_USERS}
+      PROJECT_ROOT: /home/photon/${APP_NAME}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+    devices:
+      - /dev/isgx
+    volumes:
+      - aesmd-socket:/var/run/aesmd
+      - accounts:/home/photon/${APP_NAME}/accounts/
+      - ../solidity:/home/photon/${APP_NAME}/solidity/
+      - ../enclave:/home/photon/${APP_NAME}/enclave/
+      - ../app:/home/photon/${APP_NAME}/app/
+      - ../interface:/home/photon/${APP_NAME}/interface/
+      - ../scripts:/home/photon/${APP_NAME}/scripts/
+      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+    stdin_open: true
+    tty: true
+    depends_on:
+      - billboard
+      - aesm
+    working_dir: /home/photon/${APP_NAME}/scripts
+    command: python demo.py
+
+volumes:
+  accounts:
+  aesmd-socket:
+    driver: local
+    driver_opts:
+      type: "tmpfs"
+      device: "tmpfs"
+      o: "rw"

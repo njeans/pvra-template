@@ -1,0 +1,4 @@
+secp256k1==0.14.0
+pycryptodome==3.10.1
+web3==5.30.0
+py-solc-x==1.1.1

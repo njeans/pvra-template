@@ -1,0 +1,96 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# IDEs
+out/
+.idea/
+.vscode/
+**/*.iml
+
+# Python
+__pycache__/
+venv
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+scratch/
+trash/
+
+# SGX Files
+interface/enclave_t.h
+interface/enclave_t.c
+interface/enclave_u.h
+interface/enclave_u.c
+interface/libenclave_stub_u.a
+interface/libenclave_stub_t.a
+
+# user-specific configuration (e.g. SGX_SPID, IAS_PRIMARY_KEY)
+docker/.env
+
+#CCF credentials
+service_cert.pem
+user0_cert.pem
+user0_privk.pem
+
+# nix-build output dir
+result
+
+## solidity
+#solidity/output
+
+# application specific
+bin/
+test_sgx/
+enclave/appPVRA.*
+enclave/enclave.key.pem
+accounts/
+*.bin
+
+*tmp*

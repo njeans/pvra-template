@@ -1,0 +1,70 @@
+/*
+ * Copyright (C) 2019 Intel Corporation
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+
+enclave
+{
+	include "sgx_quote.h"
+
+    trusted
+    {
+        #define BUFLEN 2048
+        #define MBED_TLS_KEY_SIZE 2049
+        #define MBEDTLS_MPI_MAX_SIZE 1024
+        #define AES_128_KEY_SIZE 16
+
+        public sgx_status_t ecall_initPVRA(
+            [out] sgx_report_t *report,
+            [in] sgx_target_info_t *target_info,
+            [out, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
+            [out, size=encpubkey_size] char *encpubkey, size_t encpubkey_size,
+            [out, size=encpubkey_signature_size] char *encpubkey_signature, size_t encpubkey_signature_size,
+            [in, size=userpubkeys_size] char *userpubkeys, size_t userpubkeys_size,
+            [out, size=userpubkeys_signature_size] char *userpubkeys_signature, size_t userpubkeys_signature_size
+            );
+
+        public sgx_status_t ecall_commandPVRA(
+            [in, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
+            [in, size=FT_size] char *FT, size_t FT_size,
+            [in, size=FT_signature_size] char *FT_signature, size_t FT_signature_size,
+            [in, size=eCMD_size] char *eCMD, size_t eCMD_size,
+            [in, size=cmdpubkey_size] char *cmdpubkey, size_t cmdpubkey_size,
+            [out, size=cResponse_size] char *cResponse, size_t cResponse_size, 
+            [out, size=cResponse_signature_size] char *cResponse_signature, size_t cResponse_signature_size,
+            [out, size=newsealedstate_size] char *newsealedstate, size_t newsealedstate_size
+            );
+
+        public sgx_status_t ecall_auditlogPVRA(
+            [in, size=sealedstate_size] char *sealedstate, size_t sealedstate_size,
+            [out, size=auditlog_size] char *auditlog, size_t auditlog_size,
+            [out, size=auditlog_signature_size] char *auditlog_signature, size_t auditlog_signature_size,
+            [out] uint32_t* actual_auditlog_size,
+            [out, size=newsealedstate_size] char *newsealedstate, size_t newsealedstate_size
+            );
+
+
+
+        public sgx_status_t ecall_calc_buffer_sizes(
+            [out] size_t* esignature_size,
+            [out] size_t* esignature_rec_size,
+            [out] size_t* esealed_state_size,
+            [out] size_t* cResponse_size);
+
+
+        #undef BUFLEN
+        #undef MBED_TLS_KEY_SIZE
+        #undef MBEDTLS_MPI_MAX_SIZE
+    };
+
+    untrusted
+    {
+        void ocall_print_string([in, string] const char *str);
+        void ocall_rdtsc(void);
+        void ocallbuf(int size);
+        void ocall_allocate_seal(uint32_t initseal_size);
+        //void ocall_print_int([in, int] const int num);
+    };
+};
