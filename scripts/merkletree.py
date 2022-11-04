@@ -59,7 +59,7 @@ def parse_tree(data_raw):
     # print("data_raw[:4]", data_raw[:4].hex())
     block_size = int.from_bytes(data_raw[:4], "big")
     num_leaves = int.from_bytes(data_raw[4:8], "big")
-    num_nodes=2**(num_leaves-1) -1
+    num_nodes = 2*num_leaves - 1  # num_leaves guaranteed to be power of 2 by merkletree.x
     # print("block_size", block_size, "num_leaves", num_leaves, "num_nodes", num_nodes)
     leaves = []
     nodes = []
