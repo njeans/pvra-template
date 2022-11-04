@@ -3,87 +3,62 @@
 
 
 /* COMMAND0 Kernel Definition */
-struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    printf("[apPVRA] statusUpdate %d\n", uidx);
     struct cResponse ret;
-
-    //printf("[apPVRA] Readable eCMD: [CI]:%d,%d} ", CI->uid, CI->test_result);
-    if(CI->uid > NUM_USERS-1) {
-        char *m = "[apPVRA] STATUS_UPDATE ERROR invalid userID";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
+    ret.error = 0;
+    ret.access = false;
+    memset(ret.message, 0, 100);
+    if(enclave_state->appdata.num_tests[uidx] == NUM_TESTS) {
+        sprintf(ret.message, "error full test_history");
+        printf("[apPVRA] %s\n", ret.message);
         ret.error = 1;
         return ret;
     }
 
-    if(enclave_state->appdata.num_tests[CI->uid] == NUM_TESTS) {
-        char *m = "[apPVRA] STATUS_UPDATE ERROR full test_history";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
-        ret.error = 2;
-        return ret;
-    }
+    enclave_state->appdata.test_history[(uidx)*NUM_TESTS + (enclave_state->appdata.num_tests[uidx])] = CI->test_result;
+    enclave_state->appdata.num_tests[uidx]++;
+    printf("[apPVRA] num_tests %u\n", enclave_state->appdata.num_tests[uidx]);
+    enclave_state->appdata.query_counter[uidx]++;
+    printf("[apPVRA] query_counter %u\n", enclave_state->appdata.query_counter[uidx]);
 
-    if((CI->test_result != 0) && (CI->test_result != 1))
-    {
-        char *m = "[apPVRA] STATUS_UPDATE ERROR invalid test_result";
-        printf("%s [%d]\n", m, CI->test_result);
-        memcpy(ret.message, m, strlen(m)+1);
-        ret.error = 3;
-        return ret;
-    }
-
-    ret.error = 0;
-    char *m = "[apPVRA] STATUS_UPDATE SAVED test_result";
-    //printf("%s %d %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid], CI->test_result);
-    memcpy(ret.message, m, strlen(m)+1);
-    enclave_state->appdata.test_history[(CI->uid)*NUM_TESTS + (enclave_state->appdata.num_tests[CI->uid])] = CI->test_result;
-    enclave_state->appdata.num_tests[CI->uid]++;
-    enclave_state->appdata.query_counter[CI->uid]++;
-    //printf("%s %d %d %d\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1], enclave_state->appdata.num_tests[CI->uid], enclave_state->appdata.query_counter[CI->uid]);
+    sprintf(ret.message, "success statusUpdate");
+    printf("[apPVRA] %s\n", ret.message);
 
     return ret;
 }
 
 
 /* COMMAND1 Kernel Definition */
-struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    printf("[apPVRA] statusQuery %d\n", uidx);
     struct cResponse ret;
+    ret.error = 0;
+    ret.access = false;
+    memset(ret.message, 0, 100);
 
-    enclave_state->appdata.query_counter[CI->uid]++;
+    enclave_state->appdata.query_counter[uidx]++;
 
-    if(CI->uid > NUM_USERS-1) {
-        char *m = "[apPVRA] STATUS_QUERY ERROR invalid userID";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
+    if(enclave_state->appdata.num_tests[uidx] < 2) {
+        sprintf(ret.message, "insufficient testing");
+        printf("[apPVRA] %s\n", ret.message);
         ret.error = 1;
         return ret;
     }
 
-    if(enclave_state->appdata.num_tests[CI->uid] < 2) {
-        char *m = "[apPVRA] STATUS_QUERY ERROR insufficient testing";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
-        ret.error = 2;
-        return ret;
-    }
-
-    ret.error = 0;
-    if ( (enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1] == 0) &&
-            (enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-2] == 0) ) {
+    if ( (enclave_state->appdata.test_history[uidx*NUM_TESTS + enclave_state->appdata.num_tests[uidx]-1] == 0) &&
+            (enclave_state->appdata.test_history[uidx*NUM_TESTS + enclave_state->appdata.num_tests[uidx]-2] == 0) ) {
         ret.access = true;
-        char *m = "[apPVRA] STATUS_QUERY ACCESS GRANTED";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
+        sprintf(ret.message, "ACCESS GRANTED");
     }
     else {
         ret.access = false;
-        char *m = "[apPVRA] STATUS_QUERY ACCESS DENIED";
-        printf("%s LAST TEST RESULTS:[%d,%d]\n", m, enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-2], enclave_state->appdata.test_history[CI->uid*NUM_TESTS + enclave_state->appdata.num_tests[CI->uid]-1]);
-        memcpy(ret.message, m, strlen(m)+1);
+        sprintf(ret.message, "ACCESS DENIED");
     }
 
+    printf("[apPVRA] statusQuery %s access %d %d %d\n", ret.message, ret.access, true, false);
     return ret;
 }
 
@@ -118,10 +93,10 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
 
     /* Set Initial Values */
     for(int i = 0; i < NUM_USERS; i++) {
-        enclave_state->appdata.query_counter[i] = 6; 
-        enclave_state->appdata.num_tests[i] = 7;
+        enclave_state->appdata.query_counter[i] = 0;
+        enclave_state->appdata.num_tests[i] = 0;
         for(int j = 0; j < NUM_TESTS; j++) {
-            enclave_state->appdata.test_history[i*NUM_TESTS + j] = 8;
+            enclave_state->appdata.test_history[i*NUM_TESTS + j] = true;
         }
     }
 
@@ -179,7 +154,7 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
 
 
 /* Debug Print Statement to Visualize clientCommands */
-void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d} ", CC->eCMD.CT, CC->eCMD.CI.uid, CC->eCMD.CI.test_result, CC->eCMD.seqNo);
+void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d} ", CC->eCMD.CT, uidx, CC->eCMD.CI.test_result, CC->eCMD.seqNo);
 }
 

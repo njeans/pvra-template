@@ -131,7 +131,7 @@ class Admin:
         self.w3 = w3
         self.state_counter = 0
         self.state_counter_lock = threading.Lock()
-        self.audit_num = 0
+        self.audit_num = 1
         self._init_enclave()
         self._init_contract()
         self.server_thread = threading.Thread(None, self.httpd.serve_forever)
@@ -176,12 +176,11 @@ class Admin:
         # self.state_counter_lock.release()
 
         audit_log_offset = 0
-        if MERKLE:
+        if MERKLE():
             audit_log_offset, leaves, nodes = self._parse_merkle_tree(audit_log_raw)
         audit_num, included_addr, included_hashes = self._parse_audit_log(audit_log_raw[audit_log_offset:])
-        assert audit_num == self.audit_num+1
-        self.audit_num = audit_num
-        if MERKLE:
+        assert audit_num == self.audit_num
+        if MERKLE():
             print_vv(f"posting merkle tree audit log for: {self.audit_num}")
             gas += bb.send_tx(self.w3, self.contract.functions.audit_end_merkle(audit_log_sig, included_addr, included_hashes, leaves, nodes), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end_merkle: gasUsed {gas}")
@@ -189,6 +188,7 @@ class Admin:
             print_vv(f"posting audit log for: {self.audit_num}")
             gas += bb.send_tx(self.w3, self.contract.functions.audit_end(audit_log_sig, included_addr, included_hashes), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end: gasUsed {gas}")
+        self.audit_num = audit_num+1
 
         # tmp_byte = self.contract.functions.tmp_byte().call({"from": self.address})
         # tmp_hash = self.contract.functions.tmp_hash().call({"from": self.address})
@@ -247,7 +247,7 @@ class Admin:
     def _sign_confirmation(self, user_pubkey, user_cmd):
         last_audit_num = self.contract.functions.audit_num().call({"from": self.address})
         audit_num = last_audit_num+1
-        user_addr = get_packed_address(convert_publickey_address(user_pubkey))
+        user_addr = bytes.fromhex(convert_publickey_address(user_pubkey)[2:]) #get_packed_address(convert_publickey_address(user_pubkey))
         user_cmd_hash = sha3(user_cmd)
         confirmation = bytes(str(audit_num), "utf-8") + user_addr + user_cmd_hash #todo change to 32 bit audit num
         sig = sign_eth_data(self.secret_key, confirmation)
@@ -257,20 +257,19 @@ class Admin:
         nodes, leaves, audit_log_offset = merkletree.parse_tree(audit_log_raw)
         merkletree.check_tree(nodes, leaves)
         print_fun = lambda x: print_hex_trunc(x.hex())
-        mt = merkletree.print_tree(nodes, leaves, str_node=print_fun, str_leaf=application.print_leaf)
-        print_vv(f"merkle tree:\n{mt}")
+        mt = "\n"+merkletree.print_tree(nodes, leaves, str_node=print_fun, str_leaf=application.print_leaf)
+        print_vv(f"merkle tree:{mt}")
         return audit_log_offset, leaves, nodes
 
     def _parse_audit_log(self, audit_log_raw):
         audit_num = int.from_bytes(audit_log_raw[:U32_SIZE], "big")
-        num_entries =int((len(audit_log_raw) - U32_SIZE)/(PACKED_ADDR_SIZE+HASH_SIZE))
-        print("num_entries", num_entries)
+        num_entries = int((len(audit_log_raw) - U32_SIZE)/(PACKED_ADDR_SIZE+HASH_SIZE))
         audit_log_offset = U32_SIZE
         audit_data_address = [get_address_from_packed(audit_log_raw[i:i+PACKED_ADDR_SIZE]) for i in range(audit_log_offset, PACKED_ADDR_SIZE * num_entries, PACKED_ADDR_SIZE)]
         audit_log_offset = U32_SIZE + PACKED_ADDR_SIZE * num_entries
         audit_data_hashes = [audit_log_raw[i:i+HASH_SIZE] for i in range(audit_log_offset, len(audit_log_raw), HASH_SIZE)]
-        al = "\n".join([audit_data_address[i] + ": " + print_hex_trunc(audit_data_hashes[i].hex()) for i in range(num_entries)])
-        print_vv(f"audit_log:{num_entries}\n{al}")
+        al = "\n"+"\n".join([audit_data_address[i] + ": " + print_hex_trunc(audit_data_hashes[i].hex()) for i in range(num_entries)])
+        print_vv(f"audit_log: {num_entries}{al}")
         assert len(audit_data_hashes) == len(audit_data_address)
         return audit_num, audit_data_address, audit_data_hashes
 

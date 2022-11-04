@@ -1,78 +1,76 @@
 #include "enclavestate.h"
 #include "appPVRA.h"
 
-int LAT_HEATMAP_MAX = 10;
-int LAT_HEATMAP_MIN = 1;
-int LONG_HEATMAP_MAX = 5;
-int LONG_HEATMAP_MIN = 1;
+
+float LAT_HEATMAP_MAX = 40.25;
+float LAT_HEATMAP_MIN = 39.5;
+float LONG_HEATMAP_MAX = 116.75;
+float LONG_HEATMAP_MIN = 116.0;
 int HEATMAP_COUNT_THRESHOLD = 2;
 
 /* COMMAND0 Kernel Definition */
-struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    printf("[apPVRA] addPersonalData %d} ", uidx);
     struct cResponse ret;
+    ret.error = 0;
+    memset(ret.heatmap_data, 0, sizeof(ret.heatmap_data));
+    memset(ret.message, 0, 100);
 
-    //printf("[apPVRA] Readable eCMD: [CI]:%d,%d} ", CI->uid, CI->test_result);
-
-    if(CI->uid > NUM_USERS-1) {
-        char *m = "[apPVRA] STATUS_UPDATE ERROR invalid userID";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
+    if (enclave_state->appdata.num_data > MAX_DATA) {
         ret.error = 1;
+        sprintf(ret.message, "data buffer already full");
+        printf("[apPVRA] %s\n", ret.message);
         return ret;
     }
-    if (enclave_state->appdata.num_data > 1024) {
-        ret.error = 1;
-        char *m = "[apPVRA] STATUS_UPDATE ERROR data buffer already full";
-        printf("%s\n", m);
-        memcpy(ret.message, m, strlen(m)+1);
+    int index = geo_time_index(*CI);
+    if (index == -1) {
+        ret.error = 2;
+        sprintf(ret.message, "location not valid");
+        printf("[apPVRA] %s\n", ret.message);
         return ret;
     }
 
 
     int num_data =  enclave_state->appdata.num_data;
-//    for (int i = 0; i < CI->num_data; i++) {
-//        enclave_state->appdata.user_data[num_data+i] = CI->data[i];
-//    }
 
-    printf("accessing user_data[%d] enclave_state struct %p CI struct %p\n",num_data, enclave_state->appdata.user_data, CI->data);
-    memcpy(enclave_state->appdata.user_data, CI->data,sizeof(struct locationData));
-    //enclave_state->appdata.user_data[num_data] = CI->data;//[i];
-    printf("succesfully set appdata.user_data[]");
-    enclave_state->appdata.num_data+=1;//CI->num_data;
-    printf("succesfully set appdata.num_data %d ",enclave_state->appdata.num_data);
 
-    ret.error = 0;
-    char *m = "[apPVRA] STATUS_UPDATE SAVED location data";
-    memcpy(ret.message, m, strlen(m)+1);
+    memcpy(&enclave_state->appdata.user_data[enclave_state->appdata.num_data], CI, sizeof(struct cInputs));
+    enclave_state->appdata.num_data+=1;
+
+    sprintf(ret.message, "success addPersonalData");
+    printf("[apPVRA] %s\n", ret.message);
     return ret;
 }
 
-int geo_time_index(struct locationData geo_time)
+int geo_time_index(struct cInputs geo_time)
 {
-//    println!("geo_time_index geo_time.lat {:?} geo_time.lng {:?}",geo_time.lat,geo_time.lng);
+    printf("[apPVRA] geo_time.lat %f geo_time.lng %f ",geo_time.lat, geo_time.lng);
     if (geo_time.lat < LAT_HEATMAP_MIN || geo_time.lat > LAT_HEATMAP_MAX || geo_time.lng < LONG_HEATMAP_MIN || geo_time.lng > LONG_HEATMAP_MAX ){
+        printf("out of range\n");
         return -1;
     }
     float side_length_lat = HEATMAP_GRANULARITY/(LAT_HEATMAP_MAX- LAT_HEATMAP_MIN);
     float side_length_long = HEATMAP_GRANULARITY/(LONG_HEATMAP_MAX- LONG_HEATMAP_MIN);
-    int lat = ((geo_time.lat - LAT_HEATMAP_MIN)*side_length_lat);//.round();//TODO round function?
-    int lng = ((geo_time.lng - LONG_HEATMAP_MIN)*side_length_long);//.round();//TODO round function?
-//    println!("geo_time_index side_length_lat {:?} side_length_long {:?}",side_length_lat,side_length_long);
-//    println!("geo_time_index lat {:?} lng {:?}",lat,lng);
+    int lat = ((geo_time.lat - LAT_HEATMAP_MIN)*side_length_lat);
+    int lng = ((geo_time.lng - LONG_HEATMAP_MIN)*side_length_long);
+    printf("geo_time_index %d\n",lat*HEATMAP_GRANULARITY + lng);
    return lat*HEATMAP_GRANULARITY + lng;
 }
 
 /* COMMAND1 Kernel Definition */
-struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
+struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
     struct cResponse ret;
-//    int data_size = sizeof(struct locationData);
+    ret.error = 0;
+    memset(ret.heatmap_data, 0, sizeof(ret.heatmap_data));
+    memset(ret.message, 0, 100);
+
     for (int i = 0; i < enclave_state->appdata.num_data; i++) {
-        struct locationData data = enclave_state->appdata.user_data[i];
+        struct cInputs data = enclave_state->appdata.user_data[i];
         if (data.result) {
             int heatmap_index = geo_time_index(data);
-            if (heatmap_index > 0) {
+            if (heatmap_index >= 0) {
                 ret.heatmap_data[heatmap_index]++;
             }
         }
@@ -83,13 +81,15 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI)
             ret.heatmap_data[i] = 0;
         }
     }
+    sprintf(ret.message, "success getHeatMap");
+    printf("[apPVRA] %s\n", ret.message);
     return ret;
 }
 
 
 
 /* Initializes the Function Pointers to Function Names Above */
-int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*))
+int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*, uint32_t uidx))
 {
     (functions[0]) = &addPersonalData;
     (functions[1]) = &getHeatMap; //admin
@@ -104,7 +104,7 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
     char *user_info = calloc(NUM_USERS*PUBLIC_KEY_SIZE,sizeof(char));
     if(user_info == NULL) return -1;
 
-    struct locationData *user_data = calloc(NUM_USERS*MAX_DATA,sizeof(struct locationData));
+    struct cInputs *user_data = calloc(NUM_USERS*MAX_DATA,sizeof(struct cInputs));
     if(user_data == NULL) return -1;
 
     enclave_state->appdata.user_info = user_info;
@@ -127,7 +127,7 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
     struct dynamicDS *nDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
     if(nDS == NULL) return -1;
     nDS->buffer = user_data;
-    nDS->buffer_size = NUM_USERS*MAX_DATA*sizeof(struct locationData);
+    nDS->buffer_size = NUM_USERS*MAX_DATA*sizeof(struct cInputs);
 
     struct dynamicDS **dDS = (struct dynamicDS **)calloc(dAD->num_dDS, sizeof(struct dynamicDS *));
     if(dDS == NULL) return -1;
@@ -146,7 +146,7 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
 
 
 /* Debug Print Statement to Visualize clientCommands */
-void print_clientCommand(struct clientCommand *CC){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%f,%f,%d,%d,%d] [SN]:%d} ", CC->eCMD.CT, CC->eCMD.CI.uid, CC->eCMD.CI.data.lat, CC->eCMD.CI.data.lng, CC->eCMD.CI.data.startTs, CC->eCMD.CI.data.endTs, CC->eCMD.CI.data.result, CC->eCMD.seqNo);
+void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%d][%f,%f,%d,%d,%d] [SN]:%d}\n", CC->eCMD.CT, uidx, geo_time_index(CC->eCMD.CI), CC->eCMD.CI.lat, CC->eCMD.CI.lng, CC->eCMD.CI.startTs, CC->eCMD.CI.endTs, CC->eCMD.CI.result, CC->eCMD.seqNo);
 }
 

@@ -76,9 +76,10 @@ def recover_eth_data(data, sig, publickey=None, address=None):
     if address is None:
         if len(publickey) == 65:
             publickey = publickey[1:]
+        assert len(publickey) == 64
         address = convert_publickey_address(publickey.hex())
-    data = encode_defunct(primitive=data)
-    res = w3.eth.account.recover_message(data, signature=sig)
+    enc_data = encode_defunct(primitive=data)
+    res = w3.eth.account.recover_message(enc_data, signature=sig)
     eq = address.lower() == res.lower()
     # print(address.lower(), res.lower(), eq)
     return eq

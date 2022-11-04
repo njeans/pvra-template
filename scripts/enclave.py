@@ -78,7 +78,7 @@ def auditlogPVRA(state_counter):
                 " --sealedState " + SEAL_STATE_PATH + \
                 " --auditlog " + AUDIT_LOG_PATH + \
                 " --auditlogsig " + AUDIT_LOG_SIG_PATH + \
-                " --sealedOut " + SEAL_OUT_PATH #todo do I need to copy this to SEAL_STATE_PATH
+                " --sealedOut " + SEAL_OUT_PATH
     print_vv(f'calling auditlogPVRA with {audit_cmd}')
     res = subprocess.run(audit_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if res.returncode != 0:

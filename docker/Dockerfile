@@ -152,7 +152,8 @@ COPY enclave /usr/src/enclave
 COPY interface /usr/src/interface
 COPY makefile /usr/src/makefile
 COPY trustedLib /usr/src/trustedLib
-COPY applications/$APP_NAME/* enclave/
+COPY applications/$APP_NAME/*.c enclave/
+COPY applications/$APP_NAME/*.h enclave/
 
 COPY nix /usr/src/nix
 COPY nix/$SGX_MODE.nix /usr/src/default.nix
@@ -188,7 +189,8 @@ ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
 COPY app/ app/
 COPY enclave/ enclave/
-COPY applications/$APP_NAME/* enclave/
+COPY applications/$APP_NAME/*.c enclave/
+COPY applications/$APP_NAME/*.h enclave/
 COPY common/ common/
 COPY interface/ interface/
 COPY nix/ nix/
@@ -237,7 +239,7 @@ COPY --chown=photon:photon interface interface
 COPY --chown=photon:photon solidity solidity
 COPY --chown=photon:photon trustedLib trustedLib
 COPY --chown=photon:photon scripts scripts
-COPY --chown=photon:photon requirements.txt requirements.txt
+COPY --chown=photon:photon applications/$APP_NAME/*.py enclave/scripts
 
 COPY --chown=photon:photon makefile makefile
 
