@@ -8,7 +8,7 @@
 
 #define NUM_COMMANDS 3
 #define NUM_ADMIN_COMMANDS 2
-#define NUM_USERS 4
+#define NUM_USERS 5
 #define DATA_SIZE 64
 #define ENC_DATA_SIZE 32
 #define KEY_SIZE 64
