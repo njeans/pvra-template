@@ -16,40 +16,40 @@ CANCEL_RET = 1
 constants.MERKLE(True)
 
 
-def get_test_data(admin, users):
+def get_test_data(admin, users, test_case=None):
     num_users = len(users)
     assert num_users <= 5
     secret_data = lambda i: bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8")
     base_test_data = [
-        [({"tid": ADD_DATA, "input_data": secret_data(0), "seq": 0}, "success addPersonalData"),
+        [({"tid": ADD_DATA, "input_data": secret_data(0), "seq": 1}, "success addPersonalData"),
          None,
          None,
          None,
          None,
          ],
-        [({"tid": ADD_DATA, "input_data": secret_data(1), "seq": 0}, "success addPersonalData"),
+        [({"tid": ADD_DATA, "input_data": secret_data(1), "seq": 1}, "success addPersonalData"),
          None,
-         ({"tid": CANCEL_RET, "seq": 1}, "success cancelRetrieve"),
+         ({"tid": CANCEL_RET, "seq": 2}, "success cancelRetrieve"),
          None,
-         ({"tid": GET_DATA, "seq": 2}, str(secret_data(1))),
+         ({"tid": GET_DATA, "seq": 3}, str(secret_data(1))),
          ],
-        [({"tid": ADD_DATA, "input_data": secret_data(2), "seq": 0}, "success addPersonalData"),
+        [({"tid": ADD_DATA, "input_data": secret_data(2), "seq": 1}, "success addPersonalData"),
          None,
          None,
          None,
          ({"tid": GET_DATA, "seq": 2}, str(secret_data(2))),
          ],
-        [({"tid": ADD_DATA, "input_data": secret_data(3), "seq": 0}, "success addPersonalData"),
+        [({"tid": ADD_DATA, "input_data": secret_data(3), "seq": 1}, "success addPersonalData"),
          None,
          None,
          None,
-         ({"tid": GET_DATA, "seq": 1}, str(secret_data(3))),
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(3))),
          ],
         [None,
          None,
          None,
          None,
-         ({"tid": GET_DATA, "seq": 1}, str(secret_data(0))),
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(0))),
          ]
     ]
     #user 0 data stolen by user 4
@@ -98,11 +98,11 @@ def get_test_data(admin, users):
 
 def get_test_data_omission(admin, users):
     num_users = len(users)
-    test_data = [[{"tid": ADD_DATA, "input_data": bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8"), "seq": 0},
+    test_data = [[{"tid": ADD_DATA, "input_data": bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8"), "seq": 1},
                   None,
-                  {"tid": CANCEL_RET, "seq": 1},
+                  {"tid": CANCEL_RET, "seq": 2},
                   None,
-                  {"tid": GET_DATA, "seq": 2}] for i in range(num_users)]
+                  {"tid": GET_DATA, "seq": 3}] for i in range(num_users)]
     admin_data = [[None,
                    {"tid": START_RET, "user_pubkey": users[i].public_key},
                    None,
@@ -122,7 +122,7 @@ def format_command(cmd):
     rc = ByteArrKey.from_buffer_copy(cmd["recover_key"])
     pk = ByteArrKey.from_buffer_copy(cmd["user_pubkey"])
     CI = cInputs(id, rc, pk)
-    pc = private_command(cmd["tid"], cmd["seq"], CI)
+    pc = private_command(cmd["tid"], CI)
     res = bytes(pc)
     assert len(CI.recover_key) == KEY_SIZE
     return res
@@ -167,7 +167,6 @@ class cInputs(ctypes.Structure):
 
 class private_command(ctypes.Structure):
     _fields_ = [('tid', ctypes.c_uint32),
-                ('seq', ctypes.c_uint32),
                 ('cInputs', cInputs)]
 
 class userLeaf(ctypes.Structure):

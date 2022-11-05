@@ -8,15 +8,15 @@ import user as user_lib
 import application as app
 
 
-def test(num_users=NUM_USERS):
+def test(num_users=NUM_USERS, test_case=None):
     num_users = int(num_users)
-    demo(num_users, True)
+    demo(num_users, True, test_case=test_case)
 
 
-def demo(num_users=NUM_USERS, test_=True):
+def demo(num_users=NUM_USERS, test_=False, test_case=None):
     num_users = int(num_users)
     admin, users = setup(num_users)
-    test_data = app.get_test_data(admin, users)
+    test_data = app.get_test_data(admin, users, test_case=test_case)
     if MERKLE():
         user_data_cmds, admin_cmds, expected_audit = test_data
         num_commands = check_data(user_data_cmds, admin_cmds, expected_audit=expected_audit)
@@ -31,7 +31,7 @@ def demo(num_users=NUM_USERS, test_=True):
                 continue
             cmd, expected_resp = user_data_cmds[user_num][cmd_num]
             eCMD = user.encrypt_data(cmd)
-            resp = app.print_cResponse(user.send_data(eCMD))
+            resp = app.print_cResponse(user.send_data(eCMD, seq=cmd["seq"]))
             if test_:
                 print(f"cResponse user {user_num} cmd {cmd_num} {resp}")
                 if expected_resp not in resp:
@@ -41,10 +41,9 @@ def demo(num_users=NUM_USERS, test_=True):
             if admin_cmds[user_num][cmd_num] is None:
                 continue
             cmd, expected_resp = admin_cmds[user_num][cmd_num]
-            cmd["seq"] = admin_seq
             admin_seq += 1
             eCMD = admin.admin_user.encrypt_data(cmd)
-            resp = app.print_cResponse(admin.admin_user.send_data(eCMD))
+            resp = app.print_cResponse(admin.admin_user.send_data(eCMD, seq=admin_seq))
             if test_:
                 print(f"cResponse admin user {user_num} cmd {cmd_num} {resp}")
                 if expected_resp not in resp:
@@ -62,7 +61,7 @@ def data_omission_demo(num_users=NUM_USERS, modes=None):
         modes = default_modes
     else:
         modes = modes.split(",")
-        assert all(m in default_modes for m in modes)
+        assert all([m in default_modes for m in modes])
     user_modes = [modes[i % len(modes)] for i in range(num_users)]
 
     admin, users = setup(num_users)

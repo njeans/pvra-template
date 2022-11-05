@@ -48,8 +48,9 @@ typedef unsigned char packed_address_t[32];
 
 struct AL
 {
-	address_t user_pubkeys[MAX_LOG_SIZE];
+	packed_address_t user_pubkeys[MAX_LOG_SIZE];
 	sha256_hash_t command_hashes[MAX_LOG_SIZE];
+	uint64_t seqNo[MAX_LOG_SIZE];
 };
 
 
@@ -61,7 +62,7 @@ struct AUD
 	
 	struct AL auditlog;
 	int audit_offset;
-	uint32_t audit_version_no;
+	uint64_t audit_version_no;
 };
 
 
@@ -103,13 +104,13 @@ typedef uint32_t cType;
 
 struct private_command {
 	cType CT;
-	uint32_t seqNo;
 	struct cInputs CI;
 };
 
 
 struct clientCommand
 {
+	uint32_t seqNo;
 	secp256k1_pubkey user_pubkey;
 	struct private_command eCMD;
 };

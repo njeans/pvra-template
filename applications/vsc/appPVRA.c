@@ -58,7 +58,7 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI, uint3
         sprintf(ret.message, "ACCESS DENIED");
     }
 
-    printf("[apPVRA] statusQuery %s access %d %d %d\n", ret.message, ret.access, true, false);
+    printf("[apPVRA] statusQuery %s access %d\n", ret.message, ret.access);
     return ret;
 }
 
@@ -155,6 +155,6 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d} ", CC->eCMD.CT, uidx, CC->eCMD.CI.test_result, CC->eCMD.seqNo);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d} ", CC->eCMD.CT, uidx, CC->eCMD.CI.test_result, CC->seqNo);
 }
 

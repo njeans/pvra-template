@@ -8,7 +8,7 @@ PVRA (Publically Verifiable Remote Attestation) aims to provide a framework for 
 The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SecureDataTransfer. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 229 LoC and HeatMap at 205 LoC.
 
 ## Quick Start
-Run an existing application secure data transfer (sdt) in docker without CCF in SGX simulation mode
+Run an existing application in docker without CCF in SGX simulation mode
 
 * set Environment variables
 
@@ -17,10 +17,13 @@ export PROJECT_ROOT=$(pwd)
 export CCF_ENABLE=0
 export SGX_SPID=None
 export IAS_PRIMARY_KEY=None
-export NUM_USERS=5
-export APP_NAME=sdt
+export APP_NAME=<sdt or heatmap or vsc>
 export SGX_MODE=SW
 ```
+* Set ```NUM_USERS```
+    * sdt functionality tests requires 5 users: ```export NUM_USERS=5```
+    * heatmap expects 4 users ```export NUM_USERS=4```
+    * vsc expects 8 users: ```export NUM_USERS=8```
 
 * build and run docker image
 
@@ -89,6 +92,7 @@ export CCF_PATH=<optional> #todo how to run CCF
 
 ##### Use Docker
 
+* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L23)
 * Hardware mode
 ```bash
 export SGX_MODE=HW
@@ -156,15 +160,4 @@ cd $PROJECT_ROOT/scripts
 ./stop_BB.sh
 ```
 	
-### Sample VSC Run: 
-# TODO update
-
-![setup step i.e. result of ./setup.sh](./images/setup.png)
-
-![admin setup i.e. result of ./admin.sh](./images/admin.png)
-
-![host/admin view i.e. output of ./host.sh](./images/host.png)
-
-![client/user view i.e. output of ./client.sh](./images/client.png)
-
-
+### Sample VSC Run: TODO update

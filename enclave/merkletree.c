@@ -162,7 +162,6 @@ void print_tree(merkle_tree *mt) {
 //    int num_leaves = 4;
 //    char *data[num_leaves];
 //    merkle_tree mt = {block_size, 0, num_leaves, NULL, NULL};
-//    printf("a\n");
 //    for (int i=0; i<num_leaves; i++) {
 //        data[i] = (char *)malloc(sizeof(char) * block_size);
 //        char buffer[block_size];

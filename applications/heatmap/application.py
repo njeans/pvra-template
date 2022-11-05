@@ -32,9 +32,9 @@ heatmap_info_beijing = {
 hm_granularity = 10
 
 
-def get_test_data(admin, users, num_data=2):
+def get_test_data(admin, users, test_case=None):
     num_users = len(users)
-    assert num_data > 0
+    num_data = 2
     data = gen_test_data(num_users, num_data)
     test_data = []
     admin_data = []
@@ -43,7 +43,7 @@ def get_test_data(admin, users, num_data=2):
         data_for_user = data[i]
         user_data = []
         for j in range(num_data):
-            user_data.append(({"tid": ADD_DATA, "input_data": data_for_user[j], "seq": j}, "success addPersonalData"))
+            user_data.append(({"tid": ADD_DATA, "input_data": data_for_user[j], "seq": j+1}, "success addPersonalData"))
         user_data.append(None)
         test_data.append(user_data)
         admin_data.append([None for _ in range(num_data+1)])
@@ -53,7 +53,7 @@ def get_test_data(admin, users, num_data=2):
 
 
 def get_test_data_omission(admin, users):
-    test_data, admin_data = get_test_data(admin, users, num_data=1)
+    test_data, admin_data = get_test_data(admin, users)
     test_data = [list(unzip_none(t))[0] for t in test_data]
     return test_data, [0], admin_data
 
@@ -71,7 +71,7 @@ def format_command(cmd):
                  cmd["input_data"]["startTs"],
                  cmd["input_data"]["endTs"],
                  cmd["input_data"]["testResult"])
-    pc = private_command(cmd["tid"], cmd["seq"], CI)
+    pc = private_command(cmd["tid"], CI)
     res = bytes(pc)
     return res
 
@@ -183,7 +183,6 @@ class cInputs(ctypes.Structure):
 
 class private_command(ctypes.Structure):
     _fields_ = [('tid', ctypes.c_uint32),
-                ('seq', ctypes.c_uint32),
                 ('cInputs', cInputs)]
 
 

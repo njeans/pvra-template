@@ -111,7 +111,11 @@ def get_keys(num_users=NUM_USERS):
 
 def send_tx(w3, foo, user_addr, value=0):
     print_vv(f"send_tx from address: {user_addr} {foo}")
-    gas_estimate = foo.estimateGas()
+    try:
+        gas_estimate = foo.estimateGas()  # for some reason this fails sometimes when it shouldn't
+    except Exception as e:
+        print_(f"estimate gas error {e}", c=ERRORc)
+        gas_estimate = 0
 
     if gas_estimate < 10000000:
         tx_hash = foo.transact({"from": user_addr, "value": value})
