@@ -18,6 +18,7 @@ void get_packed_address(secp256k1_pubkey * pubkey, packed_address_t* out) {
     keccak_update(&ctx, pubkey, 64);
     unsigned char result[32];
     keccak_final(&ctx, result);
+    memset(out, 0, sizeof(packed_address_t));
     memcpy((char *)out + 12, &result[12], sizeof(address_t));
 //    printf("get_packed_address_result=");
 //    print_hexstring(result, sizeof(result));
@@ -45,11 +46,24 @@ void memcpy_big_uint32(uint8_t* buff, uint32_t num) {
     char *p = (char *)&x;
     uint32_t swapped;
 	if (p[0] == 1){
-        swapped = ((num>>24)&0xff) | ((num<<8)&0xff0000) | ((num>>8)&0xff00) | ((num<<24)&0xff000000);
+        swapped = __builtin_bswap32(num);
     } else {
         swapped = num;
     }
    memcpy(buff, &swapped, 4);
+}
+
+
+void memcpy_big_uint64(uint8_t* buff, uint64_t num) {
+    int x = 1;
+    char *p = (char *)&x;
+    uint64_t swapped;
+	if (p[0] == 1){
+        swapped = __builtin_bswap64(num);
+    } else {
+        swapped = num;
+    }
+   memcpy(buff, &swapped, 8);
 }
 /*
 void save_seal() {

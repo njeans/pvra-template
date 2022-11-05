@@ -66,7 +66,7 @@ def AdminHandler(admin_lib):
                     print_v("omitting data but returning signature")
                 else:
                     cmd, pubk = bytes.fromhex(command["eCMD"]), bytes.fromhex(command["pubkeyCMD"])
-                    resp, sig = self.admin_lib._send_command(cmd, pubk)
+                    resp, sig = self.admin_lib._send_command(cmd, pubk, command["seq"])
                     res["msg"] = resp.hex()
                     res["sig"] = sig.hex() #todo
                 eCMD = bytes.fromhex(command["eCMD"])
@@ -160,7 +160,7 @@ class Admin:
         else:
             bb_data = self._get_bb_data()
             for data in bb_data:
-                addr, cmd_buff = data
+                addr, cmd_buff, seq = data
                 m = INCL_DATA
                 if type(mode) == dict and addr in mode:
                     m = mode[addr]
@@ -168,7 +168,7 @@ class Admin:
                     pubkey = cmd_buff[:64]
                     cmd = cmd_buff[64:]
                     print_v(f"posting data from bulletin board for user address {print_hex_trunc(addr)}")
-                    self._send_command(cmd, pubkey)
+                    self._send_command(cmd, pubkey, seq)
 
         # self.state_counter_lock.acquire()  # todo audit log command should use state counter?
         audit_log_raw, audit_log_sig = enclave.auditlogPVRA(self.state_counter)
@@ -178,15 +178,15 @@ class Admin:
         audit_log_offset = 0
         if MERKLE():
             audit_log_offset, leaves, nodes = self._parse_merkle_tree(audit_log_raw)
-        audit_num, included_addr, included_hashes = self._parse_audit_log(audit_log_raw[audit_log_offset:])
+        audit_num, included_addr, included_hashes, audit_seq = self._parse_audit_log(audit_log_raw[audit_log_offset:])
         assert audit_num == self.audit_num
         if MERKLE():
             print_vv(f"posting merkle tree audit log for: {self.audit_num}")
-            gas += bb.send_tx(self.w3, self.contract.functions.audit_end_merkle(audit_log_sig, included_addr, included_hashes, leaves, nodes), user_addr=self.address)
+            gas += bb.send_tx(self.w3, self.contract.functions.audit_end_merkle(audit_log_sig, included_addr, included_hashes, audit_seq, leaves, nodes), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end_merkle: gasUsed {gas}")
         else:
             print_vv(f"posting audit log for: {self.audit_num}")
-            gas += bb.send_tx(self.w3, self.contract.functions.audit_end(audit_log_sig, included_addr, included_hashes), user_addr=self.address)
+            gas += bb.send_tx(self.w3, self.contract.functions.audit_end(audit_log_sig, included_addr, included_hashes, audit_seq), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end: gasUsed {gas}")
         self.audit_num = audit_num+1
 
@@ -220,28 +220,20 @@ class Admin:
         print_v(f"deployed contract: {contract_id} to: {contract_address}")
         print_vv(f"initializing contract with users: {user_addresses}")
         ge = bb.send_tx(self.w3, self.contract.functions.initialize(user_addresses, signature), self.address)
-        # tmp_byte = self.contract.functions.tmp_byte().call({"from": self.address})
-        # tmp_hash = self.contract.functions.tmp_hash().call({"from": self.address})
-        # tmp_addr = self.contract.functions.tmp_addr().call({"from": self.address})
-        # ee = self.contract.functions.enclave_address().call({"from": self.address})
-        # print("tmp_byte", tmp_byte.hex())
-        # print("tmp_hash", tmp_hash.hex())
-        # print("tmp_addr", tmp_addr)
-        # print("enclave_address", ee)
         print_vv("contract.functions.initialize: gasUsed", ge)
         initialized = self.contract.functions.initialized().call({"from": self.address})
         assert initialized
 
-    def _send_command(self, cmd, pubkey):
+    def _send_command(self, cmd, pubkey, seq):
         self.state_counter_lock.acquire()
-        resp, sig = enclave.commandPVRA(self.state_counter, cmd, pubkey)
+        resp, sig = enclave.commandPVRA(self.state_counter, cmd, pubkey, seq)
         self.state_counter += 1
         self.state_counter_lock.release()
         return resp, sig
 
     def _get_bb_data(self):
         user_datas = self.contract.functions.get_all_user_data(self.audit_num).call({"from": self.address})
-        encrypted_data = [(x[0], x[2]) for x in user_datas]
+        encrypted_data = [(x[0], x[2], x[3]) for x in user_datas]
         return encrypted_data
 
     def _sign_confirmation(self, user_pubkey, user_cmd):
@@ -262,16 +254,19 @@ class Admin:
         return audit_log_offset, leaves, nodes
 
     def _parse_audit_log(self, audit_log_raw):
-        audit_num = int.from_bytes(audit_log_raw[:U32_SIZE], "big")
-        num_entries = int((len(audit_log_raw) - U32_SIZE)/(PACKED_ADDR_SIZE+HASH_SIZE))
-        audit_log_offset = U32_SIZE
-        audit_data_address = [get_address_from_packed(audit_log_raw[i:i+PACKED_ADDR_SIZE]) for i in range(audit_log_offset, PACKED_ADDR_SIZE * num_entries, PACKED_ADDR_SIZE)]
-        audit_log_offset = U32_SIZE + PACKED_ADDR_SIZE * num_entries
-        audit_data_hashes = [audit_log_raw[i:i+HASH_SIZE] for i in range(audit_log_offset, len(audit_log_raw), HASH_SIZE)]
-        al = "\n"+"\n".join([audit_data_address[i] + ": " + print_hex_trunc(audit_data_hashes[i].hex()) for i in range(num_entries)])
-        print_vv(f"audit_log: {num_entries}{al}")
+        audit_num = int.from_bytes(audit_log_raw[:U64_SIZE], "big")
+        num_entries = int((len(audit_log_raw) - U64_SIZE)/(PACKED_ADDR_SIZE+HASH_SIZE+U64_SIZE))
+        audit_log_offset = U64_SIZE
+        audit_log_offset_addr = U64_SIZE + PACKED_ADDR_SIZE * num_entries
+        audit_log_offset_seq = U64_SIZE + (PACKED_ADDR_SIZE + HASH_SIZE) * num_entries
+        audit_data_address = [get_address_from_packed(audit_log_raw[i:i+PACKED_ADDR_SIZE]) for i in range(audit_log_offset, audit_log_offset_addr, PACKED_ADDR_SIZE)]
+        audit_data_hashes = [audit_log_raw[i:i+HASH_SIZE] for i in range(audit_log_offset_addr, audit_log_offset_seq, HASH_SIZE)]
+        audit_seq = [int.from_bytes(audit_log_raw[i:i+U64_SIZE], "big") for i in range(audit_log_offset_seq, len(audit_log_raw), U64_SIZE)]
         assert len(audit_data_hashes) == len(audit_data_address)
-        return audit_num, audit_data_address, audit_data_hashes
+        assert len(audit_data_hashes) == len(audit_seq)
+        al = "\n"+"\n".join([f"{audit_data_address[i]}:[seq: {audit_seq[i]}]->{print_hex_trunc(audit_data_hashes[i].hex())}" for i in range(num_entries)])
+        print_vv(f"audit_log for audit_num {audit_num}: len: {num_entries}{al}")
+        return audit_num, audit_data_address, audit_data_hashes, audit_seq
 
 
 

@@ -134,10 +134,11 @@ sgx_status_t ecall_auditlogPVRA(
   int num_entries = enclave_state.auditmetadata.audit_offset;
   printf("[eaPVRA] PRINTING READABLE AUDITLOG len: %d\n", num_entries);
   for(int i = 0; i < num_entries; i++) {
+    printf("SEQ[%d]: %u\n",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
     printf("HASH[%d]: ", i);
     print_hexstring(&enclave_state.auditmetadata.auditlog.command_hashes[i], hash_size);
     printf("PKEY[%d]: ", i);
-    print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
+    print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 32);
   }
   size_t mt_size = 0;
 
@@ -158,7 +159,7 @@ sgx_status_t ecall_auditlogPVRA(
    mt_size = tree_size(&mt);
 #endif
 
-  uint32_t auditlogbuf_size = sizeof(enclave_state.auditmetadata.audit_version_no)+num_entries*(sizeof(packed_address_t)+hash_size)+mt_size;
+  uint32_t auditlogbuf_size = sizeof(enclave_state.auditmetadata.audit_version_no)+num_entries*(sizeof(packed_address_t)+hash_size+sizeof(uint64_t))+mt_size;
   uint8_t *const auditlogbuf = (uint8_t *)malloc(auditlogbuf_size);
   uint32_t auditlog_offset = mt_size;
 
@@ -167,18 +168,21 @@ sgx_status_t ecall_auditlogPVRA(
   cleanup_tree(&mt);
 #endif
 
-  memcpy_big_uint32(auditlogbuf + auditlog_offset, enclave_state.auditmetadata.audit_version_no);
+  memcpy_big_uint64(auditlogbuf + auditlog_offset, enclave_state.auditmetadata.audit_version_no);
   auditlog_offset += sizeof(enclave_state.auditmetadata.audit_version_no);
 
   for(int i = 0; i < num_entries; i++) {
-    memcpy(auditlogbuf + auditlog_offset + 12, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 20);
+    memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.user_pubkeys[i], 32);
     auditlog_offset += sizeof(packed_address_t);
   }
   for(int i = 0; i < num_entries; i++) {
     memcpy(auditlogbuf + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], hash_size);
     auditlog_offset += hash_size;
   }
-
+  for(int i = 0; i < num_entries; i++) {
+    memcpy_big_uint64(auditlogbuf + auditlog_offset, enclave_state.auditmetadata.auditlog.seqNo[i]);
+    auditlog_offset += sizeof(uint64_t);
+  }
 
   printf("\n[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED: %d\n", auditlogbuf_size);
   print_hexstring(auditlogbuf, auditlogbuf_size);

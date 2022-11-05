@@ -260,6 +260,6 @@ void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
   print_hexstring_n(CC->eCMD.CI.recover_key , 3);
   printf("...");
   print_hexstring_n(CC->eCMD.CI.recover_key+(KEY_SIZE-3) , 3);
-  printf("] [SN]:%d}\n", CC->eCMD.seqNo);
+  printf("] [SN]:%d}\n", CC->seqNo);
 }
 

@@ -1,4 +1,4 @@
-import json
+import ctypes
 import subprocess
 
 from constants import *
@@ -33,14 +33,15 @@ def initPvra():
     print_vv(res.stdout.decode('utf-8'))
 
 
-def commandPVRA(state_counter, eCMD, pubkeyCMD):
+def commandPVRA(state_counter, eCMD, pubkeyCMD, seq):
     # todo get FT
     ft_path = os.path.join(HOST_PATH, "FT.txt")
     ft_sig_path = os.path.join(HOST_PATH, "signedFT.bin")
     cmd_path = os.path.join(HOST_PATH, "eCMD.bin")
     cmd_pubkey_path = os.path.join(HOST_PATH, "pubkeyCMD.bin")
+    seq_buff = bytes(ctypes.c_uint32(seq))
     with open(cmd_path, "wb") as f:
-        f.write(eCMD)
+        f.write(seq_buff+eCMD)
     with open(cmd_pubkey_path, "wb") as f:
         f.write(pubkeyCMD)
 
@@ -61,9 +62,11 @@ def commandPVRA(state_counter, eCMD, pubkeyCMD):
         print_(f"commandPVRA failed with code {res.returncode}\n{res.stdout.decode('utf-8')}{res.stderr.decode('utf-8')}", c=ERRORc)
         exit(res.returncode)
     # print_vv(res.stdout)
-    print_vv(res.stdout.decode("utf-8"))
-    cp = subprocess.run(f"cp {SEAL_OUT_PATH} {SEAL_STATE_PATH}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    assert cp.returncode == 0
+    log = res.stdout.decode("utf-8")
+    print_vv(log)
+    if "SeqNo failure" not in log:
+        cp = subprocess.run(f"cp {SEAL_OUT_PATH} {SEAL_STATE_PATH}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        assert cp.returncode == 0
     with open(CRESPONSE_PATH, "rb") as f:
         cResponse = f.read()
     with open(CRESPONSE_SIG_PATH, "rb") as f:

@@ -36,7 +36,7 @@ class User:
         self.user_num = user_num
         self.address, self.public_key, self.secret_key = bb_info
         self.w3 = w3
-        self.seq_num = 0 #todo use in encrypt command
+        self.seq_num = 0
         self.contract = contract
         self.print_v(f"initialize User {user_num} with address {print_hex_trunc(self.address)} and public key {print_hex_trunc(self.public_key)}")
         self.admin_addr = self.contract.functions.admin_addr().call({"from": self.address})
@@ -55,28 +55,40 @@ class User:
         assert user_info[2] == b''  # user_data # todo add parse_bb_user_info function to util?
 
     def encrypt_data(self, data):
-        self.print_vv(f"encrypting user data {data}")  # todo add data print function to application.py ?
+        self.print_vv(f"encrypting user data {data}")
         shared_key = derive_key_aes(self.secret_key, ENCLAVE_PUBLIC_KEY())
         encrypted_data = self._encrypt(shared_key, format_command(data))
         self.seq_num += 1
         return encrypted_data
 
-    def send_data(self, encrypted_user_data, mode=INCL_SIG):
-        ok, res = self.send_data_admin(encrypted_user_data, mode)
+    def send_data(self, encrypted_user_data, mode=INCL_SIG, seq=-1):
+        if seq == -1:
+            self.print_vv("send_data using calculated seq_num", self.seq_num)
+        else:
+            self.print_vv("send_data using seq_num", seq)
+            self.seq_num = seq
+        ok, res = self.send_data_admin(encrypted_user_data, self.seq_num, mode)
         if not ok:
             self.print_v(f"admin confirmation signature verification failed [{res}] posting to bulletin board")
-            self.send_data_bb(encrypted_user_data)
+            self.send_data_bb(encrypted_user_data, self.seq_num)
         else:
-            self.send_data_bb(encrypted_user_data, mode)
+            self.send_data_bb(encrypted_user_data, self.seq_num, mode)
+
         return res
 
-    def send_data_admin(self, encrypted_user_data, mode=INCL_SIG):
+    def send_data_admin(self, encrypted_user_data, seq=-1, mode=INCL_SIG):
         if mode in [OMIT_DATA, INCL_DATA]:
             return True, ""
+        if seq == -1:
+            self.print_vv("send_data_admin using calculated seq_num", self.seq_num)
+        else:
+            self.print_vv("send_data_admin using seq_num", seq)
+            self.seq_num = seq
+
         self.print_v(f"sending encrypted user data to bulletin board {print_hex_trunc(encrypted_user_data)}")
         params = {"mode": mode}
         headers = {"Content-Type": "application/json"}
-        cmd_data = {"eCMD": encrypted_user_data.hex(), "pubkeyCMD": self.public_key.hex()}
+        cmd_data = {"eCMD": encrypted_user_data.hex(), "pubkeyCMD": self.public_key.hex(), "seq": self.seq_num}
         self.print_vv(f"Sending command to server {cmd_data} with pubkey {print_hex_trunc(self.public_key)}")
         cmd_url = f"http://{ADMIN_IP}:{ADMIN_PORT}/command"
         req = requests.post(cmd_url, json=cmd_data, headers=headers, params=params)
@@ -97,15 +109,23 @@ class User:
         self.sent_commands[encrypted_user_data.hex()] = {"msg_conf": conf_data, "sig_conf": sig_conf}
         return res_admin, msg
 
-    def send_data_bb(self, encrypted_user_data, mode=INCL_DATA):
+    def send_data_bb(self, encrypted_user_data, seq=-1, mode=INCL_DATA):
         if mode in [OMIT_SIG, INCL_SIG]:
             return
+        if seq == -1:
+            self.print_vv("send_data_bb using calculated seq_num", self.seq_num)
+        else:
+            self.print_vv("send_data_bb using seq_num", seq)
+            self.seq_num = seq
+
         self.print_v(f"sending encrypted user data to bulletin board {print_hex_trunc(encrypted_user_data)}")
-        gas = bb.send_tx(self.w3, self.contract.functions.add_user_data(encrypted_user_data), self.address)
+        gas = bb.send_tx(self.w3, self.contract.functions.add_user_data(encrypted_user_data, self.seq_num), self.address)
+
         user_info = self.contract.functions.get_user(self.address, 0).call({"from": self.address})
         assert user_info[0] == self.address
         # assert user_info[1] == self.audit_num  # last_audit_num todo get last_audit_num to compare?
         assert user_info[2] == encrypted_user_data  # user_data
+        assert user_info[3] == self.seq_num  # last_seq_num
         if encrypted_user_data.hex() in self.sent_commands:
             self.sent_commands[encrypted_user_data.hex()]["audit_num"] = user_info[1]
         else:

@@ -6,6 +6,7 @@ contract Billboard {
         mapping (uint => bytes) user_data;
         uint last_audit_num;
         mapping (uint => bool) called_add_data;//data from every audit num won't necessarily be provided
+        uint64 last_seq;
     }
 
     struct AuditData {
@@ -20,6 +21,7 @@ contract Billboard {
         address user_address;
         uint last_audit_num;
         bytes data;
+        uint64 last_seq;
     }
 
     mapping (address => User) user_info;
@@ -27,7 +29,7 @@ contract Billboard {
 
     mapping (uint => AuditData) audit_data;
 
-    uint32 public audit_num;
+    uint64 public audit_num;
     uint audit_block_num;
     uint next_audit_time;
     uint AUDIT_TIME = 10;
@@ -49,7 +51,7 @@ contract Billboard {
     uint public tmp_idx;
 
     constructor(bytes memory enclave_sign_key_, bytes memory ias_report_) {
-        require(enclave_sign_key_.length == 64);
+        require(enclave_sign_key_.length == 64, "invalid enclave public key");
         admin_addr = msg.sender;
         enclave_sign_key = enclave_sign_key_;
         enclave_address = address(uint160(uint256(keccak256(enclave_sign_key_))));
@@ -59,13 +61,11 @@ contract Billboard {
 
     function initialize(address[] memory user_addresses, bytes memory signature) public {
 
-        require(msg.sender == admin_addr);
+        require(msg.sender == admin_addr, "initialize must be called by admin");
         bytes32 users_hash = hash_address_list(user_addresses);
         address signer = recover(users_hash, signature);
-        require(signer == enclave_address);
-        require(user_addresses[0] == admin_addr);
-//        tmp_addr = signer;
-//        tmp_hash = users_hash;
+        require(signer == enclave_address, "user_addresses must be signed by enclave_address");
+        require(user_addresses[0] == admin_addr, "first address must be admin");
         audit_block_num = block.number;//starts timer for next audit
         initialized = true;
         audit_num = 0;
@@ -74,11 +74,14 @@ contract Billboard {
         timeout_detected=false;
     }
 
-    function add_user_data(bytes memory encrypted_command_and_data) public {
-        require(initialized);
+    function add_user_data(bytes memory encrypted_command_and_data, uint64 seq) public {
+        require(initialized, "add_user_data must be called after initialize");
         User storage user = user_info[msg.sender];
-        uint32 audit_num_ = audit_num+1;
-        require(user.called_add_data[audit_num_] == false);
+        uint64 audit_num_ = audit_num+1;
+        require(user.called_add_data[audit_num_] == false, "add_user_data can only be called once in a audit period");
+        require(seq == user.last_seq+1, "sequence number incorrect");
+
+        user.last_seq++;
         user.last_audit_num = audit_num_;
         //users can only add 1 set TODO
         //of data per audit time period
@@ -87,45 +90,54 @@ contract Billboard {
     }
 
     function audit_start() public {
-        require(msg.sender == admin_addr);
-        require(initialized);
-        require(block.number < audit_block_num + AUDIT_TIME);
+        require(msg.sender == admin_addr, "audit_start must be called by admin");
+        require(initialized, "audit_start must be called after initialize");
+        require(block.number < audit_block_num + AUDIT_TIME, "audit_start must be called after AUDIT_TIME blocks have passed");
         audit_num++;
         next_audit_time = audit_block_num + AUDIT_TIME + POST_TIME;
     }
 
     function audit_end(bytes memory signature,
                         address[] memory included_ids,
-                        bytes32[] memory included_hashes) public {
-        require(msg.sender == admin_addr);
-        require(initialized);
+                        bytes32[] memory included_hashes,
+                        uint64[] memory seq_no) public {
+        require(msg.sender == admin_addr, "audit_end must be called by admin");
+        require(initialized, "audit_end must be called after initialize");
         audit_block_num = block.number;
-        bytes32 hash = hash_audit_data(audit_num, included_ids, included_hashes);
+        bytes32 hash = hash_audit_data(audit_num, included_ids, included_hashes, seq_no);
         address signer = recover(hash, signature);
-        require(signer == enclave_address);
+        require(signer == enclave_address, "audit log must be signed by enclave_address");
         audit_data[audit_num] = AuditData("", audit_block_num, included_ids, included_hashes, true);
+        for (uint i = 0; i < included_ids.length; i++) {
+            if (seq_no[i] > user_info[included_ids[i]].last_seq) {
+                user_info[included_ids[i]].last_seq = seq_no[i];
+            }
+        }
     }
 
     function audit_end_merkle(bytes memory audit_log_signature,
-        address[] memory included_user_ids, bytes32[] memory included_data_hashes,
+        address[] memory included_ids, bytes32[] memory included_data_hashes, uint64[] memory seq_no,
          bytes[] calldata leaves, bytes32[] calldata proof) public {
-        require(msg.sender == admin_addr);
-        require(initialized);
+        require(msg.sender == admin_addr, "audit_end_merkle must be called by admin");
+        require(initialized, "audit_end_merkle must be called after initialize");
         audit_block_num = block.number;
-        bytes32 audit_log_hash = hash_audit_data_merkle(leaves, proof, audit_num, included_user_ids, included_data_hashes);
+        bytes32 audit_log_hash = hash_audit_data_merkle(leaves, proof, audit_num, included_ids, included_data_hashes, seq_no);
         address signer = recover(audit_log_hash, audit_log_signature);
-//        tmp_addr = signer;
-//        tmp_hash = audit_log_hash;
-        require(signer == enclave_address);
+        require(signer == enclave_address, "audit log must be signed by enclave_address");
         check_proof(proof, leaves);
-        audit_data[audit_num] = AuditData(proof[proof.length-1], audit_block_num, included_user_ids, included_data_hashes, true);
+        audit_data[audit_num] = AuditData(proof[proof.length-1], audit_block_num, included_ids, included_data_hashes, true);
+        for (uint i = 0; i < included_ids.length; i++) {
+            if (seq_no[i] > user_info[included_ids[i]].last_seq) {
+                user_info[included_ids[i]].last_seq = seq_no[i];
+            }
+        }
     }
 
-    function verify_omission_data(address user_id, uint32 omit_audit_num) public {
-        require(initialized);
-        require(audit_num >= omit_audit_num);
+    function verify_omission_data(address user_id, uint64 omit_audit_num) public {
+        require(initialized, "verify_omission_data must be called after initialize");
+        require(audit_num >= omit_audit_num, "verify_omission_data can only be called for past audits");
         if (audit_num == omit_audit_num) {
-            require(next_audit_time <= block.number || audit_data[omit_audit_num].posted);
+            require(next_audit_time <= block.number || audit_data[omit_audit_num].posted, "posting period for audit not over");
         }
 
         User storage user = user_info[user_id];
@@ -137,17 +149,17 @@ contract Billboard {
         omission_detected = user_posted_hash != admin_posted_hash;
     }
 
-    function verify_omission_sig(address user_id, uint32 omit_audit_num,
+    function verify_omission_sig(address user_id, uint64 omit_audit_num,
                                 bytes32 signed_data_hash, bytes memory signature) public {
-        require(initialized);
-        require(audit_num >= omit_audit_num);
+        require(initialized, "verify_omission_sig must be called after initialize");
+        require(audit_num >= omit_audit_num, "verify_omission_sig can only be called for past audits");
         if (audit_num == omit_audit_num) {
-            require(next_audit_time <= block.number || audit_data[omit_audit_num].posted);
+            require(next_audit_time <= block.number || audit_data[omit_audit_num].posted, "posting period for audit not over");
         }
 
         bytes32 hash = hash_confirmation(user_id, omit_audit_num, signed_data_hash);
         address signer = recover(hash, signature);
-        require(signer == admin_addr);
+        require(signer == admin_addr, "confirmation message must be signed by admin");
 
         AuditData memory audit_log = audit_data[omit_audit_num];
         bytes32 admin_posted_hash = find_data(audit_log, user_id);
@@ -162,40 +174,44 @@ contract Billboard {
         bytes memory packed = abi.encodePacked(_addresses);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix,uint2str(packed.length),packed);
-//        tmp_byte = packed;
         bytes32 hash = keccak256(packed);
         return hash;
     }
 
-    //todo change packing audit_num?
-    //todo pure
-    function hash_audit_data(uint32 audit_num_, address[] memory _addresses, bytes32[] memory _data) internal pure returns (bytes32) {
-        require(_addresses.length == _data.length);
+    function hash_audit_data(uint64 audit_num_, address[] memory _addresses, bytes32[] memory _data, uint64[] memory seq_no) internal pure returns (bytes32) {
+        require(_addresses.length == _data.length, "audit log entry lengths must match");
+        require(_addresses.length == seq_no.length, "audit log entry lengths must match");
         bytes memory packed = abi.encodePacked(audit_num_, _addresses, _data);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
+        for (uint i = 0; i < seq_no.length; i++) {
+            packed = abi.encodePacked(packed, seq_no[i]);
+        }
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
-//        tmp_byte = packed;
         bytes32 hash = keccak256(packed);
         return hash;
     }
 
 
     function hash_audit_data_merkle(bytes[] calldata leaves, bytes32[] calldata proof,
-        uint32 audit_num_, address[] memory _addresses, bytes32[] memory _data) public pure returns (bytes32) {
+        uint64 audit_num_, address[] memory _addresses, bytes32[] memory _data, uint64[] memory seq_no) public pure returns (bytes32) {
+        require(_addresses.length == seq_no.length);
         require(_addresses.length == _data.length);
-        bytes memory packed = abi.encodePacked(uint32(leaves[0].length), uint32(leaves.length));
+        bytes memory packed = abi.encodePacked(uint32(leaves[0].length), uint32(leaves.length));//todo change lengths to uint64
         for (uint i = 0; i < leaves.length; i++){
             packed = abi.encodePacked(packed, leaves[i]);
         }
         packed = abi.encodePacked(packed, proof, audit_num_, _addresses, _data);
-//        tmp_byte = packed;
+        for (uint i = 0; i < seq_no.length; i++) {
+            packed = abi.encodePacked(packed, seq_no[i]);
+        }
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
         bytes32 hash = keccak256(packed);
         return hash;
     }
 
-    function hash_confirmation(address _addresses, uint32 audit_num_, bytes32 data_hash) internal pure returns (bytes32) {
+    //todo change packing audit_num
+    function hash_confirmation(address _addresses, uint64 audit_num_, bytes32 data_hash) internal pure returns (bytes32) {
         bytes memory packed = abi.encodePacked(uint2str(audit_num_), _addresses, data_hash);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
@@ -213,16 +229,16 @@ contract Billboard {
         return "";
     }
 
-    function get_user(address user_addr, uint32 audit_num_) public view returns (UserData memory) {
+    function get_user(address user_addr, uint64 audit_num_) public view returns (UserData memory) {
         User storage user = user_info[msg.sender];
         if (audit_num_ == 0) {
-            return UserData(user_addr, user.last_audit_num, user.user_data[user.last_audit_num]);
+            return UserData(user_addr, user.last_audit_num, user.user_data[user.last_audit_num], user.last_seq);
         }
-        return UserData(user_addr, user.last_audit_num, user.user_data[audit_num_]);
+        return UserData(user_addr, user.last_audit_num, user.user_data[audit_num_], user.last_seq);
     }
 
 
-    function get_all_user_data(uint32 audit_num_) public view returns (UserData[] memory) {
+    function get_all_user_data(uint64 audit_num_) public view returns (UserData[] memory) {
         uint user_count = 0;
         for (uint i = 0; i < user_list.length; i++) {
             address addr = user_list[i];
@@ -238,7 +254,7 @@ contract Billboard {
             address addr = user_list[i];
             User storage user = user_info[addr];
             if (user.called_add_data[audit_num_] == true) {
-                UserData memory user_datum = UserData(addr, user.last_audit_num, user.user_data[audit_num_]);
+                UserData memory user_datum = UserData(addr, user.last_audit_num, user.user_data[audit_num_], user.last_seq);
                 user_data[index] = user_datum;
                 index++;
             }
