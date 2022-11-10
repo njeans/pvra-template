@@ -1,45 +1,51 @@
 #include <secp256k1.h>
+#include <secp256k1_recovery.h>
+
+#include "enclave_state.h"
 #include "keccak256.h"
-#include "enclavestate.h"
 
 
 void get_address(secp256k1_pubkey * pubkey, address_t* out) {
     struct SHA3_CTX ctx;
     keccak_init(&ctx);
     keccak_update(&ctx, pubkey, 64);
-    unsigned char result[32];
+    unsigned char result[HASH_SIZE];
     keccak_final(&ctx, result);
     memcpy(out, &result[12], sizeof(address_t));
 }
 
+//solidity abi.encodePacked([]address) function left pads address to 32 bytes
 void get_packed_address(secp256k1_pubkey * pubkey, packed_address_t* out) {
     struct SHA3_CTX ctx;
     keccak_init(&ctx);
     keccak_update(&ctx, pubkey, 64);
-    unsigned char result[32];
+    unsigned char result[HASH_SIZE];
     keccak_final(&ctx, result);
     memset(out, 0, sizeof(packed_address_t));
     memcpy((char *)out + 12, &result[12], sizeof(address_t));
-//    printf("get_packed_address_result=");
-//    print_hexstring(result, sizeof(result));
 }
 
-//solidity abi.packed([]address) function left pads address to 32 bytes
-void hash_address_list(secp256k1_pubkey * pubkey_list, int num_pubkeys, char * hash_out_32) {
-  packed_address_t * addr_buff = (packed_address_t *) calloc(num_pubkeys, sizeof(packed_address_t));//todo check null
+void keccak256(uint8_t *buff, size_t buff_size, uint8_t * hash_out_32) {
+  char eth_prefix[100];
+  int len_prefix = sprintf(eth_prefix,"%cEthereum Signed Message:\n%d",25, buff_size);
+  struct SHA3_CTX ctx;
+  keccak_init(&ctx);
+  keccak_update(&ctx, eth_prefix, len_prefix-1);
+  keccak_update(&ctx, buff, buff_size);
+  keccak_final(&ctx, hash_out_32);
+}
+
+void hash_address_list(secp256k1_pubkey * pubkey_list, int num_pubkeys, uint8_t * hash_out_32) {
+  packed_address_t * addr_buff = (packed_address_t *) calloc(num_pubkeys, sizeof(packed_address_t)); // todo check null
+  size_t addr_buff_len = sizeof(packed_address_t)*num_pubkeys;
   for (int i = 0; i < num_pubkeys; i++) {
     get_packed_address(&pubkey_list[i], &addr_buff[i]);
   }
-  char eth_prefix[100];
-  int s = sprintf(eth_prefix,"%cEthereum Signed Message:\n%d", 25, sizeof(packed_address_t) * num_pubkeys);
-  struct SHA3_CTX ctx_sha3;
-  keccak_init(&ctx_sha3);
-  //s-1 don't want '{0}' string deliminator
-  keccak_update(&ctx_sha3, eth_prefix, s-1);
-  keccak_update(&ctx_sha3, addr_buff, sizeof(packed_address_t)*num_pubkeys );
-  keccak_final(&ctx_sha3, hash_out_32);
+  keccak256(addr_buff, addr_buff_len, hash_out_32);
   free(addr_buff);
 }
+
+
 
 void memcpy_big_uint32(uint8_t* buff, uint32_t num) {
     int x = 1;
@@ -53,7 +59,6 @@ void memcpy_big_uint32(uint8_t* buff, uint32_t num) {
    memcpy(buff, &swapped, 4);
 }
 
-
 void memcpy_big_uint64(uint8_t* buff, uint64_t num) {
     int x = 1;
     char *p = (char *)&x;
@@ -65,78 +70,189 @@ void memcpy_big_uint64(uint8_t* buff, uint64_t num) {
     }
    memcpy(buff, &swapped, 8);
 }
-/*
-void save_seal() {
-  size_t new_unsealed_data_size = sizeof(enclave_state) + sizeof(struct dAppData);
-  for(int i = 0; i < dAD.num_dDS; i++) {
-    new_unsealed_data_size += sizeof(struct dynamicDS);
-    new_unsealed_data_size += dAD.dDS[i]->buffer_size;
+
+void hexstr_to_bytes(char * hexstr, size_t len, uint8_t * bytes) {
+    for(int j = 0; j < len; j+=2) {
+
+      char c1 = hexstr[j];
+      int value1 = 0;
+      if(c1 >= '0' && c1 <= '9')
+        value1 = (c1 - '0');
+      else if (c1 >= 'A' && c1 <= 'F')
+        value1 = (10 + (c1 - 'A'));
+      else if (c1 >= 'a' && c1 <= 'f')
+        value1 = (10 + (c1 - 'a'));
+
+      char c0 = hexstr[j+1];
+      int value0 = 0;
+      if(c0 >= '0' && c0 <= '9')
+        value0 = (c0 - '0');
+      else if (c0 >= 'A' && c0 <= 'F')
+        value0 = (10 + (c0 - 'A'));
+      else if (c0 >= 'a' && c0 <= 'f')
+        value0 = (10 + (c0 - 'a'));
+      bytes[j/2] = (value1<<4) | value0;
+    }
+}
+
+sgx_status_t genkey_secp256k1(unsigned char seed, secp256k1_prikey * out_seckey, secp256k1_pubkey *out_pubkey, unsigned char *out_pubkey_ser) {
+  unsigned char randomize[32];
+  int err;
+  sgx_status_t ret = sgx_read_rand(randomize, sizeof(randomize));
+  if (ret != SGX_SUCCESS) {
+    printf("[genkey_secp256k1] sgx_read_rand() failed!\n");
+    return ret;
+  }
+  if(DETERMINISTIC_KEYS) {
+    memset(out_seckey, seed, sizeof(secp256k1_prikey));
+  } else {
+    ret = sgx_read_rand(out_seckey, sizeof(secp256k1_prikey));
+    if (ret != SGX_SUCCESS) {
+        printf("[genkey_secp256k1] sgx_read_rand() failed!\n");
+        return ret;
+    }
   }
 
-
-  uint8_t *const new_unsealed_data = (uint8_t *)malloc(new_unsealed_data_size);
-  printf("e %p %d %zu %u %u %p %d\n",new_unsealed_data, new_unsealed_data_size,new_unsealed_data_size, sizeof(enclave_state) , sizeof(struct dAppData), &enclave_state, sizeof(struct ES));
-
-  if (new_unsealed_data == NULL) {
-      printf("[ecPVRA] malloc new_unsealed_data blob error.\n");
-      ret = SGX_ERROR_INVALID_PARAMETER;
-      goto cleanup;
+  secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+  if (ctx == NULL) {
+    printf("[genkey_secp256k1] secp256k1_context_create failed\n");
+    return SGX_ERROR_UNEXPECTED;
+  }
+  err = secp256k1_context_randomize(ctx, randomize);
+  if (err != 1) {
+    printf("[genkey_secp256k1] secp256k1_context_randomize failed %d\n", err);
+    return SGX_ERROR_UNEXPECTED;
+  }
+  err = secp256k1_ec_pubkey_create(ctx, out_pubkey, out_seckey);
+  if (err != 1) {
+    printf("[genkey_secp256k1] secp256k1_ec_pubkey_create failed %d\n", err);
+    return SGX_ERROR_UNEXPECTED;
+  }
+  if (out_pubkey_ser != NULL){
+      size_t encpubkey_ser_len = 65;
+      secp256k1_ec_pubkey_serialize(ctx, out_pubkey_ser, &encpubkey_ser_len, out_pubkey, SECP256K1_EC_UNCOMPRESSED);
+      if (encpubkey_ser_len != 65) {
+        printf("[genkey_secp256k1] secp256k1_ec_pubkey_serialize failed %lu!=65\n", encpubkey_ser_len);
+        return SGX_ERROR_UNEXPECTED;
+      }
   }
 
-  int new_unsealed_offset = 0;
+  secp256k1_context_destroy(ctx);
+  return SGX_SUCCESS;
+}
 
-  memcpy(new_unsealed_data + new_unsealed_offset, &enclave_state, sizeof(struct ES));
-  new_unsealed_offset += sizeof(struct ES);
-  printf("d\n");
+//todo return int?
+sgx_status_t sign_secp256k1(secp256k1_prikey seckey, unsigned char data_hash[HASH_SIZE], secp256k1_ecdsa_signature *out_sig, unsigned char *sig_ser) {
+  unsigned char randomize[32];
+  int err;
 
-  memcpy(new_unsealed_data + new_unsealed_offset, &dAD, sizeof(struct dAppData));
-  new_unsealed_offset += sizeof(struct dAppData);
-  printf("c\n");
-
-  for(int i = 0; i < dAD.num_dDS; i++) {
-    memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i], sizeof(struct dynamicDS));
-    new_unsealed_offset += sizeof(struct dynamicDS);
+  secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+  if (ctx == NULL) {
+    printf("[sign_secp256k1] secp256k1_context_create failed\n");
+    return SGX_ERROR_UNEXPECTED;
   }
-  printf("b\n");
+  sgx_status_t ret = sgx_read_rand(randomize, sizeof(randomize));
+  if (ret != SGX_SUCCESS) {
+    printf("[sign_secp256k1] sgx_read_rand() failed!\n");
+    return ret;
+  }
+  err = secp256k1_context_randomize(ctx, randomize);
+  if (err != 1) {
+    printf("[sign_secp256k1] secp256k1_context_randomize failed %d\n", err);
+    return SGX_ERROR_UNEXPECTED;
+  }
+  err = secp256k1_ecdsa_sign(ctx, out_sig, data_hash, seckey, NULL, NULL);
+  if (err != 1) {
+    printf("[sign_secp256k1] secp256k1_ecdsa_sign failed %d\n", err);
+    return SGX_ERROR_UNEXPECTED;
+  }
+  if (sig_ser != NULL){
+    err = secp256k1_ecdsa_signature_serialize_compact(ctx, sig_ser, out_sig);
+    if (err != 1) {
+        printf("[sign_secp256k1] secp256k1_ecdsa_signature_serialize_compact failed %d\n", err);
+        return SGX_ERROR_UNEXPECTED;
+    }
+  }
+  secp256k1_context_destroy(ctx);
+  return SGX_SUCCESS;
+}
 
-  for(int i = 0; i < dAD.num_dDS; i++) {
-    memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i]->buffer, dAD.dDS[i]->buffer_size);
-    new_unsealed_offset += dAD.dDS[i]->buffer_size;
+sgx_status_t sign_rec_secp256k1(secp256k1_prikey seckey, unsigned char data_hash[HASH_SIZE], secp256k1_ecdsa_recoverable_signature *out_sig, unsigned char *sig_ser) {
+  unsigned char randomize[32];
+  int err;
+
+  secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+  if (ctx == NULL) {
+    printf("[sign_rec_secp256k1] secp256k1_context_create failed\n");
+    return SGX_ERROR_UNEXPECTED;
+  }
+  sgx_status_t ret = sgx_read_rand(randomize, sizeof(randomize));
+  if (ret != SGX_SUCCESS) {
+    printf("[sign_rec_secp256k1] sgx_read_rand() failed!\n");
+    return ret;
+  }
+  err = secp256k1_context_randomize(ctx, randomize);
+  if (err != 1) {
+    printf("[sign_rec_secp256k1] secp256k1_context_randomize failed %d\n", err);
+    return SGX_ERROR_UNEXPECTED;
+  }
+  err = secp256k1_ecdsa_sign_recoverable(ctx, out_sig, data_hash, seckey, NULL, NULL);
+  if (err != 1) {
+    printf("[sign_rec_secp256k1] secp256k1_ecdsa_sign failed %d\n", err);
+    return SGX_ERROR_UNEXPECTED;
+  }
+  if (sig_ser != NULL){
+    int recovery;
+    err = secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, sig_ser, &recovery, out_sig);
+    if (err != 1) {
+        printf("[sign_rec_secp256k1] secp256k1_ecdsa_signature_serialize_compact failed %d\n", err);
+        return SGX_ERROR_UNEXPECTED;
+    }
+    uint8_t v = ((uint8_t) recovery);
+    uint8_t p = (uint8_t) 27;
+    v = v + p;
+    sig_ser[64] = v;
+  }
+  secp256k1_context_destroy(ctx);
+  return SGX_SUCCESS;
+}
+
+sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], unsigned char AESkey[16]){
+  int err;
+  unsigned char randomize[32];
+  unsigned char shared_secret[32];
+  secp256k1_pubkey user_pubkey;
+  char user_pubkey_buff[65];
+  user_pubkey_buff[0] = SECP256K1_TAG_PUBKEY_UNCOMPRESSED;
+  memcpy(&user_pubkey_buff[1], other_pubkey, 64);
+
+  secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);//todo check null
+  sgx_status_t ret = sgx_read_rand(randomize, sizeof(randomize));
+  if (ret != SGX_SUCCESS) {
+    printf("[genkey_aesgcm128] sgx_read_rand() failed!\n");
+    return ret;
   }
 
-  if(new_unsealed_offset != new_unsealed_data_size) {
-    printf("[ecPVRA] creating new_unsealed_data blob error.\n");
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
+  err = secp256k1_context_randomize(ctx, randomize);
+  if(err == 0) {
+    printf("[genkey_aesgcm128] secp256k1_context_randomize() failed\n");
+    return SGX_ERROR_UNEXPECTED;
+  }
+  //todo validate keys in initPVRA
+  err = secp256k1_ec_pubkey_parse(ctx, &user_pubkey, &user_pubkey_buff, 65); //todo use flags in secp.h
+  if(err == 0) {
+    printf("[genkey_aesgcm128] secp256k1_ecdh() failed\n");
+    return SGX_ERROR_UNEXPECTED;
   }
 
-  // FREE metadata structs
-  for(int i = 0; i < dAD.num_dDS; i++) {
-    if(dAD.dDS[i] != NULL)
-      free(dAD.dDS[i]);
+  err = secp256k1_ecdh(ctx, shared_secret, &user_pubkey, my_privkey, NULL, NULL);
+  if(err == 0) {
+    printf("[genkey_aesgcm128] secp256k1_ecdh() failed\n");
+    return SGX_ERROR_UNEXPECTED;
   }
+  memcpy(AESkey, shared_secret, 16);
+  secp256k1_context_destroy(ctx);
+  return SGX_SUCCESS;
+}
 
-  if(dAD.dDS != NULL)
-    free(dAD.dDS);
-  uint32_t seal_size = sgx_calc_sealed_data_size(0U, new_unsealed_data_size);
-  if(A_DEBUGRDTSC) printf("[ecPVRA] New seal_size: [%d]\n", seal_size);
 
-  //printf("[ecPVRA] sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
-  //if(sealedout_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
-  ret = sgx_seal_data(0U, NULL, new_unsealed_data_size, new_unsealed_data, seal_size, (sgx_sealed_data_t *)newsealedstate);
-  if(ret !=SGX_SUCCESS) {
-    print("[ecPVRA] sgx_seal_data() failed!\n");
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
-  }
-  //}
-  //else {
-  //  printf("[ecPVRA] Size allocated is less than the required size!\n");
-  //  ret = SGX_ERROR_INVALID_PARAMETER;
-  //  goto cleanup;
-  //}
-
-  if(A_DEBUGPRINT) printf("[ecPVRA] Enclave State sealed success\n");
-  ret = SGX_SUCCESS;
-
-}*/

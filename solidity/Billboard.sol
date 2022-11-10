@@ -80,7 +80,7 @@ contract Billboard {
         uint64 audit_num_ = audit_num+1;
         require(user.called_add_data[audit_num_] == false, "add_user_data can only be called once in a audit period");
         require(seq == user.last_seq+1, "sequence number incorrect");
-
+        require(encrypted_command_and_data.length > 64, "command data malformed");
         user.last_seq++;
         user.last_audit_num = audit_num_;
         //users can only add 1 set TODO

@@ -191,6 +191,7 @@ COPY app/ app/
 COPY enclave/ enclave/
 COPY applications/$APP_NAME/*.c enclave/
 COPY applications/$APP_NAME/*.h enclave/
+COPY applications/$APP_NAME/*.h app/
 COPY common/ common/
 COPY interface/ interface/
 COPY nix/ nix/
@@ -201,7 +202,7 @@ COPY trustedLib/ trustedLib/
 ARG SGX_MODE=HW
 ENV SGX_MODE $SGX_MODE
 
-ARG SGX_DEBUG=1
+ARG SGX_DEBUG=0
 ENV SGX_DEBUG $SGX_DEBUG
 
 RUN make untrusted

@@ -8,41 +8,34 @@
 #include <stdlib.h>
 
 #include "app.h"
+#include "appPVRA.h"
 
 //#define INITSEALSIZE 7184
 //#define INITSEALSIZE 7024
 
 bool allocate_buffers() {
-  //printf("[agPVRA] Allocating buffers\n");
-
+  printf("[agPVRA] Allocating buffers\n");
+  signature_buffer_size = 65;
   signature_buffer = calloc(signature_buffer_size, 1);
 
-  sigpubkeys_buffer_size = signature_rec_buffer_size;
-  sigpubkeys_buffer = calloc(sigpubkeys_buffer_size, 1);
-
-  auditlog_buffer_size = 8000;
   auditlog_buffer = calloc(auditlog_buffer_size, 1);
 
-  auditlog_signature_buffer_size = signature_rec_buffer_size;
-  auditlog_signature_buffer = calloc(auditlog_signature_buffer_size, 1);
+  auditlog_signature_buffer = calloc(65, 1);
 
 
-  // SET using ecall calc_buffer_sizes
-  //sealed_state_buffer_size = INITSEALSIZE;
-  sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
+  // if it is NULL it was not loaded from the seal state file
+  if (sealed_state_buffer == NULL)
+    sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
 
-  sealed_out_buffer_size = sealed_state_buffer_size;
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
 
-  //pub_enckey_buffer_size = 451;
-  pub_enckey_buffer_size = 64;
-  pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
-
-//  cResponse_buffer_size = sizeof(struct cResponse);
+  enclave_pubkey_buffer = calloc(64, 1);
+  enclave_pubkey_signature_buffer = malloc(64);
+  user_addr_signature_buffer = malloc(65);
+  cResponse_buffer_size = sizeof(struct cResponse);
   cResponse_buffer = calloc(cResponse_buffer_size, 1);
 
-  cRsig_buffer_size = signature_buffer_size;
-  cRsig_buffer = calloc(cRsig_buffer_size, 1);
+  cRsig_buffer = calloc(64, 1);
 
   FT_buffer_size = 64;
   FT_buffer = calloc(FT_buffer_size, 1);
@@ -62,7 +55,7 @@ bool allocate_buffers() {
 }
 
 void cleanup_buffers() {
-  //printf("[GatewayApp]: Deallocating buffers\n");
+  printf("[GatewayApp]: Deallocating buffers\n");
 
 
 
@@ -89,11 +82,6 @@ void cleanup_buffers() {
   if (eCMD_buffer != NULL) {
     free(eCMD_buffer);
     eCMD_buffer = NULL;
-  }
-
-  if (eAESkey_buffer != NULL) {
-    free(eAESkey_buffer);
-    eAESkey_buffer = NULL;
   }
 
   if (cResponse_buffer != NULL) {

@@ -25,7 +25,6 @@ static struct option long_options[] = {
   {"signedFT", required_argument, 0, 0},
   {"FT", required_argument, 0, 0},
   {"eCMD", required_argument, 0, 0},
-  {"eAESkey", required_argument, 0, 0},
   {"cResponse", required_argument, 0, 0},
   {"cRsig", required_argument, 0, 0},
   {"sealedOut", required_argument, 0, 0},
@@ -54,7 +53,6 @@ int main(int argc, char **argv) {
   const char *opt_signedFT_file = NULL;
   const char *opt_FT_file = NULL;
   const char *opt_eCMD_file = NULL;
-  const char *opt_eAESkey_file = NULL;
   const char *opt_cResponse_file = NULL;
   const char *opt_cRsig_file = NULL;
   const char *opt_sealedout_file = NULL;
@@ -103,27 +101,24 @@ int main(int argc, char **argv) {
       opt_eCMD_file = optarg;
       break;
     case 11:
-      opt_eAESkey_file = optarg;  //its not an aes key
-      break;
-    case 12:
       opt_cResponse_file = optarg;
       break;
-    case 13:
+    case 12:
       opt_cRsig_file = optarg;
       break;
-    case 14:
+    case 13:
       opt_sealedout_file = optarg;
       break;
-    case 15:
+    case 14:
       opt_userpubkeys_file = optarg;
       break;
-    case 16:
+    case 15:
       opt_sigpubkeys_file = optarg;
       break;
-    case 17:
+    case 16:
       opt_auditlog_file = optarg;
       break;
-    case 18:
+    case 17:
       opt_auditlogsig_file = optarg;
       break;
     }
@@ -146,14 +141,13 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  if (opt_commandPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_signedFT_file) && (!opt_FT_file) && (!opt_eCMD_file) && (!opt_eAESkey_file) && (!opt_cResponse_file) && (!opt_cRsig_file)) {
+  if (opt_commandPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_signedFT_file) && (!opt_FT_file) && (!opt_eCMD_file) && (!opt_cResponse_file) && (!opt_cRsig_file)) {
     fprintf(stderr, "Error Usage:\n");
     fprintf(stderr, "  %s --commandPVRA --enclave-path /path/to/enclave.signed.so \
       --sealedState sealedState.bin \
       --signedFT signedFT.bin \
       --FT FT.txt \
       --eCMD eCMD.bin \
-      --eAESkey eAESkey.bin \
       --cResponse cResponse.txt \
       --cRsig cResponse.sig \
       --sealedOut sealedOut.bin\n", argv[0]);
@@ -172,39 +166,41 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-
   OpenSSL_add_all_algorithms(); /* Init OpenSSL lib */
 
   bool success_status =
-    create_enclave(opt_enclave_path) && 
-    enclave_get_buffer_sizes() &&
-    allocate_buffers() && 
+    create_enclave(opt_enclave_path) &&
+
+    (opt_initPVRA ? enclave_get_init_buffer_sizes() : true) &&
+    (opt_initPVRA ? allocate_buffers() : true) &&
+    (opt_commandPVRA ? load_seal(opt_sealedstate_file) : true) &&
+    (opt_commandPVRA ? enclave_get_buffer_sizes() : true) &&
+    (opt_auditlogPVRA ? load_seal(opt_sealedstate_file) : true) &&
+    (opt_auditlogPVRA ? enclave_get_buffer_sizes() : true) &&
+    (opt_commandPVRA || opt_auditlogPVRA ? allocate_buffers() : true) &&
+
 
     (opt_initPVRA ? load_keys(opt_userpubkeys_file) : true) &&
     (opt_initPVRA ? initPVRA() : true) &&
     (opt_initPVRA ? save_seal(opt_sealedstate_file) : true) &&
     (opt_initPVRA ? save_quote(opt_quote_file) : true) &&
-    (opt_initPVRA ? save_signature(opt_signature_file, signature_buffer, signature_buffer_size) : true) &&
-    (opt_initPVRA ? save_signature(opt_sigpubkeys_file, sigpubkeys_buffer, sigpubkeys_buffer_size) : true) &&
+    (opt_initPVRA ? save_signature(opt_signature_file, enclave_pubkey_signature_buffer, 64) : true) &&
+    (opt_initPVRA ? save_signature(opt_sigpubkeys_file, user_addr_signature_buffer, 65) : true) &&
     (opt_initPVRA ? save_message() : true) &&
 
-    (opt_commandPVRA ? load_seal(opt_sealedstate_file) : true) &&
     (opt_commandPVRA ? load_ft(opt_FT_file) : true) &&
     (opt_commandPVRA ? load_sig(opt_signedFT_file) : true) &&
     (opt_commandPVRA ? load_cmd(opt_eCMD_file) : true) &&
-    (opt_commandPVRA ? load_key(opt_eAESkey_file) : true) &&
-    (opt_commandPVRA ? format_sig(opt_signedFT_file) : true) &&      
+    (opt_commandPVRA ? format_sig(opt_signedFT_file) : true) &&
     (opt_commandPVRA ? commandPVRA() : true) &&
     (opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
     (opt_commandPVRA ? save_cRsig(opt_cRsig_file) : true) &&
     (opt_commandPVRA ? save_sealO(opt_sealedout_file) : true) &&
 
-    (opt_auditlogPVRA ? load_seal(opt_sealedstate_file) : true) &&     
     (opt_auditlogPVRA ? auditlogPVRA() : true) &&
     (opt_auditlogPVRA ? save_auditlog(opt_auditlog_file) : true) &&
-    (opt_auditlogPVRA ? save_signature(opt_auditlogsig_file, auditlog_signature_buffer, auditlog_signature_buffer_size) : true) &&
+    (opt_auditlogPVRA ? save_signature(opt_auditlogsig_file, auditlog_signature_buffer, 65) : true) &&
     (opt_auditlogPVRA ? save_sealO(opt_sealedout_file) : true);
-
 
   if (sgx_lasterr != SGX_SUCCESS) {
     fprintf(stderr, "[agPVRA]: ERROR: %s\n", decode_sgx_status(sgx_lasterr));

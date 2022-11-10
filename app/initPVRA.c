@@ -33,14 +33,16 @@ bool initPVRA() {
   t = clock();
 
   tsc_idx = 0;
+
   sgx_lasterr = ecall_initPVRA(
       enclave_id, &ecall_retval, 
-      &report, &target_info, 
-      (char *)sealed_state_buffer, sealed_state_buffer_size, 
-      (char *)pub_enckey_buffer, pub_enckey_buffer_size, 
-      (char *)signature_buffer, signature_buffer_size, 
-      (char *)pubkeys_buffer, pubkeys_buffer_size, 
-      (char *)sigpubkeys_buffer, sigpubkeys_buffer_size);
+      &target_info,
+      (char *)pubkeys_buffer, pubkeys_buffer_size,
+      &report,
+      (uint8_t *)sealed_state_buffer, sealed_state_buffer_size,
+      enclave_pubkey_buffer,
+      enclave_pubkey_signature_buffer,
+      user_addr_signature_buffer);
 
   t = clock() - t;
   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time

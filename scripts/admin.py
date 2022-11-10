@@ -211,13 +211,14 @@ class Admin:
         with open(USER_LIST_SIG_PATH, "rb") as f:
             signature = f.read()
         with open(USER_LIST_PATH) as f:
-            data = f.read().split("\n")[1:]  # first line is number of users
+            data = f.read().split("\n")
         user_addresses = [convert_publickey_address(x) for x in data]
         address_data = b"".join(map(get_packed_address, user_addresses))
         res = recover_eth_data(address_data, signature, publickey=ENCLAVE_PUBLIC_KEY())
         print_v(f"verifying signed user address list: {res}")
+        assert res
         contract_address, self.contract, contract_id = bb.deploy_contract(self.w3,  self.address)
-        print_v(f"deployed contract: {contract_id} to: {contract_address}")
+        print_v(f"deployed contract: {contract_id.hex()} to: {contract_address}")
         print_vv(f"initializing contract with users: {user_addresses}")
         ge = bb.send_tx(self.w3, self.contract.functions.initialize(user_addresses, signature), self.address)
         print_vv("contract.functions.initialize: gasUsed", ge)

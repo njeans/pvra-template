@@ -1,4 +1,4 @@
-#include "enclavestate.h"
+#include "enclave_state.h"
 #include "appPVRA.h"
 
 
@@ -151,10 +151,14 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
     return 0;
 }
 
-
+void formatResponse(struct cResponse *ret, int error, char * message) {
+    ret->error = error;
+    ret->access = false;
+    memcpy(ret->message, message, 100);
+}
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%d} ", CC->eCMD.CT, uidx, CC->eCMD.CI.test_result, CC->seqNo);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%lu} ", CC->eCMD.CT, uidx, CC->eCMD.CI.test_result, CC->seqNo);
 }
 

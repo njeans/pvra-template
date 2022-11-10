@@ -27,7 +27,7 @@
 #include <secp256k1_ecdh.h>
 #include "keccak256.h"
 
-#include "enclavestate.h"
+#include "enclave_state.h"
 #include "appPVRA.h"
 #include "util.h"
 
@@ -35,9 +35,6 @@
 #define AESGCM_128_KEY_SIZE 16
 #define AESGCM_128_MAC_SIZE 16
 #define AESGCM_128_IV_SIZE 12
-
-#define C_DEBUGPRINT 1
-#define C_DEBUGRDTSC 0 
 
 
 /**
@@ -47,7 +44,6 @@
  * @param [in] FT: freshness tag that was signed by CCF.
  * @param [in] FT_signature: the CCF signature.
  * @param [in] eCMD: encrypted private_command.
- * @param [in] cmdpubkey: user_pubkey associated with command.
  * @param [out] cResponse: outgoing response to user that is enclave-signed.
  * @param [out] cResponse_signature: the cResponse signature.
  * @param [out] newsealedstate: outgoing new enclave state seal.
@@ -59,152 +55,106 @@
 
 
 sgx_status_t ecall_commandPVRA(
-    char *sealedstate, size_t sealedstate_size, 
-    char *FT, size_t FT_size,
-    char *FT_signature, size_t FT_signature_size, 
-    char *eCMD, size_t eCMD_size, 
-    char *cmdpubkey, size_t cmdpubkey_size, 
-    char *cResponse, size_t cResponse_size,
-    char *cResponse_signature, size_t cResponse_signature_size,
-    char *newsealedstate, size_t newsealedstate_size) {
-
+    uint8_t *sealedstate, size_t sealedstate_size,
+    uint8_t FT[8],
+    uint8_t FT_signature[64],
+    uint8_t *eCMD, size_t eCMD_size,
+    uint8_t *cResponse, size_t cResponse_size,
+    uint8_t cResponse_signature[64],
+    uint8_t *newsealedstate, size_t newsealedstate_size) {
+//todo sign error responses
 
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
   struct ES enclave_state;
   struct dAppData dAD;
   struct clientCommand CC;
+  char resp[100];
+  int err;
 
   // Control Timing Measurement of an OCALL Overhead.
   if(C_DEBUGRDTSC) ocall_rdtsc();
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
-
-
-
-  /*    (2) Enclave State Initializaiton    */
-
-
   /*    Unseal Enclave State    */
 
-  uint32_t unsealed_data_size = sgx_get_encrypt_txt_len((const sgx_sealed_data_t *)sealedstate);
-  uint8_t *const unsealed_data = (uint8_t *)malloc(unsealed_data_size); 
-  if (unsealed_data == NULL) {
-    printf("[ecPVRA] malloc(unsealed_data_size) failed!\n");
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
-  }
-  ret = sgx_unseal_data((sgx_sealed_data_t *)sealedstate, NULL, NULL, unsealed_data, &unsealed_data_size);
+  ret = unseal_enclave_state(sealedstate, &enclave_state, &dAD);
   if (ret != SGX_SUCCESS) {
-    printf("[ecPVRA] sgx_unseal_data() failed!\n");
-    ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
 
-  /*    Handles loading dynamic data structures    */
-
-  memcpy(&enclave_state, unsealed_data, sizeof(struct ES));
-  int offset = sizeof(struct ES);
-
-  memcpy(&dAD, unsealed_data + offset, sizeof(struct dAppData));
-  offset += sizeof(struct dAppData);
-
-  struct dynamicDS **dDS = (struct dynamicDS **)calloc(dAD.num_dDS, sizeof(struct dynamicDS *));
-  dAD.dDS = dDS;
-
-  for(int i = 0; i < dAD.num_dDS; i++) {
-    struct dynamicDS *tDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
-    memcpy(tDS, unsealed_data + offset, sizeof(struct dynamicDS));
-    offset += sizeof(struct dynamicDS);
-    dAD.dDS[i] = tDS;
-  }
-
-  for(int i = 0; i < dAD.num_dDS; i++) {
-    dAD.dDS[i]->buffer = unsealed_data + offset;
-    offset += dAD.dDS[i]->buffer_size;
-  }
-
-  initAD(&enclave_state, &dAD);
-
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
+  //initialize default cResponse
+  formatResponse(cResponse, -5, "eCMD Failed\0");
 
-  //todo need to make sure even a malformed eCMD.bin is included in log
+  if(eCMD_size < 64 + sizeof(uint64_t)) {//at minimum the command should have a public key seq no and 1+ bytes of data
+    printf("[ecPVRA] malformed eCMD eCMD_size %lu < %lu\n", eCMD_size, 64 + sizeof(uint64_t));
+    sprintf(resp, "malformed eCMD eCMD_size %lu < %lu\n", eCMD_size, 64 + sizeof(uint64_t));
+    formatResponse(cResponse, -1, resp);
+    goto cleanup;
+  }
+
   /*  UPDATE AUDIT LOG    */
-  printf("[ecPVRA] eCMD: ");
-  print_hexstring(eCMD, eCMD_size);
+  if(DEBUGPRINT) printf("[ecPVRA] eCMD: ");
+  if(DEBUGPRINT) print_hexstring(eCMD, eCMD_size);
+  memcpy(&CC.seqNo, eCMD, sizeof(uint64_t));
+  memcpy(CC.user_pubkey, eCMD + sizeof(uint64_t), 64);
+  uint8_t *eCMD_full = eCMD + sizeof(uint64_t) + 64; //first 8+64 bytes is the seq num and then user public key
+  size_t eCMD_full_size = eCMD_size - sizeof(uint64_t) - 64; //first 8+64 bytes is the seq num and then user public key
 
-  memcpy(&CC.seqNo, eCMD, sizeof(uint32_t));
-  uint8_t *eCMD_full = eCMD;
-  eCMD_full = eCMD_full + sizeof(uint32_t); //first 4 bytes is the decrypted seq
 
-  printf("[ecPVRA] eCMD_full: ");
-  print_hexstring(eCMD_full, eCMD_size - sizeof(uint32_t));
-
-  int entry = enclave_state.auditmetadata.audit_offset;
-  unsigned char eCMD_hash[32];
-  struct SHA3_CTX ctx_sha3;
-  keccak_init(&ctx_sha3);
-  keccak_update(&ctx_sha3, cmdpubkey, cmdpubkey_size);
-  keccak_update(&ctx_sha3, eCMD_full, eCMD_size - sizeof(uint32_t));
-  keccak_final(&ctx_sha3, &eCMD_hash);
-
-  /*
-  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)eCMD, eCMD_size, eCMD_hash);
-  if(ret != 0)
-  {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
-  }*/
+  unsigned char eCMD_hash[HASH_SIZE];
+  struct SHA3_CTX ctx_hash_eCMD;
+  keccak_init(&ctx_hash_eCMD);
+  keccak_update(&ctx_hash_eCMD, eCMD + sizeof(uint64_t), eCMD_size - sizeof(uint64_t)); //don't need to hash seqno
+  keccak_final(&ctx_hash_eCMD, &eCMD_hash);
 
   if(C_DEBUGRDTSC) ocall_rdtsc();
-  get_packed_address(cmdpubkey, &enclave_state.auditmetadata.auditlog.user_pubkeys[entry]);
-  memcpy(&enclave_state.auditmetadata.auditlog.command_hashes[entry], eCMD_hash, 32);
-  enclave_state.auditmetadata.auditlog.seqNo[entry] = CC.seqNo;
-  enclave_state.auditmetadata.audit_offset++;
+
+  uint64_t audit_index = enclave_state.auditmetadata.audit_index;
+  get_packed_address(CC.user_pubkey, &enclave_state.auditmetadata.auditlog.user_addresses[audit_index]);
+  memcpy(&enclave_state.auditmetadata.auditlog.command_hashes[audit_index], eCMD_hash, HASH_SIZE);
+  enclave_state.auditmetadata.auditlog.seqNo[audit_index] = CC.seqNo;
+  enclave_state.auditmetadata.audit_index++;
 
   // PRINTS AUDIT LOG
-  printf("[ecPVRA] updated audit log\n");
-  for(int i = 0; i < entry+1; i++) {
-    printf("SEQ[%d]: %d\n",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
-    printf("ENTRY[%d]: ", i);
-    print_hexstring(&enclave_state.auditmetadata.auditlog.command_hashes[i], 32);
-    printf("PBUKEY: ");
-    print_hexstring(&enclave_state.auditmetadata.auditlog.user_pubkeys[i], 32);
+  if(DEBUGPRINT) { //todo change to ifdefineif
+    printf("[ecPVRA] updated audit log size %u\n", enclave_state.auditmetadata.audit_index);
+    for(int i = 0; i < enclave_state.auditmetadata.audit_index; i++) {
+      printf("[%d]: SEQ: %lu ",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
+      printf("HASH: ");
+      print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.command_hashes[i], HASH_SIZE);
+      printf("ADDR: ");
+      print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.user_addresses[i], sizeof(packed_address_t));
+      printf("\n");
+    }
   }
 
-  //initialize cResponse to error in case command fails
-  char defaultcResponse[16] = "----eCMD Failed\0";
-  memcpy(cResponse, &defaultcResponse, sizeof(defaultcResponse));
-
-  /*    (3) SCS Verification    */
-
-
-  /*    Computing expected newFT from sealedState + eCMD + ES.freshness_tag   */
-
-  uint32_t bigbuf_size = sealedstate_size + eCMD_size;
-  uint8_t *const bigbuf = (uint8_t *)malloc(bigbuf_size); 
+  /*    SCS Verification    */
+   
+  //Computing expected newFT from sealedState + eCMD + ES.freshness_tag   */
+  
+  uint32_t bigbuf_size = sealedstate_size + eCMD_size;//todo make sure this hash is calculated correctly because eCMD format changed
+  uint8_t *bigbuf = (uint8_t *)malloc(bigbuf_size);
   memcpy(bigbuf, sealedstate, sealedstate_size);
   memcpy(bigbuf+sealedstate_size, eCMD, eCMD_size);
-
-  unsigned char sealcmd_hash[32];
-  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)bigbuf, sealedstate_size+eCMD_size, sealcmd_hash);
-  if(ret != 0) {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
+  
+  unsigned char sealcmd_hash[HASH_SIZE];
+  err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)bigbuf, sealedstate_size+eCMD_size, sealcmd_hash);
+  if(err != 0) {
+    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
+    ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
-  //printf("[ecPVRA] SCS sealcmd hash: \n"); print_hexstring(sealcmd_hash, 32);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS sealcmd hash: \n"); print_hexstring(sealcmd_hash, HASH_SIZE);
 
-  unsigned char ftold_hash[32];
-  memcpy(ftold_hash, enclave_state.counter.freshness_tag, 32);
-  //printf("[ecPVRA] SCS ftold hash: "); print_hexstring(ftold_hash, 32);
-
-  unsigned char merge[64];
-  memcpy(merge, ftold_hash, 32);
-  memcpy(merge+32, sealcmd_hash, 32);
-  //printf("[ecPVRA] SCS ftold||sealcmd: "); print_hexstring(merge, 64);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold hash: "); print_hexstring(enclave_state.counter.freshness_tag, HASH_SIZE);
+  
+  unsigned char merge[HASH_SIZE*2];
+  memcpy(merge, enclave_state.counter.freshness_tag, HASH_SIZE);
+  memcpy(merge+HASH_SIZE, sealcmd_hash, HASH_SIZE);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold||sealcmd: "); print_hexstring(merge, HASH_SIZE*2);
 
   // TODO: change hash(hexstring[128]) to hash(bytes[32])
   unsigned char merge_hexstring[129];
@@ -214,20 +164,20 @@ sgx_status_t ecall_commandPVRA(
     merge_hexstring[2*i] = hex[(merge[i]>>4) & 0xF];
   }
   merge_hexstring[128] = 0;
-  //printf("[ecPVRA] SCS merge_hexstring: %s\n", merge_hexstring);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS merge_hexstring: %s\n", merge_hexstring);
 
-  unsigned char ft_hash[32];
-  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)merge_hexstring, 128, ft_hash);
-  if(ret != 0) 
+  unsigned char ft_hash[HASH_SIZE];
+  err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)merge_hexstring, 128, ft_hash);
+  if(err != 0)
   {
     printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
+    ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
 
-  //printf("[ecPVRA] SCS Received newFT = %d %s", FT_size, FT); print_hexstring(FT, 32);
-  if(C_DEBUGPRINT) printf("[ecPVRA] SCS Expected newFT = ");
-  if(C_DEBUGPRINT) print_hexstring(ft_hash, 32);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS Received newFT = %.*s\n", 8, FT);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS Expected newFT = ");
+  if(DEBUGPRINT) print_hexstring(ft_hash, HASH_SIZE);
 
   unsigned char ex_hexstring[65];
   for (int i = 0; i < 32; i++) {
@@ -236,144 +186,112 @@ sgx_status_t ecall_commandPVRA(
   }
   ex_hexstring[64] = 0;
 
-
   /*    Comparing expected newFT to FT returned from SCS    */
-
-  int same = 0;
-  for(int i = 0; i < 64; i++) {
+  for(int i = 0; i < 64; i++) { //todo this is weird and will break because FT is len 8
     if(ex_hexstring[i] != FT[i]) {
-      same = 1;
+      printf("[ecPVRA] SCS FT Match: failure");
+      if (CCF_ENABLE == 1){
+        printf("\n");
+        ret = SGX_ERROR_INVALID_PARAMETER;
+        goto cleanup;
+      } else {
+        printf(" CCF_ENABLE=0 ignoring..\n");
+        break;
+      }
     }
   }
 
-  if(same == 0) {
-    if(C_DEBUGPRINT) printf("[ecPVRA] SCS FT Match: success\n");
-  }
-  else {
-    if(C_DEBUGPRINT) printf("[ecPVRA] SCS FT Match: failure (if CCF_ENABLE=1)\n");
-  }
-
-
   /*    Verifying SCS Signature    */
-
   unsigned char msg_hash[32];
-  ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)FT, strlen(FT)-1, msg_hash);
-  if(ret != 0) 
-  {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
+  err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)FT, 8, msg_hash);
+  if(err != 0) {
+    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
+    ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
-
-  //printf("[ecPVRA] SCS signature msg hash = "); print_hexstring(msg_hash, 32);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS signature msg hash = "); print_hexstring(msg_hash, HASH_SIZE);
 
   mbedtls_pk_context pk_pub_key;
   mbedtls_pk_init(&pk_pub_key);
-
-  ret = mbedtls_pk_parse_public_key(&pk_pub_key, (const unsigned char *)&enclave_state.counter.CCF_key, strlen(&enclave_state.counter.CCF_key)+1);
-  if(ret != 0) 
-  {
-    printf("[ecPVRA] mbedtls_pk_parse_public_key failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
+  err = mbedtls_pk_parse_public_key(&pk_pub_key, (const unsigned char *)&enclave_state.counter.CCF_key, strlen(&enclave_state.counter.CCF_key)+1);
+  if(err != 0) {
+    printf("[ecPVRA] mbedtls_pk_parse_public_key failed, returned -0x%04x\n", -err);
+    ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
-  
+
   mbedtls_rsa_context *rsapk_pub_key = mbedtls_pk_rsa(pk_pub_key);
-
-  ret = mbedtls_rsa_check_pubkey(rsapk_pub_key);
-  if(ret != 0) 
-  {
-    printf("[ecPVRA] mbedtls_rsa_check_pubkey failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
+  err = mbedtls_rsa_check_pubkey(rsapk_pub_key);
+  if(err != 0) {
+    printf("[ecPVRA] mbedtls_rsa_check_pubkey failed, returned -0x%04x\n", -err);
+    err = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
 
-  ret = mbedtls_rsa_pkcs1_verify(rsapk_pub_key, NULL, NULL, MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_SHA256, 64, msg_hash, FT_signature);
-  if(ret != 0) 
-  {
-    printf("[ecPVRA] SCS Signature verification failed on mbedtls_rsa_pkcs1_verify, returned -0x%04x (if CCF_ENABLE=1)\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    //goto cleanup;
-  }
-  else {
-    if(C_DEBUGPRINT) printf("[ecPVRA] SCS Signature verification success\n");
+  err = mbedtls_rsa_pkcs1_verify(rsapk_pub_key, NULL, NULL, MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_SHA256, 64, msg_hash, FT_signature);
+  if(err != 0) {
+    printf("[ecPVRA] SCS Signature verification failed on mbedtls_rsa_pkcs1_verify, returned -0x%04x", -err);
+    if (CCF_ENABLE == 1) {
+        printf("\n");
+        ret = SGX_ERROR_INVALID_PARAMETER;
+        goto cleanup;
+    } else {
+        printf(" CCF_ENABLE=0 ignoring..\n");
+    }
+  } else {
+    if(DEBUGPRINT) printf("[ecPVRA] SCS Signature verification success\n");
   }
 
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
-
-
-  
   /*    (4) Command Decryption    */
 
-  /*    Reading the user_pubkey    */
-  memcpy(&CC.user_pubkey, cmdpubkey, sizeof(secp256k1_pubkey));
-
-  if(C_DEBUGPRINT) printf("[ecPVRA] eCMD user_pubkey: ");
-  if(C_DEBUGPRINT) print_hexstring_n(&CC.user_pubkey, 3);
-  if(C_DEBUGPRINT) printf("..");
-  if(C_DEBUGPRINT) print_hexstring_n(((char *)&CC.user_pubkey)+61, 3);
-  if(C_DEBUGPRINT) printf("\n");
+  if(DEBUGPRINT) printf("[ecPVRA] eCMD user_pubkey: ");
+  if(DEBUGPRINT) print_hexstring(&CC.user_pubkey, 64);
 
   int user_idx = -1;
   for(int i = 0; i < NUM_USERS+1; i++) {
-    if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
+    if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], 64) == 0) {
       user_idx = i;
       break;
     }
   }
 
   if (user_idx == -1) {
-    if(C_DEBUGPRINT) printf("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
-    sprintf(cResponse, "----user_pubkey NOT FOUND rejecting command");
+    printf("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
+    formatResponse(cResponse, -2, "user public key NOT FOUND rejecting command");
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
-
   }
-  if(C_DEBUGPRINT) printf("[ecPVRA] CMD user_pubkey[%d]: \n", user_idx);
 
+  if(DEBUGPRINT) printf("[ecPVRA] CMD user_idx %d\n", user_idx);
 
   /*    ECDH protocol to generate shared secret AESKey    */
-  unsigned char randomize_e[32];
-  secp256k1_context* ctx_e = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
-  // Handle NULL
-  sgx_read_rand(randomize_e, sizeof(randomize_e));
-  int secp25k1_ret = secp256k1_context_randomize(ctx_e, randomize_e);
-  unsigned char shared_secret[32];
-  secp256k1_pubkey user_pubkey;
-  char user_pubkey_buff[65];
-  user_pubkey_buff[0] = 4;
-  memcpy(&user_pubkey_buff[1], &enclave_state.auditmetadata.master_user_pubkeys[user_idx], 64);
-  secp256k1_ec_pubkey_parse(ctx_e, &user_pubkey, &user_pubkey_buff, 65);
-
-  secp25k1_ret = secp256k1_ecdh(ctx_e, shared_secret, &user_pubkey, &enclave_state.enclavekeys.enc_prikey, NULL, NULL);
-//  if(C_DEBUGPRINT) printf("[eiPVRA] Enclave Generated Shared Secret\n");
-//  if(C_DEBUGPRINT) print_hexstring(&shared_secret, 32);
-//  if(C_DEBUGPRINT) printf("\n");
   unsigned char AESkey[16];
-  size_t AESkey_len = 16;
-  memcpy(AESkey, shared_secret, 16);
+  ret = genkey_aesgcm128(enclave_state.auditmetadata.master_user_pubkeys[user_idx], enclave_state.enclavekeys.enc_prikey, AESkey);
+  if(DEBUGPRINT) printf("[eiPVRA] Enclave Generated AES key ");
+  if(DEBUGPRINT) print_hexstring(AESkey, 16);
 
 
   /*    AES Decryption of CMD using AESkey    */
 
   uint8_t plain_dst[BUFLEN] = {0};
   size_t exp_ct_len = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + sizeof(struct private_command);
-  size_t ct_len = eCMD_size - sizeof(uint32_t);
-  //size_t ct_len = exp_ct_len;
+  size_t ct_len = eCMD_full_size;
   size_t ct_src_len = ct_len - AESGCM_128_MAC_SIZE - AESGCM_128_IV_SIZE;
   if (ct_src_len != sizeof(struct private_command)) {
-    printf("[ecPVRA] BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
-    sprintf(cResponse, "----BAD eCMD %d %d\n", ct_src_len, sizeof(struct private_command));
+    sprintf(resp, "BAD eCMD length %d expected length %d", ct_src_len, sizeof(struct private_command));
+    formatResponse(cResponse, -3, resp);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
   }
+
   uint8_t *ct_src = &eCMD_full[AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE];
   uint8_t *iv_src = &eCMD_full[AESGCM_128_MAC_SIZE];
   uint8_t *tag_src = eCMD_full;
 
-  sgx_status_t decrypt_status = sgx_rijndael128GCM_decrypt(
+  err = sgx_rijndael128GCM_decrypt(
     (sgx_aes_gcm_128bit_key_t *) AESkey,
     (const uint8_t *) ct_src, (uint32_t) ct_src_len,
     (uint8_t *) plain_dst,
@@ -382,34 +300,35 @@ sgx_status_t ecall_commandPVRA(
     (sgx_aes_gcm_128bit_tag_t *) tag_src
   );
 
-  if(decrypt_status) {
-    printf("[ecPVRA] Failed to Decrypt Command decrypt_status: %d\n????", decrypt_status);
-    print_hexstring(plain_dst, sizeof(struct private_command));
-    sprintf(cResponse, "----Failed to Decrypt Command decrypt_status: %d\n", decrypt_status);
-    ret = decrypt_status;
+  if(err) {
+    printf("[ecPVRA] Failed to Decrypt Command err: %d\n", err);
+    sprintf(resp, "Failed to Decrypt Command err: %d", err);
+    formatResponse(cResponse, -3, resp);
+    ret = SGX_ERROR_INVALID_PARAMETER;
     goto seal_cleanup;
   }
 
   /*    Load decrypted private_command into struct clientCommand   */
 
   memcpy(&CC.eCMD, plain_dst, sizeof(struct private_command));
-  if(C_DEBUGPRINT) printf("[ecPVRA] Decrypted eCMD hexstring: ");
-  if(C_DEBUGPRINT) print_hexstring_n(plain_dst, sizeof(struct private_command));
-  if(C_DEBUGPRINT) printf(" success\n");
-  if(C_DEBUGPRINT) print_clientCommand(&CC, user_idx-1);
+  if(DEBUGPRINT) printf("[ecPVRA] Decrypted eCMD\n");
+  if(DEBUGPRINT) print_hexstring(plain_dst, sizeof(struct private_command));
+  if(DEBUGPRINT) print_clientCommand(&CC, user_idx-1);
+
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
   
   /*    (5) SEQNO Verification    */
-  if (user_idx > 0) {
-      if(CC.seqNo != enclave_state.antireplay.seqno[user_idx-1]+1) {
-        printf("SeqNo failure received [%d] != [%d] Not logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx-1]+1);
-        sprintf(cResponse, "----SeqNo failure received [%d] != [%d] NOT logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx-1]+1);
+  if (user_idx > 0) { //i.e. not admin
+    if(CC.seqNo != enclave_state.antireplay.seqno[user_idx-1]+1) {
+        printf("[ecPVRA] SeqNo failure received [%lu] != [%lu] Not logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx-1]+1);
+        sprintf(resp, "SeqNo failure received [%lu] != [%lu] NOT logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx-1]+1);
+        formatResponse(cResponse, -4, resp);
         goto cleanup;
-      }
-      enclave_state.antireplay.seqno[user_idx-1]++;
-      if(C_DEBUGPRINT) printf("SeqNo success [%d]\n", enclave_state.antireplay.seqno[user_idx-1]);
+    }
+    enclave_state.antireplay.seqno[user_idx-1]++;
+    if(DEBUGPRINT) printf("[ecPVRA] SeqNo success [%lu]\n", enclave_state.antireplay.seqno[user_idx-1]);
   }
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
@@ -419,28 +338,27 @@ sgx_status_t ecall_commandPVRA(
   
   /*   (6) PROCESS COMMAND    */
 
-  struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*, uint32_t);
+  struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*, uint32_t);
   int init_ret = initFP(functions);
   if(init_ret != 0) {
     printf("[ecPVRA] Init Function Pointers Failed\n");
-    ret = SGX_ERROR_INVALID_PARAMETER;
+    ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
-  struct cResponse cRet;
   /*   APPLICATION KERNEL INVOKED    */
-  cRet = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI, user_idx-1);
-  printf("[ecPVRA] cRet.message: [%d] ", sizeof(struct cResponse));
-  print_hexstring(&cRet, sizeof(struct cResponse));
+  struct cResponse cRet = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI, user_idx-1);
+  memcpy(cResponse, &cRet, sizeof(struct cResponse));
+
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
   
   /*   (7) FT UPDATE    */
 
-  memcpy(enclave_state.counter.freshness_tag, ft_hash, 32);
-  if(C_DEBUGPRINT) printf("[ecPVRA] SCS Local FT updated success\n");
-  //print_hexstring_n(enclave_state.counter.freshness_tag, 32);
-  //printf(" success\n");
+  memcpy(enclave_state.counter.freshness_tag, ft_hash, 32); //todo why is this done here
+  if(DEBUGPRINT) printf("[ecPVRA] SCS Local FT updated ");
+  if(DEBUGPRINT) print_hexstring(enclave_state.counter.freshness_tag, 32);
+
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
@@ -448,33 +366,31 @@ sgx_status_t ecall_commandPVRA(
 
   
   /*   (8) SIGN CRESPONSE   */
-  unsigned char cR_hash[32];
-  ret = mbedtls_md(
-      mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 
-      (const unsigned char *)&cRet,
-      sizeof(cResponse),
-      cR_hash);
-  if(ret != 0) {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
-    ret = SGX_ERROR_INVALID_PARAMETER;
+  unsigned char cR_hash[HASH_SIZE];
+  err = mbedtls_md(
+    mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 
+    cResponse,
+    sizeof(struct cResponse),
+    cR_hash);
+  if(err != 0) {
+    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
+    ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
 
   secp256k1_ecdsa_signature sig;
   unsigned char randomize[32];
 
-  secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  secp256k1_context* ctx_sign_cResp = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
   sgx_read_rand(randomize, sizeof(randomize));
-  secp25k1_ret = secp256k1_context_randomize(ctx, randomize);
-  secp25k1_ret = secp256k1_ecdsa_sign(ctx, &sig, cR_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
+  err = secp256k1_context_randomize(ctx_sign_cResp, randomize);
+  err = secp256k1_ecdsa_sign(ctx_sign_cResp, &sig, cR_hash, &enclave_state.enclavekeys.sig_prikey, NULL, NULL);
 
-  //printf("[eiPVRA] PUBKEYS SIGNATURE %d\n", sizeof(secp256k1_ecdsa_signature));
-  //print_hexstring(&sig, sizeof(secp256k1_ecdsa_signature));
+  if(DEBUGPRINT) printf("[eiPVRA] cResponse SIGNATURE ");
+  if(DEBUGPRINT) print_hexstring(&sig, sizeof(secp256k1_ecdsa_signature));
 
-  memcpy(cResponse, &cRet, sizeof(struct cResponse));
-  memcpy(cResponse_size, sizeof(struct cResponse));
   memcpy(cResponse_signature, &sig, 64);
-  secp256k1_context_destroy(ctx);
+  secp256k1_context_destroy(ctx_sign_cResp);
 
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
@@ -484,71 +400,23 @@ sgx_status_t ecall_commandPVRA(
   /*   (9) SEAL STATE    */
   //todo should still seal audit log if user has errors but not if admin has errors
   seal_cleanup: ;
-      // TODO: THIS WILL BREAK if new_unsealed_data_size > newsealedstate_size
-      uint32_t new_unsealed_data_size = sizeof(enclave_state) + sizeof(struct dAppData);
-      for(int i = 0; i < dAD.num_dDS; i++) {
-        new_unsealed_data_size += sizeof(struct dynamicDS);
-        new_unsealed_data_size += dAD.dDS[i]->buffer_size;
-      }
-      uint8_t *const new_unsealed_data = (uint8_t *)malloc(new_unsealed_data_size);
-
-      int new_unsealed_offset = 0;
-      memcpy(new_unsealed_data + new_unsealed_offset, &enclave_state, sizeof(struct ES));
-      new_unsealed_offset += sizeof(struct ES);
-
-      memcpy(new_unsealed_data + new_unsealed_offset, &dAD, sizeof(struct dAppData));
-      new_unsealed_offset += sizeof(struct dAppData);
-
-      for(int i = 0; i < dAD.num_dDS; i++) {
-        memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i], sizeof(struct dynamicDS));
-        new_unsealed_offset += sizeof(struct dynamicDS);
-      }
-
-      for(int i = 0; i < dAD.num_dDS; i++) {
-        memcpy(new_unsealed_data + new_unsealed_offset, dAD.dDS[i]->buffer, dAD.dDS[i]->buffer_size);
-        new_unsealed_offset += dAD.dDS[i]->buffer_size;
-      }
-
-      if(new_unsealed_offset != new_unsealed_data_size) {
-        printf("[ecPVRA] creating new_unsealed_data blob error.\n");
-        ret = SGX_ERROR_INVALID_PARAMETER;
-        goto cleanup;
-      }
-
-      // FREE metadata structs
-      for(int i = 0; i < dAD.num_dDS; i++) {
-        if(dAD.dDS[i] != NULL)
-          free(dAD.dDS[i]);
-      }
-      if(dAD.dDS != NULL)
-        free(dAD.dDS);
-
-
-      uint32_t seal_size = sgx_calc_sealed_data_size(0U, new_unsealed_data_size);
-      if(C_DEBUGPRINT) printf("[ecPVRA] New seal_size: [%d]\n", seal_size);
-
-      //printf("[ecPVRA] sealedstate_size: %d\n", sgx_calc_sealed_data_size(0U, sizeof(enclave_state)));
-      //if(sealedout_size >= sgx_calc_sealed_data_size(0U, sizeof(enclave_state))) {
-      ret = sgx_seal_data(0U, NULL, new_unsealed_data_size, new_unsealed_data, seal_size, (sgx_sealed_data_t *)newsealedstate);
-      if(ret !=SGX_SUCCESS) {
-        print("[ecPVRA] sgx_seal_data() failed!\n");
-        ret = SGX_ERROR_INVALID_PARAMETER;
-        goto cleanup;
-      }
-      //}
-      //else {
-      //  printf("[ecPVRA] Size allocated is less than the required size!\n");
-      //  ret = SGX_ERROR_INVALID_PARAMETER;
-      //  goto cleanup;
-      //}
-
-      if(C_DEBUGPRINT) printf("[ecPVRA] Enclave State sealed success\n");
-      ret = SGX_SUCCESS;
+    size_t actual_sealedstate_size;
+    ret = seal_enclave_state(newsealedstate, sealedstate_size, &actual_sealedstate_size, &enclave_state, &dAD);
+    if (actual_sealedstate_size != newsealedstate_size) {
+      printf("[eiPVRA] sealsize incorrect %lu != %lu\n", actual_sealedstate_size, newsealedstate_size);
+      ret = SGX_ERROR_UNEXPECTED;
       goto cleanup;
+    }
+    if(ret == SGX_SUCCESS) {
+      if(DEBUGPRINT) printf("[eiPVRA] sealed state size: [%lu]\n", actual_sealedstate_size);
+    }
+    goto cleanup;
 
   cleanup:
     if(rsapk_pub_key != NULL)
       mbedtls_rsa_free(rsapk_pub_key);
+    if (bigbuf != NULL)
+        free(bigbuf);
     if(C_DEBUGRDTSC) ocall_rdtsc();
     return ret;
 }

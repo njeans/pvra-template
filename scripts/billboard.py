@@ -94,18 +94,18 @@ def get_keys(num_users=NUM_USERS):
     with open(BILLBOARD_ACCOUNTS_PATH) as f:
         accounts = json.loads(f.read())
     user_addresses = list(accounts["addresses"].keys())
-    public_key = ["" for _ in range(num_users+1)]
+    public_keys = ["" for _ in range(num_users+1)]
     keys = ["" for _ in range(num_users+1)]
     for i in range(num_users+1):
         address = user_addresses[i]  # admin is account at position 0
         priv = bytes(accounts["addresses"][address]["secretKey"]["data"])
         pub = bytes(accounts["addresses"][address]["publicKey"]["data"])
-        public_key[i] = pub.hex()
+        public_keys[i] = pub.hex()
         keys[i] = (Web3.toChecksumAddress(address), pub, priv)
         print_vv(f" user {i}: address: {print_hex_trunc(address)} pubkey: {print_hex_trunc(pub)}")
     with open(USER_LIST_PATH, "w") as f:
-        f.write(str(num_users+1) + "\n")
-        f.write("\n".join(public_key))
+        # f.write(str(num_users+1) + "\n")
+        f.write("\n".join(public_keys))
     return keys
 
 
