@@ -53,9 +53,10 @@ def sha2(data):
 
 
 def sha3(data):
-    m = hashlib.sha3_256()
-    m.update(data)
-    return m.digest()
+    # m = hashlib.sha3_256()
+    # m.update(data)
+    # return m.digest()
+    return Web3.sha3(primitive=data)
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:

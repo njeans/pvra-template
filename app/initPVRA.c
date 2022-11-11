@@ -98,7 +98,7 @@ bool initPVRA() {
   memcpy(quote_buffer, quote, quote_size);
   memcpy(&quote_buffer_size, &quote_size, sizeof(quote_size));
 
-  printf("\n[hiPVRA] MRENCLAVE: \t");
+  printf("[hiPVRA] MRENCLAVE: \t");
   print_hexstring(stdout, &quote->report_body.mr_enclave,
                   sizeof(sgx_measurement_t));
   printf("\n[hiPVRA] MRSIGNER: \t");

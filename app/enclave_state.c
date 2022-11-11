@@ -149,7 +149,6 @@ cleanup:
 }
 
 bool save_message(void) {
-  printf("save_message\n");
   bool ret_status = true;
   FILE *file = NULL;
   file = open_file("enclave_enc_pubkey.bin", "wb");
@@ -178,7 +177,7 @@ cleanup:
 bool save_quote(const char *const quote_file) {
   bool ret_status = true;
 
-  printf("[GatewayApp]: Saving quote %p %lu\n", quote_buffer, quote_buffer_size);
+  printf("[GatewayApp]: Saving quote size: %lu\n", quote_buffer_size);
 
   FILE *fquote = open_file(quote_file, "wb");
 

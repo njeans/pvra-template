@@ -77,7 +77,7 @@ def deploy_contract(w3, admin_addr=""):
     print_(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}')
     with open(CONTRACT_ADDRESS_PATH, "w") as f:
         f.write(contract_address)
-    return contract_address, contract, tx_hash
+    return contract_address, contract, contract_id
 
 
 def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths=SOLIDITY_PATHS):

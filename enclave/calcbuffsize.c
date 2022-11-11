@@ -21,12 +21,12 @@
 #endif
 
 #ifdef MERKLE_TREE
-size_t calc_auditlog_buffer_size(struct ES * enclave_state, merkle_tree * mt, size_t * mt_size) {
+size_t calc_auditlog_buffer_size(struct ES * enclave_state, merkle_tree * mt, size_t * out_mt_size) {
 
   char *data[NUM_USERS];
   size_t block_size = get_user_leaf(enclave_state, &data);
   if(DEBUGPRINT) {
-      printf("[eaPVRA] PRINTING User Leaf Nodes leaf_size: %d %p\n", block_size, data);
+      printf("[eaPVRA] PRINTING User Leaf Nodes leaf_size: %d\n", block_size);
       for(int i = 0; i < NUM_USERS; i++) {
         printf("User[%d]: ", i);
         print_hexstring(data[i], block_size);
@@ -37,14 +37,15 @@ size_t calc_auditlog_buffer_size(struct ES * enclave_state, merkle_tree * mt, si
        printf("[eaPVRA] PRINTING User Merkle Tree\n");
        print_tree(mt);
     }
-  *mt_size = tree_size(mt);
+  size_t mt_size = tree_size(mt);
+  *out_mt_size = mt_size;
 #else
   size_t calc_auditlog_buffer_size(struct ES * enclave_state) {
   size_t mt_size = 0;
 #endif
 
   uint64_t audit_index = enclave_state->auditmetadata.audit_index;
-  return sizeof(enclave_state->auditmetadata.audit_num)+audit_index*(sizeof(packed_address_t)+HASH_SIZE+sizeof(uint64_t))+*mt_size;
+  return sizeof(enclave_state->auditmetadata.audit_num)+audit_index*(sizeof(packed_address_t)+HASH_SIZE+sizeof(uint64_t))+mt_size;
 }
 
 /**

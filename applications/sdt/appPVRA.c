@@ -7,7 +7,7 @@
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    if(DEBUGPRINT) printf("[sdt] addPersonalData %d\n", uidx);
+    if(DEBUGPRINT) printf("[sdt] addPersonalData uidx %d\n", uidx);
     struct cResponse ret;
     memset(ret.output_data, 0, DATA_SIZE);
     memset(ret.message, 0, 100);
@@ -21,7 +21,7 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, u
 
 struct cResponse getPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    if(DEBUGPRINT) printf("[sdt] getPersonalData %d\n", uidx);
+    if(DEBUGPRINT) printf("[sdt] getPersonalData uidx  %d\n", uidx);
     struct cResponse ret;
     ret.error = 0;
     memset(ret.output_data, 0, DATA_SIZE);
@@ -57,7 +57,7 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
          return ret;
     }
 
-    if(DEBUGPRINT) printf("[sdt startRetrieve %d\n", user_idx);
+    if(DEBUGPRINT) printf("[sdt startRetrieve uidx %d\n", user_idx);
 
 
     if (enclave_state->appdata.retrieve_count >= MAX_RETRIEVE) {
@@ -137,7 +137,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
 /* COMMAND3 Kernel Definition */
 struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    if(DEBUGPRINT) printf("[sdt] cancelRetrieve %d\n", uidx);
+    if(DEBUGPRINT) printf("[sdt] cancelRetrieve uidx %d\n", uidx);
 
     struct cResponse ret;
     memset(ret.output_data, 0, DATA_SIZE);
@@ -160,7 +160,6 @@ struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, ui
 
 #ifdef MERKLE_TREE
 size_t get_user_leaf(struct ES *enclave_state, char ** out) {
-    if(DEBUGPRINT) printf("[sdt] get_user_leaf\n");
     size_t block_size = sizeof(struct userLeaf);
     for (int i=0; i< NUM_USERS; i++) {
         out[i] = (char *) malloc(block_size);

@@ -10,6 +10,11 @@ def print_vv(*args, c=""):
         print(c+"[enclave.py]", *args)
         print(NOCOLOR, end="")
 
+def print_v(*args, c=""):
+    if verbose >= 1:
+        print(c+"[enclave.py]", *args)
+        print(NOCOLOR, end="")
+
 def print_(*args, c=""):
     print(c+"[enclave.py]", *args)
     print(NOCOLOR, end="")
@@ -25,13 +30,11 @@ def initPvra():
                " --sigpubkeys " + USER_LIST_SIG_PATH
 
     print_vv(f'calling initPVRA with {init_cmd}')
-    # return init_cmd
-    # exit(0)
     res = subprocess.run(init_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if res.returncode != 0:
         print_(f"initPVRA failed with code {res.returncode}\n{res.stdout.decode('utf-8')}{res.stderr.decode('utf-8')}", c=ERRORc)
         exit(res.returncode)
-    print_vv(res.stdout.decode('utf-8'))
+    print_v(res.stdout.decode('utf-8'))
 
 
 def commandPVRA(state_counter, eCMD, pubkeyCMD, seq):
@@ -60,7 +63,7 @@ def commandPVRA(state_counter, eCMD, pubkeyCMD, seq):
         exit(res.returncode)
     # print_vv(res.stdout)
     log = res.stdout.decode("utf-8")
-    print_vv(log)
+    print_v(log)
     if "SeqNo failure" not in log: #todo find a better way
         cp = subprocess.run(f"cp {SEAL_OUT_PATH} {SEAL_STATE_PATH}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         assert cp.returncode == 0
@@ -84,7 +87,7 @@ def auditlogPVRA(state_counter):
     if res.returncode != 0:
         print_(f"auditlogPVRA failed with code {res.returncode}\n{res.stdout.decode('utf-8')}{res.stderr.decode('utf-8')}", c=ERRORc)
         exit(res.returncode)
-    print_vv(res.stdout.decode("utf-8") )
+    print_v(res.stdout.decode("utf-8") )
     cp = subprocess.run(f"cp {SEAL_OUT_PATH} {SEAL_STATE_PATH}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     assert cp.returncode == 0
     with open(AUDIT_LOG_PATH, "rb") as f:

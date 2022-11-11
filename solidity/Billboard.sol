@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 contract Billboard {
     struct User {
+        bytes public_key;
         mapping (uint => bytes) user_data;
         uint last_audit_num;
         mapping (uint => bool) called_add_data;//data from every audit num won't necessarily be provided
@@ -18,7 +19,7 @@ contract Billboard {
     }
 
     struct UserData {
-        address user_address;
+        bytes public_key;
         uint last_audit_num;
         bytes data;
         uint64 last_seq;
@@ -74,15 +75,18 @@ contract Billboard {
         timeout_detected=false;
     }
 
-    function add_user_data(bytes memory encrypted_command_and_data, uint64 seq) public {
+    function add_user_data(bytes memory public_key, bytes memory encrypted_command_and_data, uint64 seq) public {
         require(initialized, "add_user_data must be called after initialize");
         User storage user = user_info[msg.sender];
         uint64 audit_num_ = audit_num+1;
         require(user.called_add_data[audit_num_] == false, "add_user_data can only be called once in a audit period");
         require(seq == user.last_seq+1, "sequence number incorrect");
-        require(encrypted_command_and_data.length > 64, "command data malformed");
+        require(public_key.length == 64, "invalid public key");
+        address sender = address(uint160(uint256(keccak256(public_key))));
+        require(sender == msg.sender, "public key incorrect");
         user.last_seq++;
         user.last_audit_num = audit_num_;
+        user.public_key = public_key;
         //users can only add 1 set TODO
         //of data per audit time period
         user.user_data[audit_num_] = encrypted_command_and_data;
@@ -146,7 +150,9 @@ contract Billboard {
 
         AuditData memory audit_log = audit_data[omit_audit_num];
         bytes32 admin_posted_hash = find_data(audit_log, user_id);
-        omission_detected = user_posted_hash != admin_posted_hash;
+        require(user_posted_hash != admin_posted_hash, "data hashes match");
+        omission_detected = true;
+
     }
 
     function verify_omission_sig(address user_id, uint64 omit_audit_num,
@@ -163,7 +169,8 @@ contract Billboard {
 
         AuditData memory audit_log = audit_data[omit_audit_num];
         bytes32 admin_posted_hash = find_data(audit_log, user_id);
-        omission_detected = signed_data_hash != admin_posted_hash;
+        require(signed_data_hash != admin_posted_hash, "data hashes match");
+        omission_detected = true;
     }
 
     function detect_timeout() public {
@@ -211,8 +218,8 @@ contract Billboard {
     }
 
     //todo change packing audit_num
-    function hash_confirmation(address _addresses, uint64 audit_num_, bytes32 data_hash) internal pure returns (bytes32) {
-        bytes memory packed = abi.encodePacked(uint2str(audit_num_), _addresses, data_hash);
+    function hash_confirmation(address _address, uint64 audit_num_, bytes32 data_hash) internal pure returns (bytes32) {
+        bytes memory packed = abi.encodePacked(uint2str(audit_num_), _address, data_hash);
         bytes memory eth_prefix = '\x19Ethereum Signed Message:\n';
         packed = abi.encodePacked(eth_prefix, uint2str(packed.length), packed);
         bytes32 hash = keccak256(packed);
@@ -232,9 +239,9 @@ contract Billboard {
     function get_user(address user_addr, uint64 audit_num_) public view returns (UserData memory) {
         User storage user = user_info[msg.sender];
         if (audit_num_ == 0) {
-            return UserData(user_addr, user.last_audit_num, user.user_data[user.last_audit_num], user.last_seq);
+            return UserData(user.public_key, user.last_audit_num, user.user_data[user.last_audit_num], user.last_seq);
         }
-        return UserData(user_addr, user.last_audit_num, user.user_data[audit_num_], user.last_seq);
+        return UserData(user.public_key, user.last_audit_num, user.user_data[audit_num_], user.last_seq);
     }
 
 
@@ -254,7 +261,7 @@ contract Billboard {
             address addr = user_list[i];
             User storage user = user_info[addr];
             if (user.called_add_data[audit_num_] == true) {
-                UserData memory user_datum = UserData(addr, user.last_audit_num, user.user_data[audit_num_], user.last_seq);
+                UserData memory user_datum = UserData(user.public_key, user.last_audit_num, user.user_data[audit_num_], user.last_seq);
                 user_data[index] = user_datum;
                 index++;
             }

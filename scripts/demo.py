@@ -84,7 +84,7 @@ def data_omission_demo(num_users=NUM_USERS, modes=None):
         if cmd_num in omit_index:
             audit_mode = {}
             for i in range(num_users):
-                audit_mode[users[i].address] = user_modes[i]
+                audit_mode[users[i].public_key] = user_modes[i]
             admin.audit(audit_mode)
 
             for i in range(num_users):

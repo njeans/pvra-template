@@ -59,19 +59,17 @@ def AdminHandler(admin_lib):
                 print_vv("command", command)
                 res["msg"] = ""
                 res["sig"] = ""
+                cmd, pubk = bytes.fromhex(command["eCMD"]), bytes.fromhex(command["pubkeyCMD"])
                 if 'mode' in query_components and \
                         OMIT_SIG in query_components['mode'] or \
                         OMIT_DATA in query_components['mode'] or \
                         INCL_DATA in query_components['mode']:
                     print_v("omitting data but returning signature")
                 else:
-                    cmd, pubk = bytes.fromhex(command["eCMD"]), bytes.fromhex(command["pubkeyCMD"])
                     resp, sig = self.admin_lib._send_command(cmd, pubk, command["seq"])
                     res["msg"] = resp.hex()
                     res["sig"] = sig.hex() #todo
-                eCMD = bytes.fromhex(command["eCMD"])
-                pubkeyCMD = bytes.fromhex(command["pubkeyCMD"])
-                conf, conf_sig = self.admin_lib._sign_confirmation(pubkeyCMD, eCMD)
+                conf, conf_sig = self.admin_lib._sign_confirmation(pubk, cmd)
                 res["msg_conf"] = conf
                 res["sig_conf"] = conf_sig
                 print_vv(f"server returning {res}")
@@ -131,7 +129,7 @@ class Admin:
         self.w3 = w3
         self.state_counter = 0
         self.state_counter_lock = threading.Lock()
-        self.audit_num = 1
+        self.audit_num = 0
         self._init_enclave()
         self._init_contract()
         self.server_thread = threading.Thread(None, self.httpd.serve_forever)
@@ -151,22 +149,22 @@ class Admin:
         self.server_thread.join() # todo remove?
 
     def audit(self, mode=INCL_DATA):
-        print_v(f"checkpointing audit {self.audit_num}") #todo bb return audit num from audit_start
+        print_v(f"checkpointing audit {self.audit_num+1}") #todo bb return audit num from audit_start
         gas = bb.send_tx(self.w3, self.contract.functions.audit_start(), user_addr=self.address)
-        if OMIT_SIG not in mode and \
-            INCL_SIG not in mode and \
-            INCL_DATA not in mode:
-            print_v("not getting data from bulletin board")
+        if OMIT_SIG not in str(mode) and \
+            INCL_SIG not in str(mode) and \
+            INCL_DATA not in str(mode):
+            print_v(f"not getting data from bulletin board {mode}")
         else:
-            bb_data = self._get_bb_data()
+            bb_data = self._get_bb_data(self.audit_num+1)
             for data in bb_data:
-                addr, cmd_buff, seq = data
-                m = INCL_DATA
-                if type(mode) == dict and addr in mode:
-                    m = mode[addr]
+                pubkey, cmd, seq = data
+                addr = convert_publickey_address(pubkey)
+                if type(mode) == dict and pubkey in mode:
+                    m = mode[pubkey]
+                else:
+                    m = mode
                 if m not in [OMIT_SIG, OMIT_DATA]:
-                    pubkey = cmd_buff[:64]
-                    cmd = cmd_buff[64:]
                     print_v(f"posting data from bulletin board for user address {print_hex_trunc(addr)}")
                     self._send_command(cmd, pubkey, seq)
 
@@ -179,16 +177,16 @@ class Admin:
         if MERKLE():
             audit_log_offset, leaves, nodes = self._parse_merkle_tree(audit_log_raw)
         audit_num, included_addr, included_hashes, audit_seq = self._parse_audit_log(audit_log_raw[audit_log_offset:])
-        assert audit_num == self.audit_num
+        assert audit_num == self.audit_num+1
         if MERKLE():
-            print_vv(f"posting merkle tree audit log for: {self.audit_num}")
+            print_vv(f"posting merkle tree audit log for: {audit_num}")
             gas += bb.send_tx(self.w3, self.contract.functions.audit_end_merkle(audit_log_sig, included_addr, included_hashes, audit_seq, leaves, nodes), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end_merkle: gasUsed {gas}")
         else:
-            print_vv(f"posting audit log for: {self.audit_num}")
+            print_vv(f"posting audit log for: {audit_num}")
             gas += bb.send_tx(self.w3, self.contract.functions.audit_end(audit_log_sig, included_addr, included_hashes, audit_seq), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end: gasUsed {gas}")
-        self.audit_num = audit_num+1
+        self.audit_num = audit_num
 
         # tmp_byte = self.contract.functions.tmp_byte().call({"from": self.address})
         # tmp_hash = self.contract.functions.tmp_hash().call({"from": self.address})
@@ -218,7 +216,6 @@ class Admin:
         print_v(f"verifying signed user address list: {res}")
         assert res
         contract_address, self.contract, contract_id = bb.deploy_contract(self.w3,  self.address)
-        print_v(f"deployed contract: {contract_id.hex()} to: {contract_address}")
         print_vv(f"initializing contract with users: {user_addresses}")
         ge = bb.send_tx(self.w3, self.contract.functions.initialize(user_addresses, signature), self.address)
         print_vv("contract.functions.initialize: gasUsed", ge)
@@ -232,8 +229,8 @@ class Admin:
         self.state_counter_lock.release()
         return resp, sig
 
-    def _get_bb_data(self):
-        user_datas = self.contract.functions.get_all_user_data(self.audit_num).call({"from": self.address})
+    def _get_bb_data(self, audit_num):
+        user_datas = self.contract.functions.get_all_user_data(audit_num).call({"from": self.address})
         encrypted_data = [(x[0], x[2], x[3]) for x in user_datas]
         return encrypted_data
 

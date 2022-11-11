@@ -95,15 +95,15 @@ sgx_status_t ecall_auditlogPVRA(
   // PRINTS AUDIT LOG 
   uint64_t audit_index = enclave_state.auditmetadata.audit_index;
   if(DEBUGPRINT) { //todo change to ifdefineif
-      printf("[eaPVRA] PRINTING READABLE AUDITLOG len: %d\n", audit_index);
-      for(int i = 0; i < audit_index; i++) {
-          printf("[%d]: SEQ: %lu ",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
-          printf("HASH: ");
+        printf("[eaPVRA] PRINTING READABLE AUDITLOG len: %d\n", audit_index);
+        for(int i = 0; i < audit_index; i++) {
+          printf("[%d]: SEQ: %lu",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
+          printf(" ADDR: ");
+          print_hexstring_trunc_n((uint8_t *) enclave_state.auditmetadata.auditlog.user_addresses[i] + 12, sizeof(packed_address_t)-12);
+          printf(" HASH: ");
           print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.command_hashes[i], HASH_SIZE);
-          printf("ADDR: ");
-          print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.user_addresses[i], sizeof(packed_address_t));
           printf("\n");
-      }
+        }
   }
 
   size_t mt_size = 0;

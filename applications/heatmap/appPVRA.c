@@ -11,7 +11,7 @@ int HEATMAP_COUNT_THRESHOLD = 2;
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    if(DEBUGPRINT) printf("[hm] addPersonalData %d} ", uidx);
+    if(DEBUGPRINT) printf("[hm] addPersonalData uidx %d\n", uidx);
     struct cResponse ret;
     ret.error = 0;
     memset(ret.heatmap_data, 0, sizeof(ret.heatmap_data));
@@ -47,14 +47,14 @@ int geo_time_index(struct cInputs geo_time)
 {
     if(DEBUGPRINT) printf("[hm] geo_time.lat %f geo_time.lng %f ",geo_time.lat, geo_time.lng);
     if (geo_time.lat < LAT_HEATMAP_MIN || geo_time.lat > LAT_HEATMAP_MAX || geo_time.lng < LONG_HEATMAP_MIN || geo_time.lng > LONG_HEATMAP_MAX ){
-        printf("out of range\n");
+        printf("\n[hm] error geo_time_index out of range\n");
         return -1;
     }
     float side_length_lat = HEATMAP_GRANULARITY/(LAT_HEATMAP_MAX- LAT_HEATMAP_MIN);
     float side_length_long = HEATMAP_GRANULARITY/(LONG_HEATMAP_MAX- LONG_HEATMAP_MIN);
     int lat = ((geo_time.lat - LAT_HEATMAP_MIN)*side_length_lat);
     int lng = ((geo_time.lng - LONG_HEATMAP_MIN)*side_length_long);
-    if(DEBUGPRINT) printf("[hm] geo_time_index %d\n",lat*HEATMAP_GRANULARITY + lng);
+    if(DEBUGPRINT) printf("geo_time_index %d\n",lat*HEATMAP_GRANULARITY + lng);
    return lat*HEATMAP_GRANULARITY + lng;
 }
 

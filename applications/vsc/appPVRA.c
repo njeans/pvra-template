@@ -5,26 +5,26 @@
 /* COMMAND0 Kernel Definition */
 struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    printf("[apPVRA] statusUpdate %d\n", uidx);
+    if(DEBUGPRINT) printf("[vsc] statusUpdate uidx %d\n", uidx);
     struct cResponse ret;
     ret.error = 0;
     ret.access = false;
     memset(ret.message, 0, 100);
     if(enclave_state->appdata.num_tests[uidx] == NUM_TESTS) {
         sprintf(ret.message, "error full test_history");
-        printf("[apPVRA] %s\n", ret.message);
+        printf("[vsc] %s\n", ret.message);
         ret.error = 1;
         return ret;
     }
 
     enclave_state->appdata.test_history[(uidx)*NUM_TESTS + (enclave_state->appdata.num_tests[uidx])] = CI->test_result;
     enclave_state->appdata.num_tests[uidx]++;
-    printf("[apPVRA] num_tests %u\n", enclave_state->appdata.num_tests[uidx]);
+    if(DEBUGPRINT) printf("[vsc] num_tests %u\n", enclave_state->appdata.num_tests[uidx]);
     enclave_state->appdata.query_counter[uidx]++;
-    printf("[apPVRA] query_counter %u\n", enclave_state->appdata.query_counter[uidx]);
+    if(DEBUGPRINT) printf("[vsc] query_counter %u\n", enclave_state->appdata.query_counter[uidx]);
 
     sprintf(ret.message, "success statusUpdate");
-    printf("[apPVRA] %s\n", ret.message);
+    if(DEBUGPRINT) printf("[vsc] %s\n", ret.message);
 
     return ret;
 }
@@ -33,7 +33,7 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI, uint
 /* COMMAND1 Kernel Definition */
 struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    printf("[apPVRA] statusQuery %d\n", uidx);
+    if(DEBUGPRINT) printf("[vsc] statusQuery uidx %d\n", uidx);
     struct cResponse ret;
     ret.error = 0;
     ret.access = false;
@@ -43,7 +43,7 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI, uint3
 
     if(enclave_state->appdata.num_tests[uidx] < 2) {
         sprintf(ret.message, "insufficient testing");
-        printf("[apPVRA] %s\n", ret.message);
+        printf("[vsc] %s\n", ret.message);
         ret.error = 1;
         return ret;
     }
@@ -58,7 +58,7 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI, uint3
         sprintf(ret.message, "ACCESS DENIED");
     }
 
-    printf("[apPVRA] statusQuery %s access %d\n", ret.message, ret.access);
+    if(DEBUGPRINT) printf("[vsc] statusQuery %s access %d\n", ret.message, ret.access);
     return ret;
 }
 
@@ -159,6 +159,6 @@ void formatResponse(struct cResponse *ret, int error, char * message) {
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%lu} ", CC->eCMD.CT, uidx, CC->eCMD.CI.test_result, CC->seqNo);
+  printf("[vsc] Readable eCMD: {[CT]:%d [CI]:%d,%d [SN]:%lu} ", CC->eCMD.CT, uidx, CC->eCMD.CI.test_result, CC->seqNo);
 }
 

@@ -102,13 +102,16 @@ sgx_status_t ecall_commandPVRA(
   memcpy(CC.user_pubkey, eCMD + sizeof(uint64_t), 64);
   uint8_t *eCMD_full = eCMD + sizeof(uint64_t) + 64; //first 8+64 bytes is the seq num and then user public key
   size_t eCMD_full_size = eCMD_size - sizeof(uint64_t) - 64; //first 8+64 bytes is the seq num and then user public key
-
+  if(DEBUGPRINT) printf("[ecPVRA] eCMD_full: ");
+  if(DEBUGPRINT) print_hexstring(eCMD_full, eCMD_full_size);
 
   unsigned char eCMD_hash[HASH_SIZE];
   struct SHA3_CTX ctx_hash_eCMD;
   keccak_init(&ctx_hash_eCMD);
-  keccak_update(&ctx_hash_eCMD, eCMD + sizeof(uint64_t), eCMD_size - sizeof(uint64_t)); //don't need to hash seqno
-  keccak_final(&ctx_hash_eCMD, &eCMD_hash);
+  keccak_update(&ctx_hash_eCMD, eCMD_full, eCMD_full_size);
+  keccak_final(&ctx_hash_eCMD, eCMD_hash);
+  if(DEBUGPRINT) printf("[ecPVRA] eCMD_hash: ");
+  if(DEBUGPRINT) print_hexstring(eCMD_hash, HASH_SIZE);
 
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
@@ -120,13 +123,13 @@ sgx_status_t ecall_commandPVRA(
 
   // PRINTS AUDIT LOG
   if(DEBUGPRINT) { //todo change to ifdefineif
-    printf("[ecPVRA] updated audit log size %u\n", enclave_state.auditmetadata.audit_index);
+    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditmetadata.audit_index);
     for(int i = 0; i < enclave_state.auditmetadata.audit_index; i++) {
-      printf("[%d]: SEQ: %lu ",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
-      printf("HASH: ");
+      printf("[%d]: SEQ: %lu",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
+      printf(" ADDR: ");
+      print_hexstring_trunc_n((uint8_t *) enclave_state.auditmetadata.auditlog.user_addresses[i] + 12, sizeof(packed_address_t)-12);
+      printf(" HASH: ");
       print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.command_hashes[i], HASH_SIZE);
-      printf("ADDR: ");
-      print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.user_addresses[i], sizeof(packed_address_t));
       printf("\n");
     }
   }
@@ -147,14 +150,14 @@ sgx_status_t ecall_commandPVRA(
     ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
-  if(DEBUGPRINT) printf("[ecPVRA] SCS sealcmd hash: \n"); print_hexstring(sealcmd_hash, HASH_SIZE);
+//  if(DEBUGPRINT) printf("[ecPVRA] SCS sealcmd hash: \n"); print_hexstring(sealcmd_hash, HASH_SIZE);
 
-  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold hash: "); print_hexstring(enclave_state.counter.freshness_tag, HASH_SIZE);
+//  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold hash: "); print_hexstring(enclave_state.counter.freshness_tag, HASH_SIZE);
   
   unsigned char merge[HASH_SIZE*2];
   memcpy(merge, enclave_state.counter.freshness_tag, HASH_SIZE);
   memcpy(merge+HASH_SIZE, sealcmd_hash, HASH_SIZE);
-  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold||sealcmd: "); print_hexstring(merge, HASH_SIZE*2);
+//  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold||sealcmd: "); print_hexstring(merge, HASH_SIZE*2);
 
   // TODO: change hash(hexstring[128]) to hash(bytes[32])
   unsigned char merge_hexstring[129];
@@ -164,7 +167,7 @@ sgx_status_t ecall_commandPVRA(
     merge_hexstring[2*i] = hex[(merge[i]>>4) & 0xF];
   }
   merge_hexstring[128] = 0;
-  if(DEBUGPRINT) printf("[ecPVRA] SCS merge_hexstring: %s\n", merge_hexstring);
+//  if(DEBUGPRINT) printf("[ecPVRA] SCS merge_hexstring: %s\n", merge_hexstring);
 
   unsigned char ft_hash[HASH_SIZE];
   err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)merge_hexstring, 128, ft_hash);
@@ -209,7 +212,7 @@ sgx_status_t ecall_commandPVRA(
     ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
-  if(DEBUGPRINT) printf("[ecPVRA] SCS signature msg hash = "); print_hexstring(msg_hash, HASH_SIZE);
+//  if(DEBUGPRINT) printf("[ecPVRA] SCS signature msg hash = "); print_hexstring(msg_hash, HASH_SIZE);
 
   mbedtls_pk_context pk_pub_key;
   mbedtls_pk_init(&pk_pub_key);
@@ -249,10 +252,9 @@ sgx_status_t ecall_commandPVRA(
 
   if(DEBUGPRINT) printf("[ecPVRA] eCMD user_pubkey: ");
   if(DEBUGPRINT) print_hexstring(&CC.user_pubkey, 64);
-
   int user_idx = -1;
   for(int i = 0; i < NUM_USERS+1; i++) {
-    if(strncmp(&CC.user_pubkey, &enclave_state.auditmetadata.master_user_pubkeys[i], 64) == 0) {
+    if(strncmp(CC.user_pubkey, enclave_state.auditmetadata.master_user_pubkeys[i], 64) == 0) {
       user_idx = i;
       break;
     }
@@ -337,8 +339,12 @@ sgx_status_t ecall_commandPVRA(
 
   
   /*   (6) PROCESS COMMAND    */
-
+#ifdef NUM_ADMIN_COMMANDS
   struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*, uint32_t);
+#else
+  struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInputs*, uint32_t);
+#endif
+
   int init_ret = initFP(functions);
   if(init_ret != 0) {
     printf("[ecPVRA] Init Function Pointers Failed\n");
