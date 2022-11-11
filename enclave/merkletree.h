@@ -1,5 +1,5 @@
 #include "keccak256.h"
-#include "enclavestate.h"
+#include "enclave_state.h"
 #include "util.h"
 
 typedef struct {

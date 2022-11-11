@@ -34,14 +34,13 @@ bool commandPVRA() {
 
   sgx_lasterr = ecall_commandPVRA(
       enclave_id, &ecall_retval, 
-      (char *)sealed_state_buffer, sealed_state_buffer_size, 
-      (char *)FT_buffer, FT_buffer_size,
-      (char *)signedFT_buffer, signedFT_buffer_size, 
-      (char *)eCMD_buffer, eCMD_buffer_size, 
-      (char *)eAESkey_buffer, eAESkey_buffer_size,
-      (char *)cResponse_buffer, cResponse_buffer_size,
-      (char *)cRsig_buffer, cRsig_buffer_size,
-      (char *)sealed_out_buffer, sealed_out_buffer_size);
+      (uint8_t *)sealed_state_buffer, sealed_state_buffer_size,
+      (uint8_t *)FT_buffer,
+      (uint8_t *)signedFT_buffer,
+      (uint8_t *)eCMD_buffer, eCMD_buffer_size,
+      (uint8_t *)cResponse_buffer, cResponse_buffer_size,
+      (uint8_t *)cRsig_buffer,
+      (uint8_t *)sealed_out_buffer, sealed_out_buffer_size);
   
   t = clock() - t;
   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time

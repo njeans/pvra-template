@@ -1,6 +1,8 @@
 import json
 import requests
 
+import web3
+
 from utils import *
 from constants import *
 from crypto import *
@@ -50,7 +52,7 @@ class User:
         self._verify_ias()
         self.print_v(f"verifying user initialization data correct")
         user_info = self.contract.functions.get_user(self.address, 0).call({"from": self.address})
-        assert user_info[0] == self.address
+        # assert user_info[0] == self.public_key
         assert user_info[1] == 0  # last_audit_num
         assert user_info[2] == b''  # user_data # todo add parse_bb_user_info function to util?
 
@@ -118,11 +120,11 @@ class User:
             self.print_vv("send_data_bb using seq_num", seq)
             self.seq_num = seq
 
-        self.print_v(f"sending encrypted user data to bulletin board {print_hex_trunc(encrypted_user_data)}")
-        gas = bb.send_tx(self.w3, self.contract.functions.add_user_data(encrypted_user_data, self.seq_num), self.address)
+        self.print_v(f"sending encrypted user data to bulletin board {print_hex_trunc(encrypted_user_data)} with pubkey {print_hex_trunc(self.public_key)}")
+        gas = bb.send_tx(self.w3, self.contract.functions.add_user_data(self.public_key, encrypted_user_data, self.seq_num), self.address)
 
         user_info = self.contract.functions.get_user(self.address, 0).call({"from": self.address})
-        assert user_info[0] == self.address
+        assert user_info[0] == self.public_key
         # assert user_info[1] == self.audit_num  # last_audit_num todo get last_audit_num to compare?
         assert user_info[2] == encrypted_user_data  # user_data
         assert user_info[3] == self.seq_num  # last_seq_num
@@ -137,25 +139,34 @@ class User:
         return leaf == bb_leaf
 
     def verify_omission(self, encrypted_user_data, mode):
-        if mode not in [OMIT_DATA, OMIT_SIG]:
-            return
         res = self.sent_commands[encrypted_user_data.hex()]
-        if mode == OMIT_DATA:
+        omission_detected = False
+        if mode in [OMIT_DATA, INCL_DATA]:
             audit_num = res["audit_num"]
             self.print_vv(f"verifying proof of omission with data for audit_num {audit_num}")
-            gas = bb.send_tx(self.w3, self.contract.functions.verify_omission_data(self.address, audit_num), self.address)
-            omission_detected = self.contract.functions.omission_detected().call({"from": self.address})
+            try:
+                gas = bb.send_tx(self.w3, self.contract.functions.verify_omission_data(self.address, audit_num), self.address)
+                self.print_vv(f"contract.functions.verify_omission_data: gasUsed {gas}")
+                omission_detected = self.contract.functions.omission_detected().call({"from": self.address})
+            except web3.exceptions.ContractLogicError as e:
+                assert "data hashes match" in str(e)
             self.print_v(f"verifying proof of omission with data for audit_num {audit_num}: omission_detected {omission_detected}")
-            self.print_vv(f"contract.functions.verify_omission_data: gasUsed {gas}")
+
         else:
             audit_num, listed_address, listed_data_hash = res["msg_conf"]
             self.print_vv(f"verifying proof of omission with admin signature for audit_num {audit_num}")
             sig = res["sig_conf"]
-            gas = bb.send_tx(self.w3, self.contract.functions.verify_omission_sig(listed_address, audit_num, listed_data_hash, sig), self.address)
-            omission_detected = self.contract.functions.omission_detected().call({"from": self.address})
+            try:
+                gas = bb.send_tx(self.w3, self.contract.functions.verify_omission_sig(listed_address, audit_num, listed_data_hash, sig), self.address)
+                self.print_vv(f"contract.functions.verify_omission_sig: gasUsed {gas}")
+                omission_detected = self.contract.functions.omission_detected().call({"from": self.address})
+            except web3.exceptions.ContractLogicError as e:
+                assert "data hashes match" in str(e)
             self.print_v(f"verifying proof of omission with admin signature for audit_num {audit_num}: omission_detected {omission_detected}")
-            self.print_vv(f"contract.functions.verify_omission_sig: gasUsed {gas}")
-        assert omission_detected
+        if mode in [OMIT_SIG, OMIT_DATA]:
+            assert omission_detected
+        else:
+            assert omission_detected == False
 
     def _verify_ias(self):
         ias_report = self.contract.functions.ias_report().call({"from": self.address})

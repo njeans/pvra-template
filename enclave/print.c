@@ -42,6 +42,18 @@ void print_hexstring_n(const void *vsrc, size_t len) {
   }
 }
 
+void print_hexstring_trunc_n(const void *vsrc, size_t len) {
+  size_t len_t;
+  if (len < 6) {
+    len_t = len/2;
+  } else {
+    len_t = 3;
+  }
+  print_hexstring_n(vsrc, len_t);
+  printf("...");
+  print_hexstring_n(vsrc + len - len_t, len_t);
+}
+
 void ocallrdtsc(void) {
     ocall_rdtsc();
 }

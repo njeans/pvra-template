@@ -30,14 +30,6 @@ DEFAULT_CCF_PATH=$PROJECT_ROOT/ccf-2.0.1/build/workspace/sandbox_common/
 APP_NAME=""
 CCF_PATH=""
 
-if [ $# == 0 ]
-then
-  echo "Defaulting to APP_NAME = $DEFAULT_APP_NAME"
-  APP_NAME=$DEFAULT_APP_NAME
-  echo "Defaulting to CCF_PATH = $DEFAULT_CCF_PATH"
-  CCF_PATH=$DEFAULT_CCF_PATH
-fi
-
 while [[ $# -gt 0 ]]; do
   case $1 in
     -a|--app)
@@ -90,10 +82,13 @@ then
   APP_NAME=$DEFAULT_APP_NAME
 fi
 
-if [ "$CCF_PATH" == "" ]
+if [[ ${CCF_ENABLE} == "1" ]];
 then
-  echo "Defaulting to CCF_PATH = $DEFAULT_CCF_PATH"
-  CCF_PATH=$DEFAULT_CCF_PATH
+  if [ "$CCF_PATH" == "" ]
+  then
+    echo "Defaulting to CCF_PATH = $DEFAULT_CCF_PATH"
+    CCF_PATH=$DEFAULT_CCF_PATH
+  fi
 fi
 
 if [ -d "$PROJECT_ROOT/applications/$APP_NAME/"  ]
@@ -104,15 +99,14 @@ else
   echo "Error: Application Directory $PROJECT_ROOT/applications/$APP_NAME/ does not exist."
 fi
 
-if [ -d "$CCF_PATH"  ] 
+if [[ ${CCF_ENABLE} == "1" ]];
 then
-  if [[ ${CCF_ENABLE} == "1" ]];
+  if [ -d "$CCF_PATH"  ]
   then
     cp $CCF_PATH/service_cert.pem .
     cp $CCF_PATH/user0_cert.pem .
     cp $CCF_PATH/user0_privk.pem .
+  else
+    echo "Error: CCF Credentials Directory $CCF_PATH does not exist."
   fi
-else
-  echo "Error: CCF Credentials Directory $CCF_PATH does not exist."
 fi
-

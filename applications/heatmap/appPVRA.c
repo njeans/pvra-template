@@ -1,4 +1,4 @@
-#include "enclavestate.h"
+#include "enclave_state.h"
 #include "appPVRA.h"
 
 
@@ -11,7 +11,7 @@ int HEATMAP_COUNT_THRESHOLD = 2;
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    printf("[apPVRA] addPersonalData %d} ", uidx);
+    if(DEBUGPRINT) printf("[hm] addPersonalData uidx %d\n", uidx);
     struct cResponse ret;
     ret.error = 0;
     memset(ret.heatmap_data, 0, sizeof(ret.heatmap_data));
@@ -20,14 +20,14 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, u
     if (enclave_state->appdata.num_data > MAX_DATA) {
         ret.error = 1;
         sprintf(ret.message, "data buffer already full");
-        printf("[apPVRA] %s\n", ret.message);
+        printf("[hm] %s\n", ret.message);
         return ret;
     }
     int index = geo_time_index(*CI);
     if (index == -1) {
         ret.error = 2;
         sprintf(ret.message, "location not valid");
-        printf("[apPVRA] %s\n", ret.message);
+        printf("[hm] %s\n", ret.message);
         return ret;
     }
 
@@ -39,22 +39,22 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, u
     enclave_state->appdata.num_data+=1;
 
     sprintf(ret.message, "success addPersonalData");
-    printf("[apPVRA] %s\n", ret.message);
+    if(DEBUGPRINT) printf("[hm] %s\n", ret.message);
     return ret;
 }
 
 int geo_time_index(struct cInputs geo_time)
 {
-    printf("[apPVRA] geo_time.lat %f geo_time.lng %f ",geo_time.lat, geo_time.lng);
+    if(DEBUGPRINT) printf("[hm] geo_time.lat %f geo_time.lng %f ",geo_time.lat, geo_time.lng);
     if (geo_time.lat < LAT_HEATMAP_MIN || geo_time.lat > LAT_HEATMAP_MAX || geo_time.lng < LONG_HEATMAP_MIN || geo_time.lng > LONG_HEATMAP_MAX ){
-        printf("out of range\n");
+        printf("\n[hm] error geo_time_index out of range\n");
         return -1;
     }
     float side_length_lat = HEATMAP_GRANULARITY/(LAT_HEATMAP_MAX- LAT_HEATMAP_MIN);
     float side_length_long = HEATMAP_GRANULARITY/(LONG_HEATMAP_MAX- LONG_HEATMAP_MIN);
     int lat = ((geo_time.lat - LAT_HEATMAP_MIN)*side_length_lat);
     int lng = ((geo_time.lng - LONG_HEATMAP_MIN)*side_length_long);
-    printf("geo_time_index %d\n",lat*HEATMAP_GRANULARITY + lng);
+    if(DEBUGPRINT) printf("geo_time_index %d\n",lat*HEATMAP_GRANULARITY + lng);
    return lat*HEATMAP_GRANULARITY + lng;
 }
 
@@ -82,7 +82,7 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI, uint32
         }
     }
     sprintf(ret.message, "success getHeatMap");
-    printf("[apPVRA] %s\n", ret.message);
+    if(DEBUGPRINT) printf("[apPVRA] %s\n", ret.message);
     return ret;
 }
 
@@ -144,9 +144,15 @@ int initAD(struct ES* enclave_state, struct dAppData *dAD)
     return 0;
 }
 
+void formatResponse(struct cResponse *ret, int error, char * message) {
+    ret->error = error;
+    memset(ret->heatmap_data, 0, sizeof(ret->heatmap_data));
+    memcpy(ret->message, message, 100);
+}
+
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
-  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%d][%f,%f,%d,%d,%d] [SN]:%d}\n", CC->eCMD.CT, uidx, geo_time_index(CC->eCMD.CI), CC->eCMD.CI.lat, CC->eCMD.CI.lng, CC->eCMD.CI.startTs, CC->eCMD.CI.endTs, CC->eCMD.CI.result, CC->seqNo);
+  printf("[apPVRA] Readable eCMD: {[CT]:%d [CI]:%d:[%d][%f,%f,%d,%d,%d] [SN]:%lu}\n", CC->eCMD.CT, uidx, geo_time_index(CC->eCMD.CI), CC->eCMD.CI.lat, CC->eCMD.CI.lng, CC->eCMD.CI.startTs, CC->eCMD.CI.endTs, CC->eCMD.CI.result, CC->seqNo);
 }
 

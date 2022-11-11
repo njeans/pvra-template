@@ -13,4 +13,4 @@ fi
 
 cd $PROJECT_ROOT
 make clean
-make
+make $1

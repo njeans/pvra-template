@@ -37,7 +37,8 @@ void ocall_rdtsc(void) {
 }
 
 
-void ocall_allocate_seal(uint32_t init_sealsize) {
+void ocall_allocate_seal(size_t init_sealsize) {
+return; //todo delete
   sealed_state_buffer_size = init_sealsize;
   free(sealed_state_buffer);
   sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
@@ -59,11 +60,4 @@ void ocall_allocate_seal(uint32_t init_sealsize) {
 
 
 void ocallbuf(const int size) {
-  pub_enckey_buffer_size = size;
-  printf("%d", size);
-  if (pub_enckey_buffer != NULL) {
-    free(pub_enckey_buffer);
-    pub_enckey_buffer = NULL;
-  }
-  pub_enckey_buffer = calloc(pub_enckey_buffer_size, 1);
 }

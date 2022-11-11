@@ -7,13 +7,6 @@ from eth_account.messages import encode_defunct
 
 from utils import *
 
-# data=bytes("abcdefghijklmnop\n","utf-8")
-# date=bytes.fromhex("6162636465666768696a6b6c6d6e6f700a")
-# n=bytes([0 for _ in range(12)])
-# derived_key=bytes([0 for _ in range(16)])
-# cipher = AES.new(derived_key, AES.MODE_GCM, nonce=n)
-# ciphertext, tag = cipher.encrypt_and_digest(data)
-# res=tag+cipher.nonce+ciphertext
 
 def derive_key_aes(my_privatekey, other_publickey):
     if len(other_publickey) == 64:

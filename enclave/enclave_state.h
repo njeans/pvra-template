@@ -1,24 +1,39 @@
 #include <sgx_tcrypto.h>
+#include <sgx_tseal.h>
+
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/bignum.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
+#include <secp256k1.h>
 
 #include "appPVRA.h"
-#include <secp256k1.h>
 
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
 
+// for development, set to 1 for production deployments
+#define CCF_ENABLE 0
+#define DETERMINISTIC_KEYS 1
+
+//debug initPVRA
+#define I_DEBUGRDTSC 0
+//debug commandPVRA
+#define C_DEBUGRDTSC 0
+
+#define DEBUGPRINT 1
+
+
+#define HASH_SIZE 32
+
+
+// [TODO]: make these parameters dynamic? not sure if it is worth it right now
 #define MAX_USERS 10
 #define MAX_LOG_SIZE 100
-// [TODO]: make these parameters dynamic? not sure if it is worth it right now
 
 
-typedef struct {
-    unsigned char data[32];
-} secp256k1_prikey;
+typedef unsigned char secp256k1_prikey[32];
 
 
 struct EK
@@ -48,7 +63,7 @@ typedef unsigned char packed_address_t[32];
 
 struct AL
 {
-	packed_address_t user_pubkeys[MAX_LOG_SIZE];
+	packed_address_t user_addresses[MAX_LOG_SIZE];
 	sha256_hash_t command_hashes[MAX_LOG_SIZE];
 	uint64_t seqNo[MAX_LOG_SIZE];
 };
@@ -57,12 +72,12 @@ struct AL
 
 struct AUD
 {
-	int num_pubkeys;
-	secp256k1_pubkey master_user_pubkeys[MAX_USERS];
+	uint64_t num_pubkeys;
+	uint8_t master_user_pubkeys[MAX_USERS][64];
 	
 	struct AL auditlog;
-	int audit_offset;
-	uint64_t audit_version_no;
+	uint64_t audit_index;
+	uint64_t audit_num;
 };
 
 
@@ -82,7 +97,7 @@ struct SCS
 
 struct AR
 {
-	int seqno[MAX_USERS];
+	uint64_t seqno[MAX_USERS];
 };
 
 
@@ -95,11 +110,6 @@ struct ES
 	struct AUD auditmetadata;
 }; 
 
-
-//struct cType
-//{
-//	uint32_t tid;
-//};
 typedef uint32_t cType;
 
 struct private_command {
@@ -110,8 +120,8 @@ struct private_command {
 
 struct clientCommand
 {
-	uint32_t seqNo;
-	secp256k1_pubkey user_pubkey;
+	uint64_t seqNo;
+	uint8_t user_pubkey[64];
 	struct private_command eCMD;
 };
 
@@ -119,7 +129,7 @@ struct clientCommand
 
 struct dynamicDS
 {
-	uint8_t *buffer;
+	uint8_t * buffer;
 	size_t buffer_size;
 };
 
@@ -130,5 +140,7 @@ struct dAppData
 };
 
 
+sgx_status_t unseal_enclave_state(const sgx_sealed_data_t *, struct ES *, struct dAppData *);
+sgx_status_t seal_enclave_state(const sgx_sealed_data_t *, size_t, size_t *, struct ES *, struct dAppData *);
 
 #endif

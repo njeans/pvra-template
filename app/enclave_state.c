@@ -16,7 +16,7 @@
 
 
 bool load_keys(const char *const keys_file) {
-  //printf("[hcPVRA]: Loading sealed state\n");
+  //printf("[hcPVRA] Loading sealed state\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -38,11 +38,7 @@ bool load_keys(const char *const keys_file) {
 
 
 bool load_seal(const char *const sealedstate_file) {
-  //printf("[hcPVRA]: Loading sealed state\n");
-  void *new_buffer;
-  size_t new_buffer_size;
-
-  bool ret_status = read_file_into_memory(sealedstate_file, &new_buffer, &new_buffer_size);
+  printf("[hcPVRA] Loading sealed state from file\n");
 
   /* If we previously allocated a buffer, free it before putting new one in
    * its place */
@@ -52,14 +48,12 @@ bool load_seal(const char *const sealedstate_file) {
   }
 
   /* Put new buffer into context */
-  sealed_state_buffer = new_buffer;
-  sealed_state_buffer_size = new_buffer_size;
-
-  return ret_status;
+  bool ret = read_file_into_memory(sealedstate_file, &sealed_state_buffer, &sealed_state_buffer_size);
+  return ret;
 }
 
 bool load_sig(const char *const signedFT_file) {
-  //printf("[hcPVRA]: Loading signedFT\n");
+  printf("[hcPVRA] Loading signedFT\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -72,15 +66,18 @@ bool load_sig(const char *const signedFT_file) {
     signedFT_buffer = NULL;
   }
 
+  if (new_buffer_size != 8) {
+    printf("[enclave_state.c] FT buffer size %lu != 8\n", new_buffer_size);
+    return false;
+  }
   /* Put new buffer into context */
   signedFT_buffer = new_buffer;
-  signedFT_buffer_size = new_buffer_size;
 
   return ret_status;
 }
 
 bool load_ft(const char *const FT_file) {
-  //printf("[hcPVRA]: Loading FT\n");
+  //printf("[hcPVRA] Loading FT\n");
   void *new_buffer;
   size_t new_buffer_size;
 
@@ -102,11 +99,7 @@ bool load_ft(const char *const FT_file) {
 
 
 bool load_cmd(const char *const eCMD_file) {
-  //printf("[hcPVRA]: Loading eCMD\n");
-  void *new_buffer;
-  size_t new_buffer_size;
-
-  bool ret_status = read_file_into_memory(eCMD_file, &new_buffer, &new_buffer_size);
+  printf("[hcPVRA] Loading eCMD\n");
 
   /* If we previously allocated a buffer, free it before putting new one in
    * its place */
@@ -116,29 +109,7 @@ bool load_cmd(const char *const eCMD_file) {
   }
 
   /* Put new buffer into context */
-  eCMD_buffer = new_buffer;
-  eCMD_buffer_size = new_buffer_size;
-
-  return ret_status;
-}
-
-bool load_key(const char *const eAESkey_file) {
-  //printf("[hcPVRA]: Loading eAESkey\n");
-  void *new_buffer;
-  size_t new_buffer_size;
-
-  bool ret_status = read_file_into_memory(eAESkey_file, &new_buffer, &new_buffer_size);
-
-  /* If we previously allocated a buffer, free it before putting new one in
-   * its place */
-  if (eAESkey_buffer != NULL) {
-    free(eAESkey_buffer);
-    eAESkey_buffer = NULL;
-  }
-
-  /* Put new buffer into context */
-  eAESkey_buffer = new_buffer;
-  eAESkey_buffer_size = new_buffer_size;
+  bool ret_status = read_file_into_memory(eCMD_file, &eCMD_buffer, &eCMD_buffer_size);
 
   return ret_status;
 }
@@ -188,7 +159,7 @@ bool save_message(void) {
     goto cleanup;
   }
 
-  if (fwrite(pub_enckey_buffer, pub_enckey_buffer_size, 1, file) != 1) {
+  if (fwrite(enclave_pubkey_buffer, 64, 1, file) != 1) {
     fprintf(stderr, "GatewayApp]: ERROR: Could not write signature\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
@@ -206,7 +177,7 @@ cleanup:
 bool save_quote(const char *const quote_file) {
   bool ret_status = true;
 
-  printf("[GatewayApp]: Saving quote %p %lu\n", quote_buffer, quote_buffer_size);
+  printf("[GatewayApp]: Saving quote size: %lu\n", quote_buffer_size);
 
   FILE *fquote = open_file(quote_file, "wb");
 
@@ -255,7 +226,7 @@ bool save_seal(const char *const sealedstate_file) {
 bool save_sealO(const char *const sealedout_file) {
 
   bool ret_status = true;
-  //printf("[hcPVRA]: Persisting enclave state.\n");
+  //printf("[hcPVRA] Persisting enclave state.\n");
 
   FILE *sk_file = open_file(sealedout_file, "wb");
 
@@ -301,17 +272,17 @@ bool save_cResponse(const char *const cResponse_file) {
 bool save_auditlog(const char *const auditlog_file) {
 
   bool ret_status = true;
-  //printf("[Gateway]: saving cResponse.\n");
+  printf("[Gateway]: saving auditlog.\n");
 
   FILE *sk_file = open_file(auditlog_file, "wb");
 
   if (sk_file == NULL) {
-    fprintf(stderr, "[Gateway]: save_cResponse()) fopen failed.\n");
+    fprintf(stderr, "[Gateway]: save_auditlog()) fopen failed.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     return false;
   }
 
-  if (fwrite(auditlog_buffer, actual_auditlog_size, 1, sk_file) != 1) {
+  if (fwrite(auditlog_buffer, auditlog_buffer_size, 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: auditLog only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
@@ -329,13 +300,6 @@ bool format_sig(const char *const cRsig_file) {
   unsigned char *sig_buffer = NULL;
   int sig_len = 0;
   int sig_len2 = 0;
-
-  if (cRsig_buffer_size != 64) {
-    fprintf(stderr,
-            "[GatewayApp]: assertion failed: signature_buffer_size == 64\n");
-    ret_status = false;
-    goto cleanup;
-  }
 
   ecdsa_sig = ECDSA_SIG_new();
   if (ecdsa_sig == NULL) {
@@ -402,13 +366,6 @@ bool save_cRsig(const char *const cRsig_file) {
   unsigned char *sig_buffer = NULL;
   int sig_len = 0;
   int sig_len2 = 0;
-
-  if (cRsig_buffer_size != 64) {
-    fprintf(stderr,
-            "[GatewayApp]: assertion failed: signature_buffer_size == 64\n");
-    ret_status = false;
-    goto cleanup;
-  }
 
   ecdsa_sig = ECDSA_SIG_new();
   if (ecdsa_sig == NULL) {
