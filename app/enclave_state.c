@@ -249,7 +249,7 @@ bool save_sealO(const char *const sealedout_file) {
 bool save_cResponse(const char *const cResponse_file) {
 
   bool ret_status = true;
-  //printf("[Gateway]: saving cResponse.\n");
+  printf("[Gateway]: saving cResponse.\n");
 
   FILE *sk_file = open_file(cResponse_file, "wb");
 
@@ -292,7 +292,7 @@ bool save_auditlog(const char *const auditlog_file) {
   return ret_status;
 }
 
-bool format_sig(const char *const cRsig_file) {
+bool format_sig(const char *const sig_file) {
   bool ret_status = true;
   ECDSA_SIG *ecdsa_sig = NULL;
   BIGNUM *r = NULL, *s = NULL;
@@ -328,73 +328,7 @@ bool format_sig(const char *const cRsig_file) {
     goto cleanup;
   }
 
-  file = open_file(cRsig_file, "wb");
-  if (file == NULL) {
-    fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
-    sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
-    goto cleanup;
-  }
-
-  if (fwrite(sig_buffer, (size_t)sig_len, 1, file) != 1) {
-    fprintf(stderr, "GatewayApp]: ERROR: Could not write signature\n");
-    sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
-    goto cleanup;
-  }
-
-cleanup:
-  if (file != NULL) {
-    fclose(file);
-  }
-  if (ecdsa_sig) {
-    ECDSA_SIG_free(ecdsa_sig); /* Above will also free r and s */
-  }
-  if (sig_buffer) {
-    free(sig_buffer);
-  }
-
-  return ret_status;
-}
-
-
-bool save_cRsig(const char *const cRsig_file) {
-  bool ret_status = true;
-  ECDSA_SIG *ecdsa_sig = NULL;
-  BIGNUM *r = NULL, *s = NULL;
-  FILE *file = NULL;
-  unsigned char *sig_buffer = NULL;
-  int sig_len = 0;
-  int sig_len2 = 0;
-
-  ecdsa_sig = ECDSA_SIG_new();
-  if (ecdsa_sig == NULL) {
-    fprintf(stderr, "[GatewayApp]: memory alloction failure ecdsa_sig\n");
-    ret_status = false;
-    goto cleanup;
-  }
-
-  r = bignum_from_little_endian_bytes_32((unsigned char *)cRsig_buffer);
-  s = bignum_from_little_endian_bytes_32((unsigned char *)cRsig_buffer +
-                                         32);
-  if (!ECDSA_SIG_set0(ecdsa_sig, r, s)) {
-    ret_status = false;
-    goto cleanup;
-  }
-
-  sig_len = i2d_ECDSA_SIG(ecdsa_sig, NULL);
-  if (sig_len <= 0) {
-    ret_status = false;
-    goto cleanup;
-  }
-
-  sig_len2 = i2d_ECDSA_SIG(ecdsa_sig, &sig_buffer);
-  if (sig_len != sig_len2) {
-    ret_status = false;
-    goto cleanup;
-  }
-
-  file = open_file(cRsig_file, "wb");
+  file = open_file(sig_file, "wb");
   if (file == NULL) {
     fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;

@@ -19,6 +19,9 @@
 
 /* Globals */
 
+#define AESGCM_128_MAC_SIZE 16
+#define AESGCM_128_IV_SIZE 12
+
 extern sgx_enclave_id_t enclave_id;
 extern sgx_launch_token_t launch_token;
 extern int launch_token_updated;

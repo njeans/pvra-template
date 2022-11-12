@@ -1,6 +1,6 @@
 import os
 
-verbose = 2
+verbose = 1
 
 # colors = ['\033[93m', '\033[94m', '\033[95m', '\033[96m', '\033[90m', '\033[92m']
 # end = '\033[0m'
@@ -70,7 +70,7 @@ def ENCLAVE_PUBLIC_KEY():
     global ENCLAVE_PUBLIC_KEY_default
     if ENCLAVE_PUBLIC_KEY_default == "":
         try:
-            print(f"Reading ENCLAVE_PUBLIC_KEY from {ENCLAVE_PUBLIC_KEY_PATH}")
+            # print(f"Reading ENCLAVE_PUBLIC_KEY from {ENCLAVE_PUBLIC_KEY_PATH}")
             with open(ENCLAVE_PUBLIC_KEY_PATH, "rb") as f:
                 ENCLAVE_PUBLIC_KEY_default = f.read()
         except Exception as e:

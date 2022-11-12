@@ -26,7 +26,7 @@ enclave
             [in] uint8_t FT[8],
             [in] uint8_t FT_signature[64],
             [in, size=eCMD_size] uint8_t *eCMD, size_t eCMD_size,
-            [out, size=cResponse_size] uint8_t *cResponse, size_t cResponse_size,
+            [out, size=enc_cResponse_size] uint8_t *enc_cResponse, size_t enc_cResponse_size,
             [out] uint8_t cResponse_signature[64],
             [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size
             );

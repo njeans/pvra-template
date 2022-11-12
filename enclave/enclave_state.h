@@ -17,16 +17,17 @@
 #define CCF_ENABLE 0
 #define DETERMINISTIC_KEYS 1
 
-//debug initPVRA
 #define I_DEBUGRDTSC 0
-//debug commandPVRA
 #define C_DEBUGRDTSC 0
+#define A_DEBUGRDTSC 0
 
 #define DEBUGPRINT 1
 
 
 #define HASH_SIZE 32
-
+#define AESGCM_128_KEY_SIZE 16
+#define AESGCM_128_MAC_SIZE 16
+#define AESGCM_128_IV_SIZE 12
 
 // [TODO]: make these parameters dynamic? not sure if it is worth it right now
 #define MAX_USERS 10
@@ -124,8 +125,6 @@ struct clientCommand
 	uint8_t user_pubkey[64];
 	struct private_command eCMD;
 };
-
-
 
 struct dynamicDS
 {

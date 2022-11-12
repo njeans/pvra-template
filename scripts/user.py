@@ -8,7 +8,7 @@ from constants import *
 from crypto import *
 import billboard as bb
 from application import format_command
-
+import application as app
 
 def print_vv(*args, u=0):
     if verbose >= 2:
@@ -63,6 +63,12 @@ class User:
         self.seq_num += 1
         return encrypted_data
 
+    def decrypt_data(self, encrypted_data):
+        self.print_vv(f"decrypting response data {encrypted_data.hex()}")
+        shared_key = derive_key_aes(self.secret_key, ENCLAVE_PUBLIC_KEY())
+        data = self._decrypt(shared_key, encrypted_data)
+        return data
+
     def send_data(self, encrypted_user_data, mode=INCL_SIG, seq=-1):
         if seq == -1:
             self.print_vv("send_data using calculated seq_num", self.seq_num)
@@ -87,7 +93,7 @@ class User:
             self.print_vv("send_data_admin using seq_num", seq)
             self.seq_num = seq
 
-        self.print_v(f"sending encrypted user data to bulletin board {print_hex_trunc(encrypted_user_data)}")
+        self.print_v(f"sending encrypted user data to admin {print_hex_trunc(encrypted_user_data)}")
         params = {"mode": mode}
         headers = {"Content-Type": "application/json"}
         cmd_data = {"eCMD": encrypted_user_data.hex(), "pubkeyCMD": self.public_key.hex(), "seq": self.seq_num}
@@ -100,12 +106,21 @@ class User:
         resp = req.json()
         self.print_v(f"server response {resp}")
         msg = bytes.fromhex(resp["msg"])
+        msg_str = msg
         sig = bytes.fromhex(resp["sig"])
-        res_enclave = True  # recover_eth_data(msg, sig, address=self.enclave_addr) todo
+        if msg != b'':
+            msg = self.decrypt_data(msg)
+            res_enclave = verify_secp256k1_data(ENCLAVE_PUBLIC_KEY(), msg, sig)
+            msg_str = app.print_cResponse(msg)
+        else:
+            res_enclave = False
         msg_conf = bytes.fromhex(resp["msg_conf"])
         sig_conf = bytes.fromhex(resp["sig_conf"])
         res_admin, conf_data = self._verify_confirmation(msg_conf, sig_conf, encrypted_user_data)
-        self.print_v(f"admin cResponse {msg} enclave cResponse verify {res_enclave} admin confirmation verify {res_admin}: {conf_data}")
+        if res_admin:
+            self.print_v(f"enclave cResponse verify {res_enclave} admin confirmation verify {res_admin} decrypted cResponse {msg_str}")
+        else:
+            self.print_v(f"enclave cResponse verify {res_enclave} admin confirmation verify {res_admin}:{conf_data} decrypted cResponse {msg_str}")
         if mode not in [INCL_SIG, OMIT_SIG]:
             assert res_enclave
         self.sent_commands[encrypted_user_data.hex()] = {"msg_conf": conf_data, "sig_conf": sig_conf}
@@ -193,6 +208,12 @@ class User:
 
     def _encrypt(self, key, data):
         return encrypt_aes(key, data)
+
+    def _decrypt(self, key, data):
+        if data[:12+16] != bytes([0 for _ in range(12+16)]):
+            return decrypt_aes(key, data)
+        else:
+            return data[12+16:]
 
     def print_(self, *args, c=None):
         print_(*args, c=c, u=self.user_num)
