@@ -90,7 +90,7 @@ export CCF_PATH=<optional> #todo how to run CCF
 
 #### Running
 
-##### Use Docker
+##### Use Docker & Docker-Compose
 
 * For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L23)
 * Hardware mode
@@ -110,7 +110,7 @@ docker-compose run --rm enclave-sim bash
 ```
 
 ##### Build Locally
-* python 3 required
+* python 3, sgxsdk, and docker required
 
 ```bash
 pip install -r requirements.txt
@@ -131,7 +131,7 @@ export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networ
     ```
 * run test with ```get_test_data``` output (checks the expected responses and leaf nodes for correctness)
     ```bash
-    python demo.py test <optional: NUM_USERS> <optional: test case name (passed into get_test_data function>
+    python demo.py test <optional: NUM_USERS> <optional: test case name>
     ```
   * see [vsc/application.py](applications/vsc/application.py#L15) for example with test case names
 * run data omission demo with ```get_test_data_omission``` output
