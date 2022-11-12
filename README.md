@@ -131,8 +131,9 @@ export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networ
     ```
 * run test with ```get_test_data``` output (checks the expected responses and leaf nodes for correctness)
     ```bash
-    python demo.py test <optional: NUM_USERS>
+    python demo.py test <optional: NUM_USERS> <optional: test case name (passed into get_test_data function>
     ```
+  * see [vsc/application.py](applications/vsc/application.py#L15) for example with test case names
 * run data omission demo with ```get_test_data_omission``` output
     ```bash
     python demo.py data_omission_demo <optional: NUM_USERS>
