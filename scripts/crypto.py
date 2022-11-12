@@ -23,6 +23,16 @@ def encrypt_aes(derived_key, data):
     return tag+cipher.nonce+ciphertext
 
 
+def decrypt_aes(derived_key, data):
+    tag = data[:16]
+    nonce = data[16:16+12]
+    ciphertext = data[16+12:]
+    cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce)
+    plaintext = cipher.decrypt(ciphertext)
+    cipher.verify(tag)
+    return plaintext
+
+
 def sign_secp256k1(raw_key, data):
     key = secp256k1.PrivateKey(raw_key, raw=True)
     sig = key.ecdsa_sign(data, digest=hashlib.sha3_256, raw=False)
@@ -42,7 +52,7 @@ def verify_secp256k1_path(publickey_path, data_path, signature_path):
     sig = key.ecdsa_deserialize_compact(sig_raw)
     # print("key", publickey.hex())
     # print("data",len(data), data.hex())
-    # print("sig_raw", sig_raw.hex())
+    # print("sig_raw", len(sig_raw), sig_raw.hex())
     # res = key.ecdsa_verify(data, sig)
     # print(res)
     # assert res

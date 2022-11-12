@@ -33,15 +33,6 @@
 #include "util.h"
 #include "merkletree.h"
 
-#define BUFLEN 2048
-#define AESGCM_128_KEY_SIZE 16
-#define AESGCM_128_MAC_SIZE 16
-#define AESGCM_128_IV_SIZE 12
-
-#define A_DEBUGPRINT 1
-#define A_DEBUGRDTSC 0 
-
-
 
 
 /**

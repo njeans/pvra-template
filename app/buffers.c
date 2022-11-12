@@ -32,7 +32,7 @@ bool allocate_buffers() {
   enclave_pubkey_buffer = calloc(64, 1);
   enclave_pubkey_signature_buffer = malloc(64);
   user_addr_signature_buffer = malloc(65);
-  cResponse_buffer_size = sizeof(struct cResponse);
+  cResponse_buffer_size = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + sizeof(struct cResponse);
   cResponse_buffer = calloc(cResponse_buffer_size, 1);
 
   cRsig_buffer = calloc(64, 1);

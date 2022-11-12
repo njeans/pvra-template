@@ -95,3 +95,4 @@ sgx_status_t seal_enclave_state(const sgx_sealed_data_t * sealedstate, size_t se
 
     return ret;
 }
+

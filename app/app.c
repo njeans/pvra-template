@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
     (opt_commandPVRA ? format_sig(opt_signedFT_file) : true) &&
     (opt_commandPVRA ? commandPVRA() : true) &&
     (opt_commandPVRA ? save_cResponse(opt_cResponse_file) : true) &&
-    (opt_commandPVRA ? save_cRsig(opt_cRsig_file) : true) &&
+    (opt_commandPVRA ? save_signature(opt_cRsig_file, cRsig_buffer, 64) : true) &&
     (opt_commandPVRA ? save_sealO(opt_sealedout_file) : true) &&
 
     (opt_auditlogPVRA ? auditlogPVRA() : true) &&

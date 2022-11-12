@@ -217,7 +217,7 @@ sgx_status_t sign_rec_secp256k1(secp256k1_prikey seckey, unsigned char data_hash
   return SGX_SUCCESS;
 }
 
-sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], unsigned char AESkey[16]){
+sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], unsigned char AESkey[AESGCM_128_KEY_SIZE]){
   int err;
   unsigned char randomize[32];
   unsigned char shared_secret[32];
@@ -250,9 +250,7 @@ sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], 
     printf("[genkey_aesgcm128] secp256k1_ecdh() failed\n");
     return SGX_ERROR_UNEXPECTED;
   }
-  memcpy(AESkey, shared_secret, 16);
+  memcpy(AESkey, shared_secret, AESGCM_128_KEY_SIZE);
   secp256k1_context_destroy(ctx);
   return SGX_SUCCESS;
 }
-
-
