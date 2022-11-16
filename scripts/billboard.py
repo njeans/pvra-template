@@ -59,9 +59,9 @@ def compile_source_file(base_path, contract_source_path, allowed):
     return contract_id, abis, bins
 
 
-def deploy_contract(w3, admin_addr=""):
+def deploy_contract(w3=setup_w3(), admin_addr=""):
     if admin_addr == "":
-        admin_addr,_ = get_account(0)
+        admin_addr, _ = get_account(0)
     base_path, contract_source_path, allowed = SOLIDITY_PATHS
     contract_id,abis,bins = compile_source_file(base_path, contract_source_path, allowed)
     contract = w3.eth.contract(abi=abis, bytecode=bins)

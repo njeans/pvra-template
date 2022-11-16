@@ -55,7 +55,7 @@ enclave
     {
         void ocall_print_string([in, string] const char *str);
         void ocall_rdtsc(void);
-        void ocallbuf(int size);
+        //void ocallbuf(int size);
         void ocall_allocate_seal(size_t seal_size);
         //void ocall_print_int([in, int] const int num);
     };

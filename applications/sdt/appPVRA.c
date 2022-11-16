@@ -1,12 +1,11 @@
-#include <mbedtls/aes.h>
-
+#include <mbedtls/md.h>
 #include "enclave_state.h"
 #include "appPVRA.h"
-#include "merkletree.h"
 
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] addPersonalData uidx %d\n", uidx);
     struct cResponse ret;
     memset(ret.output_data, 0, DATA_SIZE);
@@ -21,6 +20,7 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, u
 
 struct cResponse getPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] getPersonalData uidx  %d\n", uidx);
     struct cResponse ret;
     ret.error = 0;
@@ -36,6 +36,7 @@ struct cResponse getPersonalData(struct ES *enclave_state, struct cInputs *CI, u
 /* COMMAND1 Kernel Definition */
 struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] startRetrieve\n");
     struct cResponse ret;
     ret.error = 0;
@@ -76,6 +77,8 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
     enclave_state->appdata.user_info[user_idx].retrieve_count++; // todo delete?
     enclave_state->appdata.user_info[user_idx].retrieve_time = WAIT_TIME + 10 + user_idx;//get_timestamp();
     enclave_state->appdata.user_info[user_idx].started_retrieve = true;
+    memcpy(enclave_state->appdata.user_info[user_idx].recover_key_hash, CI->recover_key_hash, HASH_SIZE);
+
     enclave_state->appdata.retrieve_count++;
     sprintf(ret.message, "success startRetrieve");
     if(DEBUGPRINT) printf("[sdt] %s\n", ret.message);
@@ -85,6 +88,7 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
 /* COMMAND2 Kernel Definition */
 struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] completeRetrieve\n");
     struct cResponse ret;
     ret.error = 0;
@@ -117,13 +121,35 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
         return ret;
     }
 
-    uint32_t curr = 71;//get_timestamp() TODO
+    uint32_t curr = 72;//get_timestamp() TODO
     if (curr < ui.retrieve_time) {
         sprintf(ret.message, "retrieval wait period not over %u < %u", curr, ui.retrieve_time);
         printf("[sdt] %s\n", ret.message);
         ret.error = 5;
         return ret;
     }
+
+
+    char key_hash[HASH_SIZE];
+    int err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), CI->recover_key, KEY_SIZE, key_hash);
+    if(err != 0) {
+        sprintf(ret.message, "mbedtls_md sha256 calculation failed -0x%04x", -err);
+        printf("[sdt] %s\n", ret.message);
+        ret.error = 6;
+        return ret;
+    }
+
+    if(strncmp(enclave_state->appdata.user_info[user_idx].recover_key_hash, key_hash, HASH_SIZE) != 0) {
+        sprintf(ret.message, "recover key does not match recover_key_hash");
+        printf("[sdt] %s expected: ", ret.message);
+        print_hexstring_n(enclave_state->appdata.user_info[user_idx].recover_key_hash, HASH_SIZE);
+        printf(" got: ");
+        print_hexstring_n(key_hash, HASH_SIZE);
+        printf("\n");
+        ret.error = 7;
+        return ret;
+    }
+
 
     memcpy(&enclave_state->auditmetadata.master_user_pubkeys[user_idx+1], &CI->recover_key, KEY_SIZE);
     enclave_state->appdata.user_info[user_idx].started_retrieve = false;
@@ -137,6 +163,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
 /* COMMAND3 Kernel Definition */
 struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
+    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] cancelRetrieve uidx %d\n", uidx);
 
     struct cResponse ret;
@@ -176,12 +203,12 @@ size_t get_user_leaf(struct ES *enclave_state, char ** out) {
 
 /* Initializes the Function Pointers to Function Names Above */
 int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*, uint32_t)){
-    (functions[0]) = &addPersonalData;
-    (functions[1]) = &cancelRetrieve;
-    (functions[2]) = &getPersonalData;
+    (functions[ADD_DATA]) = &addPersonalData;
+    (functions[CANCEL_RET]) = &cancelRetrieve;
+    (functions[GET_DATA]) = &getPersonalData;
 
-    (functions[3]) = &startRetrieve; //admin
-    (functions[4]) = &completeRetrieve; //admin
+    (functions[START_RET]) = &startRetrieve; //admin
+    (functions[COMPLETE_RET]) = &completeRetrieve; //admin
 
     //printf("Initialized Application Kernels\n");
     return 0;
@@ -252,14 +279,25 @@ void formatResponse(struct cResponse *ret, int error, char * message) {
 
 /* Debug Print Statement to Visualize clientCommands */
 void print_clientCommand(struct clientCommand *CC, uint32_t uidx){
-  printf("[sdt] Readable eCMD: {[CT]:%d [uidx]: %d [CI]:[", CC->eCMD.CT, uidx);
-  print_hexstring_n(CC->eCMD.CI.input_data, 3);
-  printf("...");
-  print_hexstring_n(CC->eCMD.CI.input_data+(DATA_SIZE-3), 3);
-  printf(", ");
-  print_hexstring_n(CC->eCMD.CI.recover_key , 3);
-  printf("...");
-  print_hexstring_n(CC->eCMD.CI.recover_key+(KEY_SIZE-3) , 3);
-  printf("] [SN]:%lu}\n", CC->seqNo);
+    printf("[sdt] Readable eCMD: {[uidx]: %u [CT]:%u ", uidx, CC->eCMD.CT);
+  if (CC->eCMD.CT == ADD_DATA){
+    printf("ADD_DATA | input_data:");
+    print_hexstring_trunc_n(CC->eCMD.CI.input_data, DATA_SIZE);
+  }
+  if (CC->eCMD.CT == CANCEL_RET) {
+    printf("CANCEL_RET");
+  }
+  if (CC->eCMD.CT == GET_DATA){
+    printf("GET_DATA");
+  }
+  if (CC->eCMD.CT == START_RET){
+    printf("START_RET | recover_key_hash:");
+    print_hexstring_trunc_n(CC->eCMD.CI.recover_key_hash, HASH_SIZE);
+  }
+  if (CC->eCMD.CT == COMPLETE_RET){
+    printf("START_RET | recover_key:");
+    print_hexstring_trunc_n(CC->eCMD.CI.recover_key, KEY_SIZE);
+  }
+  printf(" [SN]:%lu}\n", CC->seqNo);
 }
 

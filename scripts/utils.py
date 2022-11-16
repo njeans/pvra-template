@@ -46,7 +46,7 @@ def print_hex_trunc(val):
     return "0x" + val[:l]+"..."+val[-l:]
 
 
-def sha2(data):
+def sha256(data):
     m = hashlib.sha256()
     m.update(data)
     return m.digest()

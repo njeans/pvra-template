@@ -133,7 +133,7 @@ class Admin:
         self._init_enclave()
         self._init_contract()
         self.server_thread = threading.Thread(None, self.httpd.serve_forever)
-        self.admin_user = user_lib.User(0, bb_info, self.w3, self.contract)
+        self.admin_user = user_lib.User(-1, bb_info, self.w3, self.contract)
         self.admin_user.print_ = print_
         self.admin_user.print_v = print_v
         self.admin_user.print_vv = print_vv
