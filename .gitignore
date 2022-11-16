@@ -88,6 +88,7 @@ result
 # application specific
 bin/
 test_sgx/
+app/appPVRA.h
 enclave/appPVRA.*
 enclave/enclave.key.pem
 scripts/application.py
