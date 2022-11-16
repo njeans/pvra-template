@@ -15,7 +15,7 @@
 
 #include "app.h"
 
-bool initPVRA() {
+bool initPVRA(void) {
 
   printf("[hiPVRA] Invoking ecall_initPVRA\n");
 
@@ -46,7 +46,7 @@ bool initPVRA() {
 
   t = clock() - t;
   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-  //printf("[hiPVRA] ecall_initPVRA took %f seconds\n", time_taken);
+  printf("[hiPVRA] ecall_initPVRA took %f seconds\n", time_taken);
   printf("\n");
   for(int i = 0; i < tsc_idx; i++)
     printf("%lu\n", tsc_dump[i]);

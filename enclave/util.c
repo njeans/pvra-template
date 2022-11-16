@@ -1,8 +1,9 @@
-#include <secp256k1.h>
-#include <secp256k1_recovery.h>
+//#include <secp256k1.h>
+//#include <secp256k1_recovery.h>
 
-#include "enclave_state.h"
+//#include "enclave_state.h"
 #include "keccak256.h"
+#include "util.h"
 
 
 void get_address(secp256k1_pubkey * pubkey, address_t* out) {
@@ -44,7 +45,6 @@ void hash_address_list(secp256k1_pubkey * pubkey_list, int num_pubkeys, uint8_t 
   keccak256(addr_buff, addr_buff_len, hash_out_32);
   free(addr_buff);
 }
-
 
 
 void memcpy_big_uint32(uint8_t* buff, uint32_t num) {

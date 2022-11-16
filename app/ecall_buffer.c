@@ -11,7 +11,7 @@
 #include "app.h"
 
 
-bool enclave_get_init_buffer_sizes() {
+bool enclave_get_init_buffer_sizes(void) {
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
   printf("[GatewayApp] Querying enclave for buffer sizes\n");
@@ -32,7 +32,7 @@ bool enclave_get_init_buffer_sizes() {
   return (sgx_lasterr == SGX_SUCCESS);
 }
 
-bool enclave_get_buffer_sizes() {
+bool enclave_get_buffer_sizes(void) {
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
   printf("[GatewayApp] Querying enclave for buffer sizes\n");

@@ -4,37 +4,31 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-
-#include "enclave.h"
-#include <enclave_t.h>
-
-#include <sgx_quote.h>
-#include <sgx_tcrypto.h>
-#include <sgx_tseal.h>
-#include <sgx_utils.h>
-
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/bignum.h>
+//#include <stdarg.h>
+//#include <stdio.h>
+//
+//#include "enclave.h"
+//#include <enclave_t.h>
+//
+//#include <sgx_quote.h>
+//#include <sgx_tcrypto.h>
+//#include <sgx_tseal.h>
+//#include <sgx_utils.h>
+#include <mbedtls/md.h>
+//#include <mbedtls/entropy.h>
+//#include <mbedtls/ctr_drbg.h>
+//#include <mbedtls/bignum.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 
 // [TODO]: If possible remove mbedtls dependence, only used for sha256 hashes now
 
-#include <secp256k1.h>
-#include <secp256k1_ecdh.h>
-#include "keccak256.h"
+//#include <secp256k1.h>
+//#include <secp256k1_ecdh.h>
 
 #include "enclave_state.h"
-#include "appPVRA.h"
-#include "util.h"
-
-#define BUFLEN 2048
-#define AESGCM_128_KEY_SIZE 16
-#define AESGCM_128_MAC_SIZE 16
-#define AESGCM_128_IV_SIZE 12
+//#include "appPVRA.h"
+#include "keccak256.h"
 
 sgx_status_t encrypt_cResponse(unsigned char AESKey[AESGCM_128_KEY_SIZE], struct cResponse * cResp, uint8_t * enc_cResponse, size_t enc_cResponse_size);
 sgx_status_t sign_cResponse(uint8_t seckey[32], struct cResponse * cResp, unsigned char *sig_ser);
@@ -171,7 +165,7 @@ sgx_status_t ecall_commandPVRA(
   err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)merge_hexstring, 128, ft_hash);
   if(err != 0)
   {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -ret);
+    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
     ret = SGX_ERROR_UNEXPECTED;
     goto cleanup;
   }
@@ -276,7 +270,7 @@ sgx_status_t ecall_commandPVRA(
 
   /*    AES Decryption of CMD using AESKey    */
 
-  uint8_t plain_dst[BUFLEN] = {0};
+  uint8_t plain_dst[sizeof(struct private_command)] = {0};
   size_t exp_ct_len = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + sizeof(struct private_command);
   size_t ct_len = eCMD_full_size;
   size_t ct_src_len = ct_len - AESGCM_128_MAC_SIZE - AESGCM_128_IV_SIZE;

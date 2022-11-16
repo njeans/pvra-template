@@ -1,6 +1,5 @@
-#include "keccak256.h"
-#include "enclave_state.h"
-#include "util.h"
+//#include <stdlib.h>
+#include <enclave_t.h>
 
 typedef struct {
     uint32_t block_size;

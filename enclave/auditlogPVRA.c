@@ -4,34 +4,31 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-
-#include "enclave.h"
-#include <enclave_t.h>
-
-#include <sgx_quote.h>
-#include <sgx_tcrypto.h>
-#include <sgx_tseal.h>
-#include <sgx_utils.h>
-
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/bignum.h>
-#include <mbedtls/pk.h>
-#include <mbedtls/rsa.h>
-
-// [TODO]: If possible remove mbedtls dependence, only used for sha256 hashes now
-
-#include <secp256k1.h>
-#include <secp256k1_ecdh.h>
+//#include <stdarg.h>
+//#include <stdio.h>
+//
+//#include "enclave.h"
+//#include <enclave_t.h>
+//
+//#include <sgx_quote.h>
+//#include <sgx_tcrypto.h>
+//#include <sgx_tseal.h>
+//#include <sgx_utils.h>
+//
+//#include <mbedtls/entropy.h>
+//#include <mbedtls/ctr_drbg.h>
+//#include <mbedtls/bignum.h>
+//#include <mbedtls/pk.h>
+//#include <mbedtls/rsa.h>
+//
+//// [TODO]: If possible remove mbedtls dependence, only used for sha256 hashes now
+//
+//#include <secp256k1.h>
+//#include <secp256k1_ecdh.h>
 #include <secp256k1_recovery.h>
 
 #include "enclave_state.h"
-#include "appPVRA.h"
-#include "keccak256.h"
-#include "util.h"
-#include "merkletree.h"
+//#include "util.h"
 
 
 

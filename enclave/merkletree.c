@@ -1,9 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 
 #include "merkletree.h"
 #include "keccak256.h"
+#include "util.h"
 
 
 void hash_node(char* out, char *left, char *right, size_t size) {
