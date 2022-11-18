@@ -65,7 +65,7 @@ class User:
         return encrypted_data
 
     def decrypt_data(self, encrypted_data):
-        self.print_vv(f"decrypting response data {encrypted_data.hex()}")
+        # self.print_vv(f"decrypting data {encrypted_data.hex()}")
         shared_key = derive_key_aes(self.secret_key, ENCLAVE_PUBLIC_KEY())
         data = self._decrypt(shared_key, encrypted_data)
         return data
@@ -154,7 +154,7 @@ class User:
         merkle_root = self.contract.functions.get_audit_merkle_root(audit_num).call({"from": self.address})
         block_num = self.contract.functions.get_audit_block_num(audit_num).call({"from": self.address})
         block = self.w3.eth.getBlock(block_num)
-        bb_leaf = b''
+        bb_leaf = {}
         for tx_hash in block["transactions"]:
             tx = self.w3.eth.get_transaction(tx_hash)
             if tx["from"] != self.admin_addr:
@@ -168,11 +168,14 @@ class User:
             nodes = func_params["proof"]
             merkletree.check_tree(nodes, leaves)
             assert nodes[len(nodes)-1] == merkle_root
-            # print_vv(f"leaves {[app.get_leaf(lf)['uidx'] for lf in leaves]}")
             for lf in leaves:
-                leaf = app.get_leaf(lf)
+                try:
+                    dec_leaf = self.decrypt_data(lf)
+                except:
+                    continue
+                leaf = app.get_leaf(dec_leaf)
                 if leaf["uidx"] == self.uidx:
-                    bb_leaf = lf
+                    bb_leaf = leaf
                     break
         return bb_leaf
 

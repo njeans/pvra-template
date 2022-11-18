@@ -55,7 +55,7 @@ def commandPVRA(state_counter, eCMD, pubkeyCMD, seq):
           " --cResponse " + CRESPONSE_PATH + \
           " --cRsig " + CRESPONSE_SIG_PATH + \
           " --sealedOut " + SEAL_OUT_PATH
-    print_vv(f'calling commandPVRA with {cmd}')
+    print_vv(f'calling commandPVRA  state_counter {state_counter} with {cmd}')
     # return "", ""
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if res.returncode != 0:
@@ -82,7 +82,7 @@ def auditlogPVRA(state_counter):
                 " --auditlog " + AUDIT_LOG_PATH + \
                 " --auditlogsig " + AUDIT_LOG_SIG_PATH + \
                 " --sealedOut " + SEAL_OUT_PATH
-    print_vv(f'calling auditlogPVRA with {audit_cmd}')
+    print_vv(f'calling auditlogPVRA state_counter {state_counter} with {audit_cmd}')
     res = subprocess.run(audit_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if res.returncode != 0:
         print_(f"auditlogPVRA failed with code {res.returncode}\n{res.stdout.decode('utf-8')}{res.stderr.decode('utf-8')}", c=ERRORc)

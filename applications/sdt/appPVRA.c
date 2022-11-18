@@ -121,7 +121,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
         return ret;
     }
 
-    uint32_t curr = 72;//get_timestamp() TODO
+    uint32_t curr = 73;//get_timestamp() TODO
     if (curr < ui.retrieve_time) {
         sprintf(ret.message, "retrieval wait period not over %u < %u", curr, ui.retrieve_time);
         printf("[sdt] %s\n", ret.message);
@@ -186,14 +186,14 @@ struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, ui
 }
 
 #ifdef MERKLE_TREE
-size_t get_user_leaf(struct ES *enclave_state, char ** out) {
+size_t get_user_leaf(struct ES *enclave_state, uint8_t ** out)
+{
     size_t block_size = sizeof(struct userLeaf);
     for (int i=0; i< NUM_USERS; i++) {
-        out[i] = (char *) malloc(block_size);
+        out[i] = (uint8_t *) malloc(block_size);
         struct userInfo info = enclave_state->appdata.user_info[i];
         struct userLeaf leaf = {info.retrieve_count, info.retrieve_time, info.started_retrieve, i};
         memcpy(out[i], &leaf, block_size);
-//        memcpy_big_uint32(out[i], info.retrieve_count) todo
     }
     return block_size;
 }

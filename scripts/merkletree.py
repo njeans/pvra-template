@@ -14,7 +14,7 @@ def print_tree(nodes, leaves, index=-1, level=0, str_leaf=str, str_node=str):
         output += str("\t\t" * level) + '-> (' + str_node(node) + ")" + "\n"
         output += print_tree(nodes, leaves, right_index, level+1, str_leaf=str_leaf, str_node=str_node)
     else:
-        output += str("\t\t" * level) + '-> (' + str_node(node) + '):{' + str_leaf(leaves[index]) + "}" + "\n"
+        output += str("\t\t" * level) + '-> (' + str_node(node) + '): {' + str_leaf(leaves[index]) + "}" + "\n"
     return output
 
 

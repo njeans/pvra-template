@@ -20,7 +20,8 @@ constants.MERKLE(True)
 
 def get_test_data(admin, users, test_case=None):
     num_users = len(users)
-    assert num_users <= 5
+    assert num_users <= 6
+    assert num_users >= 2
     secret_data = lambda i: bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8")
     base_test_data = [
         [({"tid": ADD_DATA, "input_data": secret_data(0), "seq": 1}, "success addPersonalData"),
@@ -28,6 +29,12 @@ def get_test_data(admin, users, test_case=None):
          None,
          None,
          None,
+         ],
+        [None,
+         None,
+         None,
+         None,
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(0))),
          ],
         [({"tid": ADD_DATA, "input_data": secret_data(1), "seq": 1}, "success addPersonalData"),
          None,
@@ -47,53 +54,75 @@ def get_test_data(admin, users, test_case=None):
          None,
          ({"tid": GET_DATA, "seq": 2}, str(secret_data(3))),
          ],
-        [None,
+        [({"tid": ADD_DATA, "input_data": secret_data(4), "seq": 1}, "success addPersonalData"),
          None,
          None,
          None,
-         ({"tid": GET_DATA, "seq": 2}, str(secret_data(0))),
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(4))),
          ]
     ]
-    #user 0 data stolen by user 4
-    #user 1 cancel in time
-    #user 2 limit reached
-    #user 3 admin didn't wait
+    #user 0 data stolen by user 1
+    #user 2 cancel in time
+    #user 3 limit reached
+    #user 4 admin didn't wait
+    get_pubkey = lambda i: users[i].public_key
+    get_pubkey_hash = lambda i: sha256(users[i].public_key)
     base_admin_data = [
         [None,
-         ({"tid": START_RET, "user_pubkey": users[0].public_key, "recover_key_hash": sha256(users[4].public_key)}, "success startRetrieve"),
+         ({"tid": START_RET, "user_pubkey": 0, "recover_key_hash": 1}, "success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "user_pubkey": users[0].public_key, "recover_key": users[4].public_key}, "success completeRetrieve"),
+         ({"tid": COMPLETE_RET, "user_pubkey": 0, "recover_key": 1}, "success completeRetrieve"),
+         None
+         ],
+        [None, None, None, None, None],
+        [None,
+         ({"tid": START_RET, "user_pubkey": 2, "recover_key_hash": 1}, "success startRetrieve"),
+         None,
+         ({"tid": COMPLETE_RET, "user_pubkey": 2, "recover_key": 1}, "retrieval not started"),
          None
          ],
         [None,
-         ({"tid": START_RET, "user_pubkey": users[1].public_key, "recover_key_hash": sha256(users[4].public_key)}, "success startRetrieve"),
+         ({"tid": START_RET, "user_pubkey": 3, "recover_key_hash": 3}, "success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "recover_key": users[4].public_key, "user_pubkey": users[1].public_key}, "retrieval not started"),
+         ({"tid": COMPLETE_RET, "user_pubkey": 3, "recover_key": 1}, "recover key does not match recover_key_hash"),
          None
          ],
         [None,
-         ({"tid": START_RET, "user_pubkey": users[2].public_key, "recover_key_hash": sha256(users[0].public_key)}, "success startRetrieve"),
+         ({"tid": START_RET, "user_pubkey": 4, "recover_key_hash": 1}, "success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "recover_key": users[4].public_key, "user_pubkey": users[2].public_key}, "recover key does not match recover_key_hash"),
+         ({"tid": COMPLETE_RET, "user_pubkey": 4, "recover_key_hash": 1}, "retrieval wait period not over"),#todo change to retrieval not started
          None
          ],
         [None,
-         ({"tid": START_RET, "user_pubkey": users[3].public_key, "recover_key_hash": sha256(users[4].public_key)}, "retrieve_count limit reached"),
+         ({"tid": START_RET, "user_pubkey": 5, "recover_key_hash": 1}, "retrieve_count limit reached"),
          None,
          None,
          None
-         ],
-        [None, None, None, None, None]
+         ]
     ]
     base_expected_audit = [
-        [format_leaf(0, 0, False, 0), format_leaf(1, 70, True, 0), format_leaf(1, 70, True, 0), format_leaf(1, 0, False, 0), format_leaf(1, 0, False, 0)],
-        [format_leaf(0, 0, False, 1), format_leaf(1, 71, True, 1), format_leaf(1, 0, False, 1), format_leaf(1, 0, False, 1), format_leaf(1, 0, False, 1)],
-        [format_leaf(0, 0, False, 2), format_leaf(1, 72, True, 2), format_leaf(1, 72, True, 2), format_leaf(1, 72, True, 2), format_leaf(1, 72, True, 2)],
-        [format_leaf(0, 0, False, 3), format_leaf(0, 0, False, 3), format_leaf(0, 0, False, 3), format_leaf(0, 0, False, 3), format_leaf(0, 0, False, 3)],
-        [None, None, None, None, None]
+        [leaf_dic(0, 0, False, 0), leaf_dic(1, 70, True, 0), leaf_dic(1, 70, True, 0), None, None],
+        [None, None, None, None, None],
+        [leaf_dic(0, 0, False, 2), leaf_dic(1, 72, True, 2), leaf_dic(1, 0, False, 2), leaf_dic(1, 0, False, 2), leaf_dic(1, 0, False, 2)],
+        [leaf_dic(0, 0, False, 3), leaf_dic(1, 73, True, 3), leaf_dic(1, 73, True, 3), leaf_dic(1, 73, True, 3), leaf_dic(1, 73, True, 3)],
+        [leaf_dic(0, 0, False, 4), leaf_dic(1, 74, True, 4), leaf_dic(1, 74, True, 4), leaf_dic(1, 74, True, 4), leaf_dic(1, 74, True, 4)],
+        [leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5)]
     ]
     test_data = [base_test_data[i] for i in range(num_users)]
     admin_data = [base_admin_data[i] for i in range(num_users)]
+    for i in range(len(admin_data)):
+        if admin_data[i] is None:
+            continue
+        for j in range(len(admin_data[i])):
+            if admin_data[i][j] is None:
+                continue
+            cmd = admin_data[i][j][0]
+            if "user_pubkey" in cmd:
+                admin_data[i][j][0]["user_pubkey"] = get_pubkey(cmd["user_pubkey"])
+            if "recover_key" in cmd:
+                admin_data[i][j][0]["recover_key"] = get_pubkey(cmd["recover_key"])
+            if "recover_key_hash" in cmd:
+                admin_data[i][j][0]["recover_key_hash"] = get_pubkey_hash(cmd["recover_key_hash"])
     expected_audit = [base_expected_audit[i] for i in range(num_users)]
     return test_data, admin_data, expected_audit
 
@@ -123,18 +152,34 @@ def format_command(cmd):
     if "user_pubkey" not in cmd:
         cmd["user_pubkey"] = b'-' * KEY_SIZE
     data = U8ArrData.from_buffer_copy(cmd["input_data"])
+    print(cmd)
     rkh = U8ArrHash.from_buffer_copy(cmd["recover_key_hash"])
     rk = U8ArrKey.from_buffer_copy(cmd["recover_key"])
     pk = U8ArrKey.from_buffer_copy(cmd["user_pubkey"])
     CI = cInputs(data, rkh, rk, pk)
     pc = private_command(cmd["tid"], CI)
     res = bytes(pc)
-    # assert len(CI.recover_key) == KEY_SIZE
     return res
 
 
 def format_leaf(retrieve_count, retrieve_time, started_retrieve, uidx):
     return bytes(userLeaf(retrieve_count, retrieve_time, started_retrieve, uidx))
+
+
+def leaf_dic(retrieve_count, retrieve_time, started_retrieve, uidx):
+    return {"retrieve_count": retrieve_count,
+            "retrieve_time": retrieve_time,#todo remove
+            "started_retrieve": started_retrieve,
+            "uidx": uidx}
+
+
+def leaf_eq(leaf1, leaf2):
+    for k in leaf1:
+        if k not in leaf2:
+            return False
+        if leaf1[k] != leaf2[k]:
+            return False
+    return True
 
 
 def get_leaf(buff):

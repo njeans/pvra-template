@@ -29,6 +29,7 @@
 #include "enclave_state.h"
 //#include "appPVRA.h"
 #include "keccak256.h"
+#include "util.h"
 
 sgx_status_t encrypt_cResponse(unsigned char AESKey[AESGCM_128_KEY_SIZE], struct cResponse * cResp, uint8_t * enc_cResponse, size_t enc_cResponse_size);
 sgx_status_t sign_cResponse(uint8_t seckey[32], struct cResponse * cResp, unsigned char *sig_ser);
@@ -422,26 +423,12 @@ sgx_status_t encrypt_cResponse(unsigned char AESKey[AESGCM_128_KEY_SIZE], struct
       return SGX_ERROR_UNEXPECTED;
   }
 
-  uint8_t *tag_dst = enc_cResponse;
-  uint8_t *iv_src = enc_cResponse + AESGCM_128_MAC_SIZE;
-  uint8_t *ct_dst = enc_cResponse + AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE;
-  sgx_status_t ret = sgx_read_rand(iv_src, AESGCM_128_IV_SIZE);
-  if (ret != SGX_SUCCESS) {
-    printf("[eiPVRA] sgx_read_rand() failed!\n");
-    return ret;
-  }
-  ret = sgx_rijndael128GCM_encrypt((sgx_aes_gcm_128bit_key_t *) AESKey,
-                                        cResp, sizeof(struct cResponse),
-                                        ct_dst,
-                                        iv_src, AESGCM_128_IV_SIZE,
-                                        NULL, 0,
-                                        tag_dst);
+  sgx_status_t ret = encrypt_aesgcm128(AESKey, (uint8_t *)cResp, sizeof(struct cResponse), enc_cResponse);
 
   if (ret == SGX_SUCCESS) {
     if(DEBUGPRINT) printf("[eiPVRA] encrypted  cResponse ");
     if(DEBUGPRINT) print_hexstring(enc_cResponse, enc_cResponse_size);
   }
 
-  if(C_DEBUGRDTSC) ocall_rdtsc();
   return ret;
 }

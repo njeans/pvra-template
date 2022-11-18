@@ -11,9 +11,6 @@
 
 #include "constants.h"
 #include "appPVRA.h"
-#ifdef MERKLE_TREE
-#include "merkletree.h"
-#endif
 
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
@@ -121,11 +118,7 @@ struct dAppData
 sgx_status_t unseal_enclave_state(const sgx_sealed_data_t *, struct ES *, struct dAppData *);
 sgx_status_t seal_enclave_state(const sgx_sealed_data_t *, size_t, size_t *, struct ES *, struct dAppData *);
 
-#ifdef MERKLE_TREE
-size_t calc_auditlog_buffer_size(struct ES * enclave_state, merkle_tree * mt, size_t * out_mt_size);
-#else
 size_t calc_auditlog_buffer_size(struct ES * enclave_state);
-#endif
 sgx_status_t ecall_calc_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_size, size_t *newsealedstate_size, size_t *newauditlog_buffer_size);
 
 #endif

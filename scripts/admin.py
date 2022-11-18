@@ -247,7 +247,7 @@ class Admin:
         nodes, leaves, audit_log_offset = merkletree.parse_tree(audit_log_raw)
         merkletree.check_tree(nodes, leaves)
         print_fun = lambda x: print_hex_trunc(x.hex())
-        mt = "\n"+merkletree.print_tree(nodes, leaves, str_node=print_fun, str_leaf=application.print_leaf)
+        mt = "\n"+merkletree.print_tree(nodes, leaves, str_node=print_fun, str_leaf=print_fun)
         print_vv(f"merkle tree:{mt}")
         return audit_log_offset, leaves, nodes
 

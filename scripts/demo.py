@@ -57,13 +57,11 @@ def demo(num_users=NUM_USERS, test_=False, test_case=None):
                     continue
                 user = users[user_num]
                 leaf_resp = user.get_leaf(audit_num)
-                try:
-                    print(f"leaf for user {user_num} audit_num {audit_num}: {app.print_leaf(leaf_resp)}")
-                except:
-                    print(f"leaf for user {user_num} audit_num {audit_num}: {leaf_resp}")
-                if expected_audit[user_num][cmd_num] != leaf_resp:
-                    print("\texpected", app.print_leaf(expected_audit[user_num][cmd_num]))
-                assert expected_audit[user_num][cmd_num] == leaf_resp
+                print(f"leaf for user {user_num} audit_num {audit_num}: {leaf_resp}")
+                lf_eq = app.leaf_eq(expected_audit[user_num][cmd_num], leaf_resp)
+                if not lf_eq:
+                    print("\texpected", expected_audit[user_num][cmd_num])
+                assert lf_eq
     admin.shutdown_server()
 
 
@@ -117,7 +115,7 @@ def setup(num_users=NUM_USERS):
     assert num_users > 0
 
     w3 = billboard.setup_w3()
-    bb_info = billboard.get_keys(num_users=num_users)
+    bb_info = billboard.get_keys()
 
     admin = admin_lib.Admin(w3, bb_info[0])
     admin.start_server()

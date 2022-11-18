@@ -52,25 +52,27 @@ sgx_status_t ecall_auditlogPVRA(
     uint8_t auditlog_signature_ser[65],
     uint8_t *newsealedstate, size_t newsealedstate_size) {
 
-
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
   struct ES enclave_state;
   struct dAppData dAD;
-  struct clientCommand CC;
+
+#ifdef MERKLE_TREE
+  merkle_tree mt = {0, 0, 0, NULL, NULL};
+  uint8_t *data[NUM_USERS];
+  uint8_t *enc_data[NUM_USERS];
+  for(int j = 0; j < NUM_USERS; j++) {
+        data[j] = NULL;
+        enc_data[j] = NULL;
+  }
+#endif
 
   // Control Timing Measurement of an OCALL Overhead.
   if(A_DEBUGRDTSC) ocall_rdtsc();
-  if(A_DEBUGRDTSC) ocall_rdtsc();
-
-
-
-
 
   /*    (2) Enclave State Initializaiton    */
 
 
   /*    Unseal Enclave State    */
-
   ret = unseal_enclave_state(sealedstate, &enclave_state, &dAD);
   if (ret != SGX_SUCCESS) {
     goto cleanup;
@@ -94,11 +96,55 @@ sgx_status_t ecall_auditlogPVRA(
         }
   }
 
-  size_t mt_size = 0;
 #ifdef MERKLE_TREE
-  merkle_tree mt;
-  size_t calc_auditlog_size = calc_auditlog_buffer_size(&enclave_state, &mt, &mt_size);
+  size_t block_size = get_user_leaf(&enclave_state, data);
+  if(DEBUGPRINT) {
+      printf("[eaPVRA] PRINTING User Leaf Nodes leaf_size: %d\n", block_size);
+      for(int i = 0; i < NUM_USERS; i++) {
+        printf("User[%d]: ", i);
+        print_hexstring(data[i], block_size);
+      }
+  }
+  size_t enc_block_size = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + block_size;
+  size_t mt_size = calc_tree_size(NUM_USERS, enc_block_size);
+
+  for(int i = 0; i < NUM_USERS; i++) {
+    unsigned char AESKey[AESGCM_128_KEY_SIZE];
+    enc_data[i] = (uint8_t *) malloc(enc_block_size);
+    sgx_status_t ret = genkey_aesgcm128(enclave_state.auditmetadata.master_user_pubkeys[i+1], enclave_state.enclavekeys.enc_prikey, AESKey);
+    if (ret != SGX_SUCCESS) {
+        goto cleanup;
+    }
+    ret = encrypt_aesgcm128(AESKey, data[i], block_size, enc_data[i]);
+    if (ret != SGX_SUCCESS) {
+        goto cleanup;
+    }
+  }
+    for(int j = 0; j < NUM_USERS; j++) {
+        if (data[j]) {
+            free(data[j]);
+            data[j] = NULL;
+        }
+    }
+  if(DEBUGPRINT) {
+      printf("[eaPVRA] PRINTING Encrypted User Leaf Nodes leaf_size: %d\n", enc_block_size);
+      for(int i = 0; i < NUM_USERS; i++) {
+        printf("User[%d]: %p ", i, enc_data[i]);
+        print_hexstring(enc_data[i], enc_block_size);
+      }
+  }
+
+  build_tree(&mt, enc_data, NUM_USERS, enc_block_size);
+  if(DEBUGPRINT) {
+       printf("[eaPVRA] PRINTING User Merkle Tree mt_size %u\n", mt_size);
+       print_tree(&mt);
+  }
+  serialize_tree(auditlog, &mt);
+  cleanup_tree(&mt);
+  size_t auditlog_offset = mt_size;
+  size_t calc_auditlog_size = calc_auditlog_buffer_size(&enclave_state) + mt_size;
 #else
+  size_t auditlog_offset = 0;
   size_t calc_auditlog_size = calc_auditlog_buffer_size(&enclave_state);
 #endif
 
@@ -106,12 +152,6 @@ sgx_status_t ecall_auditlogPVRA(
     printf("[eaPVRA] auditlog_size incorrect %lu != %lu\n", calc_auditlog_size, auditlog_size);
     goto cleanup;
   }
-  size_t auditlog_offset = mt_size;
-
-#ifdef MERKLE_TREE
-  serialize_tree(auditlog, &mt);
-  cleanup_tree(&mt);
-#endif
 
   memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditmetadata.audit_num);
   auditlog_offset += sizeof(enclave_state.auditmetadata.audit_num);
@@ -175,5 +215,14 @@ sgx_status_t ecall_auditlogPVRA(
 
   cleanup:
     if(A_DEBUGRDTSC) ocall_rdtsc();
+#ifdef MERKLE_TREE
+        for(int j = 0; j < NUM_USERS; j++) {
+            if (data[j] != NULL){
+                free(data[j]);
+                data[j] = NULL;
+            }
+        }
+        cleanup_tree(&mt);
+#endif
     return ret;
 }

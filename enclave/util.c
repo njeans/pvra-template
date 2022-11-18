@@ -1,5 +1,7 @@
 //#include <secp256k1.h>
 //#include <secp256k1_recovery.h>
+#include <sgx_tcrypto.h>
+
 
 //#include "enclave_state.h"
 #include "keccak256.h"
@@ -239,9 +241,10 @@ sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], 
     return SGX_ERROR_UNEXPECTED;
   }
   //todo validate keys in initPVRA
-  err = secp256k1_ec_pubkey_parse(ctx, &user_pubkey, &user_pubkey_buff, 65); //todo use flags in secp.h
+
+  err = secp256k1_ec_pubkey_parse(ctx, &user_pubkey, user_pubkey_buff, 65); //todo use flags in secp.h
   if(err == 0) {
-    printf("[genkey_aesgcm128] secp256k1_ecdh() failed\n");
+    printf("[genkey_aesgcm128] secp256k1_ec_pubkey_parse() failed\n");
     return SGX_ERROR_UNEXPECTED;
   }
 
@@ -253,4 +256,25 @@ sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], 
   memcpy(AESkey, shared_secret, AESGCM_128_KEY_SIZE);
   secp256k1_context_destroy(ctx);
   return SGX_SUCCESS;
+}
+
+sgx_status_t encrypt_aesgcm128(uint8_t AESKey[AESGCM_128_KEY_SIZE], uint8_t * buff, size_t buff_size, uint8_t * enc_out){
+
+  uint8_t *tag_dst = enc_out;
+  uint8_t *iv_src = enc_out + AESGCM_128_MAC_SIZE;
+  uint8_t *ct_dst = enc_out + AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE;
+  sgx_status_t ret = sgx_read_rand(iv_src, AESGCM_128_IV_SIZE);
+  if (ret != SGX_SUCCESS) {
+    printf("[enc_aesgcm128] sgx_read_rand() failed!\n");
+    return ret;
+  }
+  ret = sgx_rijndael128GCM_encrypt((sgx_aes_gcm_128bit_key_t *) AESKey,
+                                        buff, buff_size,
+                                        ct_dst,
+                                        iv_src, AESGCM_128_IV_SIZE,
+                                        NULL, 0,
+                                        tag_dst);
+
+  if(C_DEBUGRDTSC) ocall_rdtsc();
+  return ret;
 }

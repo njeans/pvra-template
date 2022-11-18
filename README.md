@@ -31,6 +31,7 @@ export SGX_MODE=SW
 cd $PROJECT_ROOT
 ./setup.sh -a $APP_NAME
 cd $PROJECT_ROOT/docker
+./build.sh
 ./run.sh
 ```
 
@@ -166,12 +167,19 @@ cd $PROJECT_ROOT/scripts
 
 ### Useful scripts
 * `setup.sh` : setup application specific files
-* `scripts/build.sh` : copy relevant application files and build the enclave and untrusted host (works for building locally and in docker)
-* `scripts/copy.sh` : copy relevant application files
-* `scripts/run.sh` : build and run docker files 
-  * runs a simulation/hardware enclave based on `SGX_MODE` environment variable
-  * `scripts/run.sh bash` opens bash terminal in enclave docker container
-* `scripts/run_BB.sh` start a truffle/ganache bulletin board instance for local deployments
-* `scripts/stop_BB.sh` stop a truffle/ganache bulletin board instance for local deployments
 
+
+* `scripts/build.sh` copy relevant application files and build the enclave and untrusted host (works for building locally and in docker container)
+* `scripts/copy.sh` copy relevant application files
+* `scripts/run_BB.sh` start a truffle/ganache bulletin board instance for local (non docker-compose) deployments
+* `scripts/stop_BB.sh` stop a truffle/ganache bulletin board instance for local (non docker-compose) deployments
+
+
+* `docker/build.sh` : build docker images
+    * build a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
+* `docker/run.sh` : run docker containers
+    * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
+    * `docker/run.sh <cmd>` runs <cmd> with the docker container
+      * ex: `./run.sh bash` opens bash terminal in enclave docker container
+      * ex: `./run.sh "python demo.py test"` runs test in enclave docker container
 ### Sample VSC Run: TODO update

@@ -23,8 +23,8 @@
 #define START_RET 3
 #define COMPLETE_RET 4
 
-#define NUM_USERS 5
-#define MAX_RETRIEVE 3
+#define NUM_USERS 6
+#define MAX_RETRIEVE 4
 #define WAIT_TIME 60 //seconds
 #define RESET_TIME 60 //seconds
 
