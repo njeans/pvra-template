@@ -15,18 +15,18 @@
 
 #include "app.h"
 
-bool commandPVRA() {
+bool commandPVRA(void) {
 
   printf("[hcPVRA] Invoking ecall_commandPVRA\n");
 
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
 
-  sgx_report_t report;
-  sgx_spid_t spid;
-  sgx_target_info_t target_info;
-  sgx_epid_group_id_t epid_gid;
-  sgx_status_t status;
+//  sgx_report_t report;
+//  sgx_spid_t spid;
+//  sgx_target_info_t target_info;
+//  sgx_epid_group_id_t epid_gid;
+//  sgx_status_t status;
 
   clock_t t;
   t = clock();

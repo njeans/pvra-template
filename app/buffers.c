@@ -13,7 +13,7 @@
 //#define INITSEALSIZE 7184
 //#define INITSEALSIZE 7024
 
-bool allocate_buffers() {
+bool allocate_buffers(void) {
   printf("[agPVRA] Allocating buffers\n");
   signature_buffer_size = 65;
   signature_buffer = calloc(signature_buffer_size, 1);
@@ -54,7 +54,7 @@ bool allocate_buffers() {
   return (sgx_lasterr == SGX_SUCCESS);
 }
 
-void cleanup_buffers() {
+void cleanup_buffers(void) {
   printf("[GatewayApp]: Deallocating buffers\n");
 
 

@@ -33,7 +33,7 @@ def demo(num_users=NUM_USERS, test_=False, test_case=None):
             eCMD = user.encrypt_data(cmd)
             resp = app.print_cResponse(user.send_data(eCMD, seq=cmd["seq"]))
             if test_:
-                print(f"cResponse user {user_num} cmd {cmd_num} {resp}")
+                print(f"cResponse user {user_num} cmd {cmd_num}: {resp}")
                 if expected_resp not in resp:
                     print("\texpected", expected_resp)
                 assert expected_resp in resp
@@ -50,6 +50,18 @@ def demo(num_users=NUM_USERS, test_=False, test_case=None):
                     print("\texpected", expected_resp)
                 assert expected_resp in resp
         admin.audit()
+        if MERKLE() and test_:
+            audit_num = admin.audit_num
+            for user_num in range(len(user_data_cmds)):
+                if expected_audit[user_num][cmd_num] is None:
+                    continue
+                user = users[user_num]
+                leaf_resp = user.get_leaf(audit_num)
+                print(f"leaf for user {user_num} audit_num {audit_num}: {leaf_resp}")
+                lf_eq = app.leaf_eq(expected_audit[user_num][cmd_num], leaf_resp)
+                if not lf_eq:
+                    print("\texpected", expected_audit[user_num][cmd_num])
+                assert lf_eq
     admin.shutdown_server()
 
 
@@ -103,12 +115,12 @@ def setup(num_users=NUM_USERS):
     assert num_users > 0
 
     w3 = billboard.setup_w3()
-    bb_info = billboard.get_keys(num_users=num_users)
+    bb_info = billboard.get_keys()
 
     admin = admin_lib.Admin(w3, bb_info[0])
     admin.start_server()
     contract = admin.contract
-    users = [user_lib.User(i, bb_info[i], w3, contract) for i in range(1, num_users+1)]
+    users = [user_lib.User(i-1, bb_info[i], w3, contract) for i in range(1, num_users+1)]
 
     for j in range(num_users):
         users[j].verify_bb_info()

@@ -9,6 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED 1
 RUN apt-get update && apt-get install -y software-properties-common libssl-dev
 
+
 # Python 3.9
 RUN apt-get install -y \
                 python3.9 \
@@ -31,11 +32,6 @@ ENV PYTHON_PIP_VERSION 21.0.1
 ENV PYTHON_GET_PIP_URL https://github.com/pypa/get-pip/raw/29f37dbe6b3842ccd52d61816a3044173962ebeb/public/get-pip.py
 ENV PYTHON_GET_PIP_SHA256 e03eb8a33d3b441ff484c56a436ff10680479d4bd14e59268e67977ed40904de
 
-# Solidity compliler
-RUN add-apt-repository -y ppa:ethereum/ethereum
-RUN apt-get install -y solc
-
-
 RUN set -ex; \
 	\
     apt-get update; \
@@ -56,6 +52,10 @@ RUN set -ex; \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
+
+# Solidity compliler
+RUN add-apt-repository -y ppa:ethereum/ethereum
+RUN apt-get install -y solc
 
 # docker cli
 RUN set -ex; \

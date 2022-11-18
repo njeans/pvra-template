@@ -3,8 +3,7 @@
 import json
 import sys
 import os
-import hashlib
-
+import time
 from web3 import Web3
 import solcx
 from solcx import compile_source
@@ -26,8 +25,23 @@ def print_(*args, c=""):
 
 
 def setup_w3(bb_url=BILLBOARD_URL):
-    provider = Web3.HTTPProvider(bb_url, request_kwargs={'timeout': 60})
-    w3 = Web3(provider)
+    connected = False
+    max_tries = 10
+    num_tries = 0
+    while not connected:
+        try:
+            provider = Web3.HTTPProvider(bb_url, request_kwargs={'timeout': 60})
+            w3 = Web3(provider)
+            latest_block = w3.eth.get_block('latest')
+            connected = True
+        except Exception as e:
+            if num_tries >= max_tries:
+                raise e
+            print("waiting to connect to bulletin board...")
+            time.sleep(5)
+            num_tries+=1
+            pass
+
     return w3
 
 
@@ -59,9 +73,9 @@ def compile_source_file(base_path, contract_source_path, allowed):
     return contract_id, abis, bins
 
 
-def deploy_contract(w3, admin_addr=""):
+def deploy_contract(w3=setup_w3(), admin_addr=""):
     if admin_addr == "":
-        admin_addr,_ = get_account(0)
+        admin_addr, _ = get_account(0)
     base_path, contract_source_path, allowed = SOLIDITY_PATHS
     contract_id,abis,bins = compile_source_file(base_path, contract_source_path, allowed)
     contract = w3.eth.contract(abi=abis, bytecode=bins)

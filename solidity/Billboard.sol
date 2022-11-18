@@ -28,7 +28,7 @@ contract Billboard {
     mapping (address => User) user_info;
     address[] public user_list;
 
-    mapping (uint => AuditData) audit_data;
+    mapping (uint64 => AuditData) audit_data;
 
     uint64 public audit_num;
     uint audit_block_num;
@@ -244,6 +244,15 @@ contract Billboard {
         return UserData(user.public_key, user.last_audit_num, user.user_data[audit_num_], user.last_seq);
     }
 
+    function get_audit_block_num(uint64 audit_num_) public view returns (uint) {
+        require(audit_data[audit_num_].posted, "audit not posted yet");
+        return audit_data[audit_num_].block_num;
+    }
+
+    function get_audit_merkle_root(uint64 audit_num_) public view returns (bytes32) {
+        require(audit_data[audit_num_].posted, "audit not posted yet");
+        return audit_data[audit_num_].merkle_root;
+    }
 
     function get_all_user_data(uint64 audit_num_) public view returns (UserData[] memory) {
         uint user_count = 0;

@@ -133,7 +133,7 @@ class Admin:
         self._init_enclave()
         self._init_contract()
         self.server_thread = threading.Thread(None, self.httpd.serve_forever)
-        self.admin_user = user_lib.User(0, bb_info, self.w3, self.contract)
+        self.admin_user = user_lib.User(-1, bb_info, self.w3, self.contract)
         self.admin_user.print_ = print_
         self.admin_user.print_v = print_v
         self.admin_user.print_vv = print_vv
@@ -247,7 +247,7 @@ class Admin:
         nodes, leaves, audit_log_offset = merkletree.parse_tree(audit_log_raw)
         merkletree.check_tree(nodes, leaves)
         print_fun = lambda x: print_hex_trunc(x.hex())
-        mt = "\n"+merkletree.print_tree(nodes, leaves, str_node=print_fun, str_leaf=application.print_leaf)
+        mt = "\n"+merkletree.print_tree(nodes, leaves, str_node=print_fun, str_leaf=print_fun)
         print_vv(f"merkle tree:{mt}")
         return audit_log_offset, leaves, nodes
 

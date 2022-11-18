@@ -9,6 +9,7 @@ from crypto import *
 import billboard as bb
 from application import format_command
 import application as app
+import merkletree
 
 def print_vv(*args, u=0):
     if verbose >= 2:
@@ -34,13 +35,13 @@ def print_(*args, c=None, u=0):
 
 class User:
 
-    def __init__(self, user_num, bb_info, w3, contract):
-        self.user_num = user_num
+    def __init__(self, uidx, bb_info, w3, contract):
+        self.uidx = uidx
         self.address, self.public_key, self.secret_key = bb_info
         self.w3 = w3
         self.seq_num = 0
         self.contract = contract
-        self.print_v(f"initialize User {user_num} with address {print_hex_trunc(self.address)} and public key {print_hex_trunc(self.public_key)}")
+        self.print_v(f"initialize User {uidx} with address {print_hex_trunc(self.address)} and public key {print_hex_trunc(self.public_key)}")
         self.admin_addr = self.contract.functions.admin_addr().call({"from": self.address})
         self.enclave_addr = self.contract.functions.enclave_address().call({"from": self.address})
         self.sent_commands = {}
@@ -64,7 +65,7 @@ class User:
         return encrypted_data
 
     def decrypt_data(self, encrypted_data):
-        self.print_vv(f"decrypting response data {encrypted_data.hex()}")
+        # self.print_vv(f"decrypting data {encrypted_data.hex()}")
         shared_key = derive_key_aes(self.secret_key, ENCLAVE_PUBLIC_KEY())
         data = self._decrypt(shared_key, encrypted_data)
         return data
@@ -149,9 +150,38 @@ class User:
             self.sent_commands[encrypted_user_data.hex()] = {"audit_num": user_info[1]}
         self.print_vv(f"contract.functions.add_user_data: gasUsed {gas}")
 
-    def check_leaf(self, leaf):
-        bb_leaf = b''  # todo get from call data 0.0
-        return leaf == bb_leaf
+    def get_leaf(self, audit_num):
+        merkle_root = self.contract.functions.get_audit_merkle_root(audit_num).call({"from": self.address})
+        block_num = self.contract.functions.get_audit_block_num(audit_num).call({"from": self.address})
+        block = self.w3.eth.getBlock(block_num)
+        bb_leaf = {}
+        for tx_hash in block["transactions"]:
+            tx = self.w3.eth.get_transaction(tx_hash)
+            if tx["from"] != self.admin_addr:
+                continue
+            if tx["to"] != self.contract.address:
+                continue
+            func_obj, func_params = self.contract.decode_function_input(tx["input"])
+            if "audit_end" not in str(func_obj):
+                continue
+            leaves = func_params["leaves"]
+            nodes = func_params["proof"]
+            merkletree.check_tree(nodes, leaves)
+            assert nodes[len(nodes)-1] == merkle_root
+            for lf in leaves:
+                try:
+                    dec_leaf = self.decrypt_data(lf)
+                except:
+                    continue
+                leaf = app.get_leaf(dec_leaf)
+                if leaf["uidx"] == self.uidx:
+                    bb_leaf = leaf
+                    break
+        return bb_leaf
+
+    def check_leaf(self, expected_leaf, audit_num):
+        leaf = self.get_leaf(audit_num)
+        return expected_leaf == leaf
 
     def verify_omission(self, encrypted_user_data, mode):
         res = self.sent_commands[encrypted_user_data.hex()]
@@ -216,10 +246,10 @@ class User:
             return data[12+16:]
 
     def print_(self, *args, c=None):
-        print_(*args, c=c, u=self.user_num)
+        print_(*args, c=c, u=self.uidx)
 
     def print_v(self, *args):
-        print_v(*args, u=self.user_num)
+        print_v(*args, u=self.uidx)
 
     def print_vv(self, *args):
-        print_vv(*args, u=self.user_num)
+        print_vv(*args, u=self.uidx)

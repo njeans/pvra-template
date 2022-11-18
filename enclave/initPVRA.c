@@ -12,10 +12,10 @@
 //
 //#include <sgx_quote.h>
 //#include <sgx_tcrypto.h>
-#include <sgx_tseal.h>
-#include <sgx_utils.h>
+//#include <sgx_tseal.h>
+//#include <sgx_utils.h>
 //
-//#include <mbedtls/entropy.h>
+#include <mbedtls/md.h>
 //#include <mbedtls/ctr_drbg.h>
 //#include <mbedtls/bignum.h>
 //#include <mbedtls/pk.h>

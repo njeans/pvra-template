@@ -1,40 +1,19 @@
-#include <sgx_tcrypto.h>
+//#include <sgx_tcrypto.h>
 #include <sgx_tseal.h>
-
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/bignum.h>
-#include <mbedtls/pk.h>
-#include <mbedtls/rsa.h>
+//
+//#include <mbedtls/entropy.h>
+//#include <mbedtls/ctr_drbg.h>
+//#include <mbedtls/bignum.h>
+//#include <mbedtls/pk.h>
+//#include <mbedtls/rsa.h>
+#include <enclave_t.h>
 #include <secp256k1.h>
 
+#include "constants.h"
 #include "appPVRA.h"
 
 #ifndef ENCLAVESTATE_H
 #define ENCLAVESTATE_H
-
-// for development, set to 1 for production deployments
-#define CCF_ENABLE 0
-#define DETERMINISTIC_KEYS 1
-
-#define I_DEBUGRDTSC 0
-#define C_DEBUGRDTSC 0
-#define A_DEBUGRDTSC 0
-
-#define DEBUGPRINT 1
-
-
-#define HASH_SIZE 32
-#define AESGCM_128_KEY_SIZE 16
-#define AESGCM_128_MAC_SIZE 16
-#define AESGCM_128_IV_SIZE 12
-
-// [TODO]: make these parameters dynamic? not sure if it is worth it right now
-#define MAX_USERS 10
-#define MAX_LOG_SIZE 100
-
-
-typedef unsigned char secp256k1_prikey[32];
 
 
 struct EK
@@ -58,9 +37,6 @@ typedef struct _sha256_hash_t
     uint8_t bytes[32];
 } sha256_hash_t;
 
-
-typedef unsigned char address_t[20];
-typedef unsigned char packed_address_t[32];
 
 struct AL
 {
@@ -141,5 +117,8 @@ struct dAppData
 
 sgx_status_t unseal_enclave_state(const sgx_sealed_data_t *, struct ES *, struct dAppData *);
 sgx_status_t seal_enclave_state(const sgx_sealed_data_t *, size_t, size_t *, struct ES *, struct dAppData *);
+
+size_t calc_auditlog_buffer_size(struct ES * enclave_state);
+sgx_status_t ecall_calc_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_size, size_t *newsealedstate_size, size_t *newauditlog_buffer_size);
 
 #endif

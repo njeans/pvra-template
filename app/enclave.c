@@ -24,7 +24,7 @@ bool create_enclave(const char *const enclave_binary) {
   return (sgx_lasterr == SGX_SUCCESS);
 }
 
-void destroy_enclave() {
+void destroy_enclave(void) {
   //printf("[GatewayApp]: Destroying enclave\n");
 
   sgx_status_t err = sgx_destroy_enclave(enclave_id);
