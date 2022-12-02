@@ -1,3 +1,6 @@
 [submodule "billboard/solidity/openzeppelin-contracts"]
 	path = billboard/solidity/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
+[submodule "trustedLib/mbedtls-SGX"]
+	path = trustedLib/mbedtls-SGX
+	url = https://github.com/bl4ck5un/mbedtls-SGX.git
