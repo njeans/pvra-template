@@ -131,6 +131,7 @@ class Admin:
         self.state_counter_lock = threading.Lock()
         self.audit_num = 0
         self._init_enclave()
+        self.contract = None
         self._init_contract()
         self.server_thread = threading.Thread(None, self.httpd.serve_forever)
         self.admin_user = user_lib.User(-1, bb_info, self.w3, self.contract)
@@ -149,6 +150,11 @@ class Admin:
         self.server_thread.join() # todo remove?
 
     def audit(self, mode=INCL_DATA):
+        gas = self.checkpoint_audit(mode)
+        audit_log = self.get_audit_log()
+        gas += self.post_audit_log(audit_log)
+
+    def checkpoint_audit(self, mode=INCL_DATA):
         print_v(f"checkpointing audit {self.audit_num+1}") #todo bb return audit num from audit_start
         gas = bb.send_tx(self.w3, self.contract.functions.audit_start(), user_addr=self.address)
         if OMIT_SIG not in str(mode) and \
@@ -167,7 +173,9 @@ class Admin:
                 if m not in [OMIT_SIG, OMIT_DATA]:
                     print_v(f"posting data from bulletin board for user address {print_hex_trunc(addr)}")
                     self._send_command(cmd, pubkey, seq)
+        return gas
 
+    def get_audit_log(self):
         # self.state_counter_lock.acquire()  # todo audit log command should use state counter?
         audit_log_raw, audit_log_sig = enclave.auditlogPVRA(self.state_counter)
         # self.state_counter += 1
@@ -179,12 +187,20 @@ class Admin:
         audit_num, included_addr, included_hashes, audit_seq = self._parse_audit_log(audit_log_raw[audit_log_offset:])
         assert audit_num == self.audit_num+1
         if MERKLE():
+            return (audit_num, audit_log_sig, included_addr, included_hashes, audit_seq, leaves, nodes)
+        else:
+            return (audit_num, audit_log_sig, included_addr, included_hashes, audit_seq)
+
+    def post_audit_log(self, audit_log):
+        if MERKLE():
+            audit_num, audit_log_sig, included_addr, included_hashes, audit_seq, leaves, nodes = audit_log
             print_vv(f"posting merkle tree audit log for: {audit_num}")
-            gas += bb.send_tx(self.w3, self.contract.functions.audit_end_merkle(audit_log_sig, included_addr, included_hashes, audit_seq, leaves, nodes), user_addr=self.address)
+            gas = bb.send_tx(self.w3, self.contract.functions.audit_end_merkle(audit_log_sig, included_addr, included_hashes, audit_seq, leaves, nodes), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end_merkle: gasUsed {gas}")
         else:
+            audit_num, audit_log_sig, included_addr, included_hashes, audit_seq = audit_log
             print_vv(f"posting audit log for: {audit_num}")
-            gas += bb.send_tx(self.w3, self.contract.functions.audit_end(audit_log_sig, included_addr, included_hashes, audit_seq), user_addr=self.address)
+            gas = bb.send_tx(self.w3, self.contract.functions.audit_end(audit_log_sig, included_addr, included_hashes, audit_seq), user_addr=self.address)
             print_vv(f"contract.functions.audit_start + audit_end: gasUsed {gas}")
         self.audit_num = audit_num
 
@@ -197,6 +213,7 @@ class Admin:
         # print("tmp_addr", tmp_addr)
         # print("enclave_address", ee)
         # assert ee == tmp_addr
+        return gas
 
     def _init_enclave(self):
         enclave.initPvra()

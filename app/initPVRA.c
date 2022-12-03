@@ -62,7 +62,7 @@ bool initPVRA(void) {
   sgx_quote_t *quote;
   uint32_t quote_size = 0;
 
-  //printf("[GatewayApp]: Call sgx_calc_quote_size() ...\n");
+  printf("[GatewayApp]: Call sgx_calc_quote_size() ...\n");
   status = sgx_calc_quote_size(NULL, 0, &quote_size);
   if (status != SGX_SUCCESS) {
     fprintf(stderr, "SGX error while getting quote size: %08x\n", status);

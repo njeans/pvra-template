@@ -7,9 +7,9 @@
 
 
 #define NUM_COMMANDS 1
-#define NUM_ADMIN_COMMANDS 0
+#define NUM_ADMIN_COMMANDS 1
 #define NUM_USERS 4
-#define MERKLE_TREE  // todo remove no MERKLE
+//#define MERKLE_TREE  // todo remove no MERKLE
 
 struct userInfo
 {
@@ -20,12 +20,14 @@ struct userInfo
 struct userLeaf  // todo remove no MERKLE
 {
 	uint32_t uidx;
+//	uint8_t buff[100];
 };
 #endif
 
 struct cInputs
 {
 	uint32_t admin_uidx;
+//	uint8_t buff[100];
 };
 
 struct cResponse

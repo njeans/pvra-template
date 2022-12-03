@@ -43,6 +43,7 @@ class User:
         self.contract = contract
         self.print_v(f"initialize User {uidx} with address {print_hex_trunc(self.address)} and public key {print_hex_trunc(self.public_key)}")
         self.admin_addr = self.contract.functions.admin_addr().call({"from": self.address})
+        import constants
         self.enclave_addr = self.contract.functions.enclave_address().call({"from": self.address})
         self.sent_commands = {}
 
