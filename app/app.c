@@ -173,7 +173,8 @@ int main(int argc, char **argv) {
 
     (opt_initPVRA ? enclave_get_init_buffer_sizes() : true) &&
     (opt_commandPVRA || opt_auditlogPVRA ? load_seal(opt_sealedstate_file) : true) &&
-    (opt_commandPVRA || opt_auditlogPVRA ? enclave_get_buffer_sizes() : true) &&
+    (opt_commandPVRA ? enclave_get_cmd_buffer_sizes() : true) &&
+    (opt_auditlogPVRA ? enclave_get_audit_buffer_sizes() : true) &&
     allocate_buffers() &&
 
     (opt_initPVRA ? load_keys(opt_userpubkeys_file) : true) &&

@@ -104,8 +104,8 @@ FILE *open_file(const char *const filename, const char *const mode);
 bool create_enclave(const char *const enclave_binary);
 
 bool enclave_get_init_buffer_sizes(void);
-
-bool enclave_get_buffer_sizes(void);
+bool enclave_get_cmd_buffer_sizes(void);
+bool enclave_get_audit_buffer_sizes(void);
 
 bool allocate_buffers(void);
 

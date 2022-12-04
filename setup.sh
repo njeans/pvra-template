@@ -76,6 +76,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+make clean
 if [ "$APP_NAME" == "" ]
 then
   echo "Defaulting to APP_NAME = $DEFAULT_APP_NAME"

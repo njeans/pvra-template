@@ -88,7 +88,7 @@ bool initPVRA(void) {
   //fprintf(stdout, "[GatewayApp]: status of sgx_get_quote(): %08x\n", status);
   //printf("[hiPVRA] status of sgx_get_quote(): %s\n", status == SGX_SUCCESS ? "success" : "error");
   if (status != SGX_SUCCESS) {
-    fprintf(stderr, "[GatewayApp]: sgx_get_quote: error %s\n", decode_sgx_status(status));
+    printf("[GatewayApp]: sgx_get_quote: error %s\n", decode_sgx_status(status));
     return 1;
   }
 

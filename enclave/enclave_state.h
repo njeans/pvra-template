@@ -31,35 +31,26 @@ struct EK
 };
 
 
-
-typedef struct _sha256_hash_t
-{
-    uint8_t bytes[32];
-} sha256_hash_t;
-
+struct audit_entry_t {
+	packed_address_t user_address;
+	uint8_t command_hash[HASH_SIZE];
+	uint64_t seqNo;
+};
 
 struct AL
 {
-	packed_address_t user_addresses[MAX_LOG_SIZE];
-	sha256_hash_t command_hashes[MAX_LOG_SIZE];
-	uint64_t seqNo[MAX_LOG_SIZE];
+	uint64_t audit_num;
+	size_t num_entries;
+	struct audit_entry_t * entries;
 };
-
 
 
 struct AUD
 {
 	uint64_t num_pubkeys;
 	uint8_t master_user_pubkeys[MAX_USERS][64];
-	
 	struct AL auditlog;
-	uint64_t audit_index;
-	uint64_t audit_num;
 };
-
-
-
-
 
 
 struct SCS
@@ -115,10 +106,12 @@ struct dAppData
 };
 
 
-sgx_status_t unseal_enclave_state(const sgx_sealed_data_t *, struct ES *, struct dAppData *);
-sgx_status_t seal_enclave_state(const sgx_sealed_data_t *, size_t, size_t *, struct ES *, struct dAppData *);
+sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool ecall_CMD, struct ES * enclave_state, struct dAppData * dAD);
+sgx_status_t seal_enclave_state(struct ES * enclave_state, struct dAppData * dAD, size_t sealedstate_size, const sgx_sealed_data_t * sealedstate);
 
 size_t calc_auditlog_buffer_size(struct ES * enclave_state);
-sgx_status_t ecall_calc_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_size, size_t *newsealedstate_size, size_t *newauditlog_buffer_size);
+sgx_status_t ecall_init_buffer_sizes(size_t *newsealedstate_size);
+sgx_status_t ecall_cmd_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_size, size_t *newsealedstate_size);
+sgx_status_t ecall_audit_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_size, size_t *newsealedstate_size, size_t *newauditlog_buffer_size);
 
 #endif

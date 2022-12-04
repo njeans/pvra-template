@@ -41,7 +41,11 @@ enclave
 
         public sgx_status_t ecall_init_buffer_sizes([out] size_t* esealed_state_size);
 
-        public sgx_status_t ecall_calc_buffer_sizes(
+        public sgx_status_t ecall_cmd_buffer_sizes(
+            [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
+            [out] size_t *newsealedstate_size);
+
+        public sgx_status_t ecall_audit_buffer_sizes(
             [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
             [out] size_t *newsealedstate_size,
             [out] size_t *newauditlog_buffer_size);

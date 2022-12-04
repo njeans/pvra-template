@@ -71,8 +71,7 @@ sgx_status_t ecall_commandPVRA(
 
 
   /*    Unseal Enclave State    */
-
-  ret = unseal_enclave_state(sealedstate, &enclave_state, &dAD);
+  ret = unseal_enclave_state(sealedstate, true, &enclave_state, &dAD);
   if (ret != SGX_SUCCESS) {
     goto cleanup;
   }
@@ -108,21 +107,23 @@ sgx_status_t ecall_commandPVRA(
 
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
-  uint64_t audit_index = enclave_state.auditmetadata.audit_index;
-  get_packed_address(CC.user_pubkey, &enclave_state.auditmetadata.auditlog.user_addresses[audit_index]);
-  memcpy(&enclave_state.auditmetadata.auditlog.command_hashes[audit_index], eCMD_hash, HASH_SIZE);
-  enclave_state.auditmetadata.auditlog.seqNo[audit_index] = CC.seqNo;
-  enclave_state.auditmetadata.audit_index++;
+  uint64_t auditlog_entry_index = enclave_state.auditmetadata.auditlog.num_entries;
+  struct audit_entry_t *new_audit_entry = &enclave_state.auditmetadata.auditlog.entries[auditlog_entry_index];
+  get_packed_address(CC.user_pubkey, new_audit_entry->user_address);
+  memcpy(&new_audit_entry->command_hash, eCMD_hash, HASH_SIZE);
+  new_audit_entry->seqNo = CC.seqNo;
+  enclave_state.auditmetadata.auditlog.num_entries++;
 
   // PRINTS AUDIT LOG
   if(DEBUGPRINT) { //todo change to ifdefineif
-    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditmetadata.audit_index);
-    for(int i = 0; i < enclave_state.auditmetadata.audit_index; i++) {
-      printf("[%d]: SEQ: %lu",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
+    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditmetadata.auditlog.num_entries);
+    for(int i = 0; i < enclave_state.auditmetadata.auditlog.num_entries; i++) {
+      struct audit_entry_t audit_entry = enclave_state.auditmetadata.auditlog.entries[i];
+      printf("[%d]: SEQ: %lu",i, audit_entry.seqNo);
       printf(" ADDR: ");
-      print_hexstring_trunc_n((uint8_t *) enclave_state.auditmetadata.auditlog.user_addresses[i] + 12, sizeof(packed_address_t)-12);
+      print_hexstring_trunc_n((uint8_t *) audit_entry.user_address + 12, sizeof(packed_address_t)-12);
       printf(" HASH: ");
-      print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.command_hashes[i], HASH_SIZE);
+      print_hexstring_trunc_n(audit_entry.command_hash, HASH_SIZE);
       printf("\n");
     }
   }
@@ -373,15 +374,9 @@ sgx_status_t ecall_commandPVRA(
   /*   (9) SEAL STATE    */
   //todo should still seal audit log if user has errors but not if admin has errors
   seal_cleanup: ;
-    size_t actual_sealedstate_size;
-    ret = seal_enclave_state(newsealedstate, sealedstate_size, &actual_sealedstate_size, &enclave_state, &dAD);
-    if (actual_sealedstate_size != newsealedstate_size) {
-      printf("[eiPVRA] sealsize incorrect %lu != %lu\n", actual_sealedstate_size, newsealedstate_size);
-      ret = SGX_ERROR_UNEXPECTED;
-      goto cleanup;
-    }
+    ret = seal_enclave_state(&enclave_state, &dAD, newsealedstate_size, newsealedstate);
     if(ret == SGX_SUCCESS) {
-      if(DEBUGPRINT) printf("[eiPVRA] sealed state size: [%lu]\n", actual_sealedstate_size);
+      if(DEBUGPRINT) printf("[eiPVRA] sealed state size: [%lu]\n", newsealedstate_size);
     }
     goto cleanup;
 

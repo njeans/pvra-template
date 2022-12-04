@@ -155,6 +155,7 @@ sgx_status_t ecall_initPVRA(
   //    Initialize Application Data    //
 
   struct dAppData dAD;
+  dAD.num_dDS = 0;
   err = initES(&enclave_state, &dAD);
 
   if(err != 0) {
@@ -192,8 +193,9 @@ sgx_status_t ecall_initPVRA(
   }
   //    Initialize AUDIT LOG metadata    //
 
-  enclave_state.auditmetadata.audit_index = 0;
-  enclave_state.auditmetadata.audit_num = 1;
+  enclave_state.auditmetadata.auditlog.num_entries = 0;
+  enclave_state.auditmetadata.auditlog.audit_num = 1;
+  enclave_state.auditmetadata.auditlog.entries = NULL;
   if(DEBUGPRINT) printf("[eiPVRA] Initialized audit log metadata success\n");
 
 
@@ -222,7 +224,7 @@ sgx_status_t ecall_initPVRA(
 
 
 
-  //    Generate Quote    //
+  //    Generate Report    //
 
   sgx_report_data_t report_data = {{0}};
   memcpy((uint8_t *const) &report_data, (uint8_t *)&enclave_state.enclavekeys.sig_pubkey, 64);
@@ -230,24 +232,20 @@ sgx_status_t ecall_initPVRA(
   if(DEBUGPRINT) printf("[eiPVRA] Calling enclave to generate attestation report\n");
   ret = sgx_create_report(target_info, &report_data, report);
   if(ret == SGX_SUCCESS) {
-    if(DEBUGPRINT) printf("[eiPVRA] Quote generated success\n");
+    if(DEBUGPRINT) printf("[eiPVRA] Report generated success\n");
   } else {
-    printf("[eiPVRA] Quote generation failed %d\n", ret);
+    printf("[eiPVRA] Report generation failed %d\n", ret);
     goto cleanup;
   }
   if(I_DEBUGRDTSC) ocall_rdtsc();
 
   //    Seal Enclave State    //
-  size_t actual_sealedstate_size;
-  ret = seal_enclave_state(sealedstate, sealedstate_size, &actual_sealedstate_size, &enclave_state, &dAD);
-  if (actual_sealedstate_size != sealedstate_size){
-    printf("[eiPVRA] sealsize incorrect %lu != %lu\n", actual_sealedstate_size, sealedstate_size);
-    ret = SGX_ERROR_UNEXPECTED;
-    goto cleanup;
-  }
+  ret = seal_enclave_state(&enclave_state, &dAD, sealedstate_size, sealedstate);
   if(ret == SGX_SUCCESS) {
-    if(DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%lu]\n", actual_sealedstate_size);
-  }
+    if(DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%lu]\n", sealedstate_size);
+  } else {
+    printf("[eiPVRA] seal_enclave_state error: [%d]\n", ret);
+  } 
 
   goto cleanup;
 

@@ -28,9 +28,10 @@
 #include <secp256k1_recovery.h>
 
 #include "enclave_state.h"
-//#include "util.h"
 
-
+#ifdef MERKLE_TREE
+#include "merkletree.h"
+#endif
 
 /**
  * This extracts the auditlog for a PVRA enclave.
@@ -73,7 +74,7 @@ sgx_status_t ecall_auditlogPVRA(
 
 
   /*    Unseal Enclave State    */
-  ret = unseal_enclave_state(sealedstate, &enclave_state, &dAD);
+  ret = unseal_enclave_state(sealedstate, false, &enclave_state, &dAD);
   if (ret != SGX_SUCCESS) {
     goto cleanup;
   }
@@ -83,17 +84,18 @@ sgx_status_t ecall_auditlogPVRA(
 
  
   // PRINTS AUDIT LOG 
-  uint64_t audit_index = enclave_state.auditmetadata.audit_index;
+  uint64_t num_audit_entries = enclave_state.auditmetadata.auditlog.num_entries;
   if(DEBUGPRINT) { //todo change to ifdefineif
-        printf("[eaPVRA] PRINTING READABLE AUDITLOG len: %d\n", audit_index);
-        for(int i = 0; i < audit_index; i++) {
-          printf("[%d]: SEQ: %lu",i, enclave_state.auditmetadata.auditlog.seqNo[i]);
-          printf(" ADDR: ");
-          print_hexstring_trunc_n((uint8_t *) enclave_state.auditmetadata.auditlog.user_addresses[i] + 12, sizeof(packed_address_t)-12);
-          printf(" HASH: ");
-          print_hexstring_trunc_n(&enclave_state.auditmetadata.auditlog.command_hashes[i], HASH_SIZE);
-          printf("\n");
-        }
+    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditmetadata.auditlog.num_entries);
+    for(int i = 0; i < enclave_state.auditmetadata.auditlog.num_entries; i++) {
+      struct audit_entry_t audit_entry = enclave_state.auditmetadata.auditlog.entries[i];
+      printf("[%d]: SEQ: %lu",i, audit_entry.seqNo);
+      printf(" ADDR: ");
+      print_hexstring_trunc_n((uint8_t *) audit_entry.user_address + 12, sizeof(packed_address_t)-12);
+      printf(" HASH: ");
+      print_hexstring_trunc_n(audit_entry.command_hash, HASH_SIZE);
+      printf("\n");
+    }
   }
 
 #ifdef MERKLE_TREE
@@ -142,31 +144,32 @@ sgx_status_t ecall_auditlogPVRA(
   serialize_tree(auditlog, &mt);
   cleanup_tree(&mt);
   size_t auditlog_offset = mt_size;
-  size_t calc_auditlog_size = calc_auditlog_buffer_size(&enclave_state) + mt_size;
+  size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditmetadata.auditlog) + mt_size;
 #else
   size_t auditlog_offset = 0;
-  size_t calc_auditlog_size = calc_auditlog_buffer_size(&enclave_state);
+  size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditmetadata.auditlog);
 #endif
 
   if (auditlog_size != calc_auditlog_size) {
     printf("[eaPVRA] auditlog_size incorrect %lu != %lu\n", calc_auditlog_size, auditlog_size);
+    ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
 
-  memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditmetadata.audit_num);
-  auditlog_offset += sizeof(enclave_state.auditmetadata.audit_num);
+  memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditmetadata.auditlog.audit_num);
+  auditlog_offset += sizeof(enclave_state.auditmetadata.auditlog.audit_num);
 
-  for(uint64_t i = 0; i < audit_index; i++) {
-    memcpy(auditlog + auditlog_offset, &enclave_state.auditmetadata.auditlog.user_addresses[i], sizeof(packed_address_t));
+  for(uint64_t i = 0; i < num_audit_entries; i++) {
+    memcpy(auditlog + auditlog_offset, &enclave_state.auditmetadata.auditlog.entries[i].user_address, sizeof(packed_address_t));
     auditlog_offset += sizeof(packed_address_t);
   }
-  for(uint64_t i = 0; i < audit_index; i++) {
-    memcpy(auditlog + auditlog_offset, &enclave_state.auditmetadata.auditlog.command_hashes[i], HASH_SIZE);
+  for(uint64_t i = 0; i < num_audit_entries; i++) {
+    memcpy(auditlog + auditlog_offset, &enclave_state.auditmetadata.auditlog.entries[i].command_hash, HASH_SIZE);
     auditlog_offset += HASH_SIZE;
   }
-  for(uint64_t i = 0; i < audit_index; i++) {
-    memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditmetadata.auditlog.seqNo[i]);
-    auditlog_offset += sizeof(enclave_state.auditmetadata.auditlog.seqNo[i]);
+  for(uint64_t i = 0; i < num_audit_entries; i++) {
+    memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditmetadata.auditlog.entries[i].seqNo);
+    auditlog_offset += sizeof(enclave_state.auditmetadata.auditlog.entries[i].seqNo);
   }
 
   if(DEBUGPRINT) printf("[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED: size %d\n", auditlog_size);
@@ -191,9 +194,9 @@ sgx_status_t ecall_auditlogPVRA(
   if(DEBUGPRINT) print_hexstring(auditlog_signature_ser, 65);
 
 
-  enclave_state.auditmetadata.audit_index = 0;
-  enclave_state.auditmetadata.audit_num+=1;
-  if(DEBUGPRINT) printf("[eaPVRA] Reseting audit log audit_index %u audit_num %u\n", enclave_state.auditmetadata.audit_index,  enclave_state.auditmetadata.audit_num);
+  enclave_state.auditmetadata.auditlog.num_entries = 0;
+  enclave_state.auditmetadata.auditlog.audit_num+=1;
+  if(DEBUGPRINT) printf("[eaPVRA] Reseting audit log num_entries %u audit_num %u\n", enclave_state.auditmetadata.auditlog.num_entries,  enclave_state.auditmetadata.auditlog.audit_num);
 
   if(A_DEBUGRDTSC) ocall_rdtsc();
 
@@ -201,15 +204,9 @@ sgx_status_t ecall_auditlogPVRA(
 
   /*   (9) SEAL STATE    */
   seal_cleanup: ;
-    size_t actual_sealedstate_size;
-    ret = seal_enclave_state(newsealedstate, newsealedstate_size, &actual_sealedstate_size, &enclave_state, &dAD);
-    if (actual_sealedstate_size != newsealedstate_size) {
-      printf("[eaPVRA] sealsize incorrect %lu != %lu\n", actual_sealedstate_size, newsealedstate_size);
-      ret = SGX_ERROR_UNEXPECTED;
-      goto cleanup;
-    }
+    ret = seal_enclave_state(&enclave_state, &dAD, newsealedstate_size, newsealedstate);
     if(ret == SGX_SUCCESS) {
-      if(DEBUGPRINT) printf("[eaPVRA] sealed state size: [%lu]\n", actual_sealedstate_size);
+      if(DEBUGPRINT) printf("[eaPVRA] sealed state size: [%lu]\n", newsealedstate_size);
     }
     goto cleanup;
 
