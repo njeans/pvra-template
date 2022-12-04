@@ -84,11 +84,11 @@ sgx_status_t ecall_auditlogPVRA(
 
  
   // PRINTS AUDIT LOG 
-  uint64_t num_audit_entries = enclave_state.auditmetadata.auditlog.num_entries;
+  uint64_t num_audit_entries = enclave_state.auditlog.num_entries;
   if(DEBUGPRINT) { //todo change to ifdefineif
-    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditmetadata.auditlog.num_entries);
-    for(int i = 0; i < enclave_state.auditmetadata.auditlog.num_entries; i++) {
-      struct audit_entry_t audit_entry = enclave_state.auditmetadata.auditlog.entries[i];
+    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditlog.num_entries);
+    for(int i = 0; i < enclave_state.auditlog.num_entries; i++) {
+      struct audit_entry_t audit_entry = enclave_state.auditlog.entries[i];
       printf("[%d]: SEQ: %lu",i, audit_entry.seqNo);
       printf(" ADDR: ");
       print_hexstring_trunc_n((uint8_t *) audit_entry.user_address + 12, sizeof(packed_address_t)-12);
@@ -113,7 +113,7 @@ sgx_status_t ecall_auditlogPVRA(
   for(int i = 0; i < NUM_USERS; i++) {
     unsigned char AESKey[AESGCM_128_KEY_SIZE];
     enc_data[i] = (uint8_t *) malloc(enc_block_size);
-    sgx_status_t ret = genkey_aesgcm128(enclave_state.auditmetadata.master_user_pubkeys[i+1], enclave_state.enclavekeys.enc_prikey, AESKey);
+    sgx_status_t ret = genkey_aesgcm128(enclave_state.publickeys.user_pubkeys[i], enclave_state.enclavekeys.enc_prikey, AESKey);
     if (ret != SGX_SUCCESS) {
         goto cleanup;
     }
@@ -144,10 +144,10 @@ sgx_status_t ecall_auditlogPVRA(
   serialize_tree(auditlog, &mt);
   cleanup_tree(&mt);
   size_t auditlog_offset = mt_size;
-  size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditmetadata.auditlog) + mt_size;
+  size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditlog) + mt_size;
 #else
   size_t auditlog_offset = 0;
-  size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditmetadata.auditlog);
+  size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditlog);
 #endif
 
   if (auditlog_size != calc_auditlog_size) {
@@ -156,20 +156,20 @@ sgx_status_t ecall_auditlogPVRA(
     goto cleanup;
   }
 
-  memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditmetadata.auditlog.audit_num);
-  auditlog_offset += sizeof(enclave_state.auditmetadata.auditlog.audit_num);
+  memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditlog.audit_num);
+  auditlog_offset += sizeof(enclave_state.auditlog.audit_num);
 
   for(uint64_t i = 0; i < num_audit_entries; i++) {
-    memcpy(auditlog + auditlog_offset, &enclave_state.auditmetadata.auditlog.entries[i].user_address, sizeof(packed_address_t));
+    memcpy(auditlog + auditlog_offset, &enclave_state.auditlog.entries[i].user_address, sizeof(packed_address_t));
     auditlog_offset += sizeof(packed_address_t);
   }
   for(uint64_t i = 0; i < num_audit_entries; i++) {
-    memcpy(auditlog + auditlog_offset, &enclave_state.auditmetadata.auditlog.entries[i].command_hash, HASH_SIZE);
+    memcpy(auditlog + auditlog_offset, &enclave_state.auditlog.entries[i].command_hash, HASH_SIZE);
     auditlog_offset += HASH_SIZE;
   }
   for(uint64_t i = 0; i < num_audit_entries; i++) {
-    memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditmetadata.auditlog.entries[i].seqNo);
-    auditlog_offset += sizeof(enclave_state.auditmetadata.auditlog.entries[i].seqNo);
+    memcpy_big_uint64(auditlog + auditlog_offset, enclave_state.auditlog.entries[i].seqNo);
+    auditlog_offset += sizeof(enclave_state.auditlog.entries[i].seqNo);
   }
 
   if(DEBUGPRINT) printf("[eaPVRA] PRINTING AUDITLOG BUFFER TO BE HASHED: size %d\n", auditlog_size);
@@ -194,9 +194,9 @@ sgx_status_t ecall_auditlogPVRA(
   if(DEBUGPRINT) print_hexstring(auditlog_signature_ser, 65);
 
 
-  enclave_state.auditmetadata.auditlog.num_entries = 0;
-  enclave_state.auditmetadata.auditlog.audit_num+=1;
-  if(DEBUGPRINT) printf("[eaPVRA] Reseting audit log num_entries %u audit_num %u\n", enclave_state.auditmetadata.auditlog.num_entries,  enclave_state.auditmetadata.auditlog.audit_num);
+  enclave_state.auditlog.num_entries = 0;
+  enclave_state.auditlog.audit_num+=1;
+  if(DEBUGPRINT) printf("[eaPVRA] Reseting audit log num_entries %u audit_num %u\n", enclave_state.auditlog.num_entries,  enclave_state.auditlog.audit_num);
 
   if(A_DEBUGRDTSC) ocall_rdtsc();
 

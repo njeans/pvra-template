@@ -172,38 +172,41 @@ sgx_status_t ecall_initPVRA(
 
   // Parsing userpubkeys from pubkeys.list
   const char new_line = '\n';
+  hexstr_to_bytes(userpubkeys, 128, enclave_state.publickeys.admin_pubkey);
   int num_pubkeys = 0;
-  for(int i = 0; i< strlen(userpubkeys); i+=129) {
-    hexstr_to_bytes(userpubkeys + (129 * num_pubkeys), 128, enclave_state.auditmetadata.master_user_pubkeys[num_pubkeys]);
+  for(int i = 129; i< strlen(userpubkeys); i+=129) {
+    hexstr_to_bytes(userpubkeys + i, 128, enclave_state.publickeys.user_pubkeys[num_pubkeys]);
     num_pubkeys++;
-      if (num_pubkeys >= MAX_USERS) {
-        printf("[eiPVRA] pubkeys not enough allocated space.\n");
-        ret = SGX_ERROR_INVALID_PARAMETER;
-        goto cleanup;
-      }
+    if (num_pubkeys >= MAX_USERS) {
+      printf("[eiPVRA] pubkeys not enough allocated space.\n");
+      ret = SGX_ERROR_INVALID_PARAMETER;
+      goto cleanup;
+    }
   }
 
-  enclave_state.auditmetadata.num_pubkeys = num_pubkeys;
+  enclave_state.publickeys.num_pubkeys = num_pubkeys;
 
   if(DEBUGPRINT) {
-      printf("[eiPVRA] Initialized [%d] User Public Keys success\n", num_pubkeys);
-      for (int i = 0; i < enclave_state.auditmetadata.num_pubkeys; i++) {
-        print_hexstring(enclave_state.auditmetadata.master_user_pubkeys[i], 64);
+      printf("[eiPVRA] Initialized [%d] Public Keys success\nADMIN: ", num_pubkeys);
+      print_hexstring(enclave_state.publickeys.admin_pubkey, 64);
+      printf("USERS:\n");
+      for (int i = 0; i < enclave_state.publickeys.num_pubkeys; i++) {
+        print_hexstring(enclave_state.publickeys.user_pubkeys[i], 64);
       }
   }
   //    Initialize AUDIT LOG metadata    //
 
-  enclave_state.auditmetadata.auditlog.num_entries = 0;
-  enclave_state.auditmetadata.auditlog.audit_num = 1;
-  enclave_state.auditmetadata.auditlog.entries = NULL;
+  enclave_state.auditlog.num_entries = 0;
+  enclave_state.auditlog.audit_num = 1;
+  enclave_state.auditlog.entries = NULL;
   if(DEBUGPRINT) printf("[eiPVRA] Initialized audit log metadata success\n");
 
 
   //    Sign all USER pubkeys    //
 
   unsigned char msg_hash[32];
-  hash_address_list(&enclave_state.auditmetadata.master_user_pubkeys, num_pubkeys, &msg_hash);
-  if(DEBUGPRINT) printf("[eiPVRA] USER addrs hash\n");
+  hash_address_list(&enclave_state.publickeys.admin_pubkey, &enclave_state.publickeys.user_pubkeys, num_pubkeys, &msg_hash);
+  if(DEBUGPRINT) printf("[eiPVRA] USER+Admin addrs hash\n");
   if(DEBUGPRINT) print_hexstring(&msg_hash, HASH_SIZE);
 
 
@@ -213,7 +216,7 @@ sgx_status_t ecall_initPVRA(
     goto cleanup;
   }
 
-  if(DEBUGPRINT) printf("[eiPVRA] Signed [%d] User Public Keys\n", num_pubkeys);
+  if(DEBUGPRINT) printf("[eiPVRA] Signed [%d] Public Keys\n", num_pubkeys+1);
   if(DEBUGPRINT) printf("[eiPVRA] ADDRESS SIGNATURE serialized\n");
   if(DEBUGPRINT) print_hexstring(useraddrs_signature_ser, 65);
 

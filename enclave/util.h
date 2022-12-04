@@ -8,7 +8,7 @@ void get_address(secp256k1_pubkey * pubkey, address_t* out);
 
 void get_packed_address(secp256k1_pubkey * pubkey, packed_address_t* out);
 
-void hash_address_list(secp256k1_pubkey * pubkey_list, int num_pubkeys, uint8_t * hash_out_32);
+void hash_address_list(secp256k1_pubkey * admin_pubkey, secp256k1_pubkey * user_pubkeys_list, int num_pubkeys, uint8_t * hash_out_32);
 
 void keccak256(uint8_t *buff, size_t buff_size, uint8_t * hash_out_32);
 

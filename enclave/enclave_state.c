@@ -107,9 +107,9 @@ sgx_status_t ecall_audit_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_s
   *newsealedstate_size = seal_size;
 
 #ifdef MERKLE_TREE
-  *newauditlog_buffer_size = calc_auditlog_out_buffer_size(&enclave_state.auditmetadata.auditlog) + calc_merkletree_out_buffer_size(&enclave_state);
+  *newauditlog_buffer_size = calc_auditlog_out_buffer_size(&enclave_state.auditlog) + calc_merkletree_out_buffer_size(&enclave_state);
 #else
-  *newauditlog_buffer_size = calc_auditlog_out_buffer_size(&enclave_state.auditmetadata.auditlog);
+  *newauditlog_buffer_size = calc_auditlog_out_buffer_size(&enclave_state.auditlog);
 #endif
   //todo call gree_enclave_state
   return ret;
@@ -135,7 +135,7 @@ sgx_status_t ecall_cmd_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_siz
   //input num_entries+1 to calc_auditlog_size since a new entry will be added in ecall_commandPVRA
   uint32_t unsealed_data_size = sizeof(struct ES) + sizeof(struct dAppData) + 
                                   calc_appdata_size(&dAD) +
-                                  calc_auditlog_size(enclave_state.auditmetadata.auditlog.num_entries+1);
+                                  calc_auditlog_size(enclave_state.auditlog.num_entries+1);
 
   uint32_t seal_size = sgx_calc_sealed_data_size(0U, unsealed_data_size);
 
@@ -217,15 +217,15 @@ sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool CM
     }
 
     
-    size_t num_audit_entries = enclave_state->auditmetadata.auditlog.num_entries;
+    size_t num_audit_entries = enclave_state->auditlog.num_entries;
     size_t current_auditlog_size = calc_auditlog_size(num_audit_entries);
     if (CMD) { //a new entry will be input in audit log in ecall_commandPVRA
       num_audit_entries++;
     }
     size_t auditlog_size = calc_auditlog_size(num_audit_entries);
-    enclave_state->auditmetadata.auditlog.entries = (struct audit_entry_t *) malloc(auditlog_size);
-    memset(enclave_state->auditmetadata.auditlog.entries, 0, auditlog_size);
-    memcpy(enclave_state->auditmetadata.auditlog.entries, unsealed_data + offset, current_auditlog_size);
+    enclave_state->auditlog.entries = (struct audit_entry_t *) malloc(auditlog_size);
+    memset(enclave_state->auditlog.entries, 0, auditlog_size);
+    memcpy(enclave_state->auditlog.entries, unsealed_data + offset, current_auditlog_size);
     offset += auditlog_size;
 
     ret = initAD(enclave_state, dAD);
@@ -247,7 +247,7 @@ sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool CM
 sgx_status_t seal_enclave_state(struct ES * enclave_state, struct dAppData * dAD, size_t sealedstate_size, const sgx_sealed_data_t * sealedstate) {
     uint32_t unsealed_data_size = sizeof(struct ES) + sizeof(struct dAppData) + 
                                     calc_appdata_size(dAD) +
-                                    calc_auditlog_size(enclave_state->auditmetadata.auditlog.num_entries);
+                                    calc_auditlog_size(enclave_state->auditlog.num_entries);
 
     uint32_t seal_size = sgx_calc_sealed_data_size(0U, unsealed_data_size);
     if(sealedstate_size < seal_size) {
@@ -272,8 +272,8 @@ sgx_status_t seal_enclave_state(struct ES * enclave_state, struct dAppData * dAD
       memcpy(unsealed_data + unsealed_offset, dAD->dDS[i]->buffer, dAD->dDS[i]->buffer_size);
       unsealed_offset += dAD->dDS[i]->buffer_size;
     }
-    for (size_t i = 0; i < enclave_state->auditmetadata.auditlog.num_entries; i++) {
-      struct audit_entry_t *audit_entry = &enclave_state->auditmetadata.auditlog.entries[i];
+    for (size_t i = 0; i < enclave_state->auditlog.num_entries; i++) {
+      struct audit_entry_t *audit_entry = &enclave_state->auditlog.entries[i];
       memcpy(unsealed_data + unsealed_offset, audit_entry, sizeof(struct audit_entry_t));
       unsealed_offset += sizeof(struct audit_entry_t);
     }
@@ -285,9 +285,9 @@ sgx_status_t seal_enclave_state(struct ES * enclave_state, struct dAppData * dAD
 
     // FREE dynamic structs 
     // todo make free_encalve_state that is called in ecall_calc_buffer and after calls to seal_enclave_state
-    if (enclave_state->auditmetadata.auditlog.entries != NULL) {
-      free(enclave_state->auditmetadata.auditlog.entries);
-      enclave_state->auditmetadata.auditlog.entries = NULL;
+    if (enclave_state->auditlog.entries != NULL) {
+      free(enclave_state->auditlog.entries);
+      enclave_state->auditlog.entries = NULL;
 
     }
     for(int i = 0; i < dAD->num_dDS; i++) {

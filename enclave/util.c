@@ -38,11 +38,12 @@ void keccak256(uint8_t *buff, size_t buff_size, uint8_t * hash_out_32) {
   keccak_final(&ctx, hash_out_32);
 }
 
-void hash_address_list(secp256k1_pubkey * pubkey_list, int num_pubkeys, uint8_t * hash_out_32) {
-  packed_address_t * addr_buff = (packed_address_t *) calloc(num_pubkeys, sizeof(packed_address_t)); // todo check null
-  size_t addr_buff_len = sizeof(packed_address_t)*num_pubkeys;
+void hash_address_list(secp256k1_pubkey * admin_pubkey, secp256k1_pubkey * user_pubkeys_list, int num_pubkeys, uint8_t * hash_out_32) {
+  packed_address_t * addr_buff = (packed_address_t *) calloc(num_pubkeys+1, sizeof(packed_address_t)); // todo check null
+  size_t addr_buff_len = sizeof(packed_address_t)*(num_pubkeys+1);
+  get_packed_address(admin_pubkey, addr_buff);
   for (int i = 0; i < num_pubkeys; i++) {
-    get_packed_address(&pubkey_list[i], &addr_buff[i]);
+    get_packed_address(&user_pubkeys_list[i], &addr_buff[i+1]);
   }
   keccak256(addr_buff, addr_buff_len, hash_out_32);
   free(addr_buff);

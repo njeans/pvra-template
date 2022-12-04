@@ -44,9 +44,9 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
     memset(ret.message, 0, 100);
 
     int user_idx = -1;
-    for(int i = 1; i < NUM_USERS+1; i++) {
-        if(strncmp(&CI->user_pubkey, &enclave_state->auditmetadata.master_user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
-          user_idx = i-1;
+    for(int i = 0; i < NUM_USERS; i++) {
+        if(strncmp(&CI->user_pubkey, &enclave_state->publickeys.user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
+          user_idx = i;
           break;
         }
     }
@@ -100,9 +100,9 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
     }
 
     int user_idx = -1;
-    for(int i = 1; i < NUM_USERS+1; i++) {
-        if(strncmp(CI->user_pubkey, enclave_state->auditmetadata.master_user_pubkeys[i], 64) == 0) {
-          user_idx = i-1;
+    for(int i = 0; i < NUM_USERS; i++) {
+        if(strncmp(CI->user_pubkey, enclave_state->publickeys.user_pubkeys[i], 64) == 0) {
+          user_idx = i;
           break;
         }
     }
@@ -151,7 +151,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
     }
 
 
-    memcpy(&enclave_state->auditmetadata.master_user_pubkeys[user_idx+1], &CI->recover_key, KEY_SIZE);
+    memcpy(&enclave_state->publickeys.user_pubkeys[user_idx], &CI->recover_key, KEY_SIZE);
     enclave_state->appdata.user_info[user_idx].started_retrieve = false;
     enclave_state->appdata.user_info[user_idx].retrieve_time = 0;
 

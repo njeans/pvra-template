@@ -1,11 +1,4 @@
-//#include <sgx_tcrypto.h>
 #include <sgx_tseal.h>
-//
-//#include <mbedtls/entropy.h>
-//#include <mbedtls/ctr_drbg.h>
-//#include <mbedtls/bignum.h>
-//#include <mbedtls/pk.h>
-//#include <mbedtls/rsa.h>
 #include <enclave_t.h>
 #include <secp256k1.h>
 
@@ -30,6 +23,26 @@ struct EK
 	secp256k1_prikey enc_prikey;
 };
 
+struct SCS
+{
+	//sgx_ec256_public_t CCF_key;
+	//const char CCF_key = "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAs1l0PEtgQRtk5mkclhMFTtkLGWUG/11ZiMG+wA7FCIljrs0u6rzT\n8XSILc0Gr7JEAQO+2r8r23HQnqQMRrAL8TnTHXWrClat7SFoOQlIQ3Oy0C2sxmk+\nKFhKFZy9fxCVcy4H+Qu6OF4HY6Aym08/oPBhIEnw7W29eH7VrkCrRDa9MwYZibD1\nyz8GM7OwrltU5wWt8GL0SMcMRe0rAfziwS+8u+rGFGVrPZ8f2ZhZrq0bfCIWdtp6\n58K1LqKomLayIDowy+9Lk79nI17xV7YnJammzZgSaNQXy+Az9c1rszT7RHK4rhUN\n0J8IDxuZVpzWjIEJQXY92yZQ0x7loNq8uwIDAQAB\n-----END RSA PUBLIC KEY-----\n";
+	uint8_t CCF_key[2049];
+	char freshness_tag[32];
+
+};
+
+struct AR
+{
+	uint64_t seqno[MAX_USERS];
+};
+
+struct UK
+{
+	uint8_t admin_pubkey[64];
+	uint64_t num_pubkeys;
+	uint8_t user_pubkeys[MAX_USERS][64];
+};
 
 struct audit_entry_t {
 	packed_address_t user_address;
@@ -44,39 +57,15 @@ struct AL
 	struct audit_entry_t * entries;
 };
 
-
-struct AUD
-{
-	uint64_t num_pubkeys;
-	uint8_t master_user_pubkeys[MAX_USERS][64];
-	struct AL auditlog;
-};
-
-
-struct SCS
-{
-	//sgx_ec256_public_t CCF_key;
-	//const char CCF_key = "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAs1l0PEtgQRtk5mkclhMFTtkLGWUG/11ZiMG+wA7FCIljrs0u6rzT\n8XSILc0Gr7JEAQO+2r8r23HQnqQMRrAL8TnTHXWrClat7SFoOQlIQ3Oy0C2sxmk+\nKFhKFZy9fxCVcy4H+Qu6OF4HY6Aym08/oPBhIEnw7W29eH7VrkCrRDa9MwYZibD1\nyz8GM7OwrltU5wWt8GL0SMcMRe0rAfziwS+8u+rGFGVrPZ8f2ZhZrq0bfCIWdtp6\n58K1LqKomLayIDowy+9Lk79nI17xV7YnJammzZgSaNQXy+Az9c1rszT7RHK4rhUN\n0J8IDxuZVpzWjIEJQXY92yZQ0x7loNq8uwIDAQAB\n-----END RSA PUBLIC KEY-----\n";
-	uint8_t CCF_key[2049];
-	char freshness_tag[32];
-
-};
-
-
-struct AR
-{
-	uint64_t seqno[MAX_USERS];
-};
-
-
 struct ES
 {
 	struct EK enclavekeys;
 	struct SCS counter;
 	struct AR antireplay;
 	struct AD appdata;
-	struct AUD auditmetadata;
-}; 
+	struct UK publickeys;
+	struct AL auditlog;
+};
 
 typedef uint32_t cType;
 
@@ -84,7 +73,6 @@ struct private_command {
 	cType CT;
 	struct cInputs CI;
 };
-
 
 struct clientCommand
 {
@@ -104,6 +92,8 @@ struct dAppData
 	struct dynamicDS **dDS;
 	int num_dDS;
 };
+
+
 
 
 sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool ecall_CMD, struct ES * enclave_state, struct dAppData * dAD);

@@ -107,18 +107,18 @@ sgx_status_t ecall_commandPVRA(
 
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
-  uint64_t auditlog_entry_index = enclave_state.auditmetadata.auditlog.num_entries;
-  struct audit_entry_t *new_audit_entry = &enclave_state.auditmetadata.auditlog.entries[auditlog_entry_index];
+  uint64_t auditlog_entry_index = enclave_state.auditlog.num_entries;
+  struct audit_entry_t *new_audit_entry = &enclave_state.auditlog.entries[auditlog_entry_index];
   get_packed_address(CC.user_pubkey, new_audit_entry->user_address);
   memcpy(&new_audit_entry->command_hash, eCMD_hash, HASH_SIZE);
   new_audit_entry->seqNo = CC.seqNo;
-  enclave_state.auditmetadata.auditlog.num_entries++;
+  enclave_state.auditlog.num_entries++;
 
   // PRINTS AUDIT LOG
   if(DEBUGPRINT) { //todo change to ifdefineif
-    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditmetadata.auditlog.num_entries);
-    for(int i = 0; i < enclave_state.auditmetadata.auditlog.num_entries; i++) {
-      struct audit_entry_t audit_entry = enclave_state.auditmetadata.auditlog.entries[i];
+    printf("[ecPVRA] PRINTING READABLE AUDITLOG len: %d\n", enclave_state.auditlog.num_entries);
+    for(int i = 0; i < enclave_state.auditlog.num_entries; i++) {
+      struct audit_entry_t audit_entry = enclave_state.auditlog.entries[i];
       printf("[%d]: SEQ: %lu",i, audit_entry.seqNo);
       printf(" ADDR: ");
       print_hexstring_trunc_n((uint8_t *) audit_entry.user_address + 12, sizeof(packed_address_t)-12);
@@ -246,26 +246,33 @@ sgx_status_t ecall_commandPVRA(
 
   if(DEBUGPRINT) printf("[ecPVRA] eCMD user_pubkey: ");
   if(DEBUGPRINT) print_hexstring(&CC.user_pubkey, 64);
-  int user_idx = -1;
-  for(int i = 0; i < NUM_USERS+1; i++) {
-    if(strncmp(CC.user_pubkey, enclave_state.auditmetadata.master_user_pubkeys[i], 64) == 0) {
-      user_idx = i;
-      break;
+  int user_idx = -2;
+  if(strncmp(CC.user_pubkey, enclave_state.publickeys.admin_pubkey, 64) == 0) {
+    user_idx = -1;
+  } else {
+    for(int i = 0; i < NUM_USERS; i++) {
+      if(strncmp(CC.user_pubkey, enclave_state.publickeys.user_pubkeys[i], 64) == 0) {
+        user_idx = i;
+        break;
+      }
     }
   }
 
-  if (user_idx == -1) {
+  if (user_idx == -2) {
     printf("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
     formatResponse(enc_cResponse + AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE, -2, "user public key NOT FOUND rejecting command");
     ret = sign_cResponse(enclave_state.enclavekeys.enc_prikey, enc_cResponse, cResponse_signature);
     goto seal_cleanup;
   }
-
-  if(DEBUGPRINT) printf("[ecPVRA] CMD user_idx %d\n", user_idx);
+  if (user_idx == -1) {
+    if(DEBUGPRINT) printf("[ecPVRA] CMD user_idx admin_user\n");
+  } else {
+    if(DEBUGPRINT) printf("[ecPVRA] CMD user_idx %d\n", user_idx);
+  }
 
   /*    ECDH protocol to generate shared secret AESKey    */
   unsigned char AESKey[AESGCM_128_KEY_SIZE];
-  ret = genkey_aesgcm128(enclave_state.auditmetadata.master_user_pubkeys[user_idx], enclave_state.enclavekeys.enc_prikey, AESKey);
+  ret = genkey_aesgcm128(CC.user_pubkey, enclave_state.enclavekeys.enc_prikey, AESKey);
   if(DEBUGPRINT) printf("[eiPVRA] Enclave Generated AES key ");
   if(DEBUGPRINT) print_hexstring(AESKey, AESGCM_128_KEY_SIZE);
 
@@ -319,17 +326,17 @@ sgx_status_t ecall_commandPVRA(
 
   
   /*    (5) SEQNO Verification    */
-  if (user_idx > 0) { //i.e. not admin
-    if(CC.seqNo != enclave_state.antireplay.seqno[user_idx-1]+1) {
-        printf("[ecPVRA] SeqNo failure received [%lu] != [%lu] Not logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx-1]+1);
-        sprintf(resp, "SeqNo failure received [%lu] != [%lu] NOT logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx-1]+1);
+  if (user_idx >= 0) { //i.e. not admin
+    if(CC.seqNo != enclave_state.antireplay.seqno[user_idx]+1) {
+        printf("[ecPVRA] SeqNo failure received [%lu] != [%lu] Not logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx]+1);
+        sprintf(resp, "SeqNo failure received [%lu] != [%lu] NOT logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx]+1);
         formatResponse(&cResp, -4, resp);
         sign_cResponse(enclave_state.enclavekeys.enc_prikey, &cResp, cResponse_signature);
         encrypt_cResponse(AESKey, &cResp, enc_cResponse, enc_cResponse_size);
         goto cleanup;
     }
-    enclave_state.antireplay.seqno[user_idx-1]++;
-    if(DEBUGPRINT) printf("[ecPVRA] SeqNo success [%lu]\n", enclave_state.antireplay.seqno[user_idx-1]);
+    enclave_state.antireplay.seqno[user_idx]++;
+    if(DEBUGPRINT) printf("[ecPVRA] SeqNo success [%lu]\n", enclave_state.antireplay.seqno[user_idx]);
   }
   if(C_DEBUGRDTSC) ocall_rdtsc();
 
@@ -351,7 +358,7 @@ sgx_status_t ecall_commandPVRA(
     goto cleanup;
   }
   /*   APPLICATION KERNEL INVOKED    */
-  cResp = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI, user_idx-1);
+  cResp = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI, user_idx);
   
   /*   (7) FT UPDATE    */
 
