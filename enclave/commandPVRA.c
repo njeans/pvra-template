@@ -60,6 +60,7 @@ sgx_status_t ecall_commandPVRA(
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
   struct ES enclave_state;
   struct dAppData dAD;
+  init_enclave_state(&enclave_state, &dAD);
   struct clientCommand CC;
   struct cResponse cResp;
   char resp[100];
@@ -250,7 +251,7 @@ sgx_status_t ecall_commandPVRA(
   if(strncmp(CC.user_pubkey, enclave_state.publickeys.admin_pubkey, 64) == 0) {
     user_idx = -1;
   } else {
-    for(int i = 0; i < NUM_USERS; i++) {
+    for(int i = 0; i < enclave_state.num_users; i++) {
       if(strncmp(CC.user_pubkey, enclave_state.publickeys.user_pubkeys[i], 64) == 0) {
         user_idx = i;
         break;
@@ -392,6 +393,7 @@ sgx_status_t ecall_commandPVRA(
       mbedtls_rsa_free(rsapk_pub_key);
     if (bigbuf != NULL)
         free(bigbuf);
+    free_enclave_state(&enclave_state, &dAD);
     if(C_DEBUGRDTSC) ocall_rdtsc();
     return ret;
 }

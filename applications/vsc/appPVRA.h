@@ -6,11 +6,8 @@
 #define __APPPVRA_H__
 
 #define NUM_COMMANDS 2
-#define NUM_USERS 8
-#define NUM_TESTS 100
-#define INIT_NUM_USERS 8
-#define INIT_NUM_TESTS 100
-
+#define MAX_TEST 10 //max test history to store
+#define MIN_NEG 2 //minimum number of successive negative tests 
 
 struct cInputs
 {
@@ -24,19 +21,17 @@ struct cResponse
 	bool access;
 };
 
-struct AD
-{
-	char *test_history;
-	int *num_tests;
-	int *query_counter;
+struct userTests
+{	
+	bool test_history[MAX_TEST];
+	uint64_t num_tests;
+	uint64_t query_counter;
 };
 
-/* static version outdated */ /*
+
 struct AD
 {
-	char test_history[NUM_USERS*NUM_TESTS];
-	int num_tests[NUM_USERS];
-	int query_counter[NUM_USERS];
-};*/
+	struct userTests *user_tests;
+};
 
 #endif

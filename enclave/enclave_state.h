@@ -34,14 +34,15 @@ struct SCS
 
 struct AR
 {
-	uint64_t seqno[MAX_USERS];
+	uint64_t *seqno;
 };
+
+typedef uint8_t pubkey_t[64];
 
 struct UK
 {
-	uint8_t admin_pubkey[64];
-	uint64_t num_pubkeys;
-	uint8_t user_pubkeys[MAX_USERS][64];
+	pubkey_t admin_pubkey;
+	pubkey_t * user_pubkeys;
 };
 
 struct audit_entry_t {
@@ -59,6 +60,7 @@ struct AL
 
 struct ES
 {
+	uint64_t num_users;
 	struct EK enclavekeys;
 	struct SCS counter;
 	struct AR antireplay;
@@ -83,24 +85,25 @@ struct clientCommand
 
 struct dynamicDS
 {
-	uint8_t * buffer;
 	size_t buffer_size;
+	uint8_t * buffer;
 };
 
 struct dAppData
 {
-	struct dynamicDS **dDS;
 	int num_dDS;
+	struct dynamicDS *dDS;
 };
 
 
 
-
+void init_enclave_state(struct ES * enclave_state,  struct dAppData * dAD);
 sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool ecall_CMD, struct ES * enclave_state, struct dAppData * dAD);
 sgx_status_t seal_enclave_state(struct ES * enclave_state, struct dAppData * dAD, size_t sealedstate_size, const sgx_sealed_data_t * sealedstate);
+void free_enclave_state(struct ES * enclave_state, struct dAppData * dAD);
 
 size_t calc_auditlog_buffer_size(struct ES * enclave_state);
-sgx_status_t ecall_init_buffer_sizes(size_t *newsealedstate_size);
+sgx_status_t ecall_init_buffer_sizes(uint64_t num_users, size_t *newsealedstate_size);
 sgx_status_t ecall_cmd_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_size, size_t *newsealedstate_size);
 sgx_status_t ecall_audit_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_size, size_t *newsealedstate_size, size_t *newauditlog_buffer_size);
 

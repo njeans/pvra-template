@@ -8,7 +8,7 @@
 #include "util.h"
 
 
-void get_address(secp256k1_pubkey * pubkey, address_t* out) {
+void get_address(pubkey_t * pubkey, address_t* out) {
     struct SHA3_CTX ctx;
     keccak_init(&ctx);
     keccak_update(&ctx, pubkey, 64);
@@ -18,7 +18,7 @@ void get_address(secp256k1_pubkey * pubkey, address_t* out) {
 }
 
 //solidity abi.encodePacked([]address) function left pads address to 32 bytes
-void get_packed_address(secp256k1_pubkey * pubkey, packed_address_t* out) {
+void get_packed_address(pubkey_t * pubkey, packed_address_t* out) {
     struct SHA3_CTX ctx;
     keccak_init(&ctx);
     keccak_update(&ctx, pubkey, 64);
@@ -38,9 +38,9 @@ void keccak256(uint8_t *buff, size_t buff_size, uint8_t * hash_out_32) {
   keccak_final(&ctx, hash_out_32);
 }
 
-void hash_address_list(secp256k1_pubkey * admin_pubkey, secp256k1_pubkey * user_pubkeys_list, int num_pubkeys, uint8_t * hash_out_32) {
-  packed_address_t * addr_buff = (packed_address_t *) calloc(num_pubkeys+1, sizeof(packed_address_t)); // todo check null
+void hash_address_list(pubkey_t * admin_pubkey, pubkey_t * user_pubkeys_list, uint64_t num_pubkeys, uint8_t * hash_out_32) {
   size_t addr_buff_len = sizeof(packed_address_t)*(num_pubkeys+1);
+  packed_address_t * addr_buff = (packed_address_t *) malloc(addr_buff_len); // todo check null
   get_packed_address(admin_pubkey, addr_buff);
   for (int i = 0; i < num_pubkeys; i++) {
     get_packed_address(&user_pubkeys_list[i], &addr_buff[i+1]);

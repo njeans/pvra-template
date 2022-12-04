@@ -6,6 +6,7 @@
 
 #include <getopt.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <openssl/evp.h>
 
@@ -28,6 +29,7 @@ static struct option long_options[] = {
   {"cResponse", required_argument, 0, 0},
   {"cRsig", required_argument, 0, 0},
   {"sealedOut", required_argument, 0, 0},
+  {"numusers", required_argument, 0, 0},
   {"userpubkeys", required_argument, 0, 0},
   {"sigpubkeys", required_argument, 0, 0},
   {"auditlog", required_argument, 0, 0},
@@ -45,6 +47,7 @@ int main(int argc, char **argv) {
   bool opt_commandPVRA = false;
   bool opt_restartPVRA = false;
   bool opt_auditlogPVRA = false;
+  uint64_t opt_numusers = 0;
 
   const char *opt_enclave_path = NULL;
   const char *opt_sealedstate_file = NULL;
@@ -110,15 +113,18 @@ int main(int argc, char **argv) {
       opt_sealedout_file = optarg;
       break;
     case 14:
-      opt_userpubkeys_file = optarg;
+      opt_numusers = strtoul(optarg, NULL, 10);
       break;
     case 15:
-      opt_sigpubkeys_file = optarg;
+      opt_userpubkeys_file = optarg;
       break;
     case 16:
-      opt_auditlog_file = optarg;
+      opt_sigpubkeys_file = optarg;
       break;
     case 17:
+      opt_auditlog_file = optarg;
+      break;
+    case 18:
       opt_auditlogsig_file = optarg;
       break;
     }
@@ -130,12 +136,13 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  if (opt_initPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_quote_file) && (!opt_signature_file) && (!opt_userpubkeys_file) && (!opt_sigpubkeys_file)) {
+  if (opt_initPVRA && (!opt_enclave_path) && (!opt_sealedstate_file) && (!opt_quote_file) && (!opt_signature_file) && (!opt_numusers) && (!opt_userpubkeys_file) && (!opt_sigpubkeys_file)) {
     fprintf(stderr, "Error Usage:\n");
     fprintf(stderr, "  %s --initPVRA --enclave-path /path/to/enclave.signed.so \
       --sealedState sealedState.bin \
       --quotefile quote.bin \
-      --signature enckey.sig\
+      --signature enckey.sig \
+      --numusers 4 \
       --userpubkeys pubkeys.list\
       --sigpubkeys pubkeys.sig\n", argv[0]);
     return EXIT_FAILURE;
@@ -171,14 +178,14 @@ int main(int argc, char **argv) {
   bool success_status =
     create_enclave(opt_enclave_path) &&
 
-    (opt_initPVRA ? enclave_get_init_buffer_sizes() : true) &&
+    (opt_initPVRA ? enclave_get_init_buffer_sizes(opt_numusers) : true) &&
     (opt_commandPVRA || opt_auditlogPVRA ? load_seal(opt_sealedstate_file) : true) &&
     (opt_commandPVRA ? enclave_get_cmd_buffer_sizes() : true) &&
     (opt_auditlogPVRA ? enclave_get_audit_buffer_sizes() : true) &&
     allocate_buffers() &&
 
     (opt_initPVRA ? load_keys(opt_userpubkeys_file) : true) &&
-    (opt_initPVRA ? initPVRA() : true) &&
+    (opt_initPVRA ? initPVRA(opt_numusers) : true) &&
     (opt_initPVRA ? save_seal(opt_sealedstate_file) : true) &&
     (opt_initPVRA ? save_quote(opt_quote_file) : true) &&
     (opt_initPVRA ? save_signature(opt_signature_file, enclave_pubkey_signature_buffer, 64) : true) &&

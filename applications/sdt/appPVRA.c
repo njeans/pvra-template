@@ -44,7 +44,7 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
     memset(ret.message, 0, 100);
 
     int user_idx = -1;
-    for(int i = 0; i < NUM_USERS; i++) {
+    for(int i = 0; i < enclave_state->num_users; i++) {
         if(strncmp(&CI->user_pubkey, &enclave_state->publickeys.user_pubkeys[i], sizeof(secp256k1_pubkey)) == 0) {
           user_idx = i;
           break;
@@ -100,7 +100,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
     }
 
     int user_idx = -1;
-    for(int i = 0; i < NUM_USERS; i++) {
+    for(int i = 0; i < enclave_state->num_users; i++) {
         if(strncmp(CI->user_pubkey, enclave_state->publickeys.user_pubkeys[i], 64) == 0) {
           user_idx = i;
           break;
@@ -141,10 +141,13 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
 
     if(strncmp(enclave_state->appdata.user_info[user_idx].recover_key_hash, key_hash, HASH_SIZE) != 0) {
         sprintf(ret.message, "recover key does not match recover_key_hash");
-        printf("[sdt] %s expected: ", ret.message);
-        print_hexstring_n(enclave_state->appdata.user_info[user_idx].recover_key_hash, HASH_SIZE);
-        printf(" got: ");
-        print_hexstring_n(key_hash, HASH_SIZE);
+        printf("[sdt] %s", ret.message);
+        if (DEBUGPRINT) {
+            printf(" expected: ");
+            print_hexstring_n(enclave_state->appdata.user_info[user_idx].recover_key_hash, HASH_SIZE);
+            printf(" got: ");
+            print_hexstring_n(key_hash, HASH_SIZE);
+        }
         printf("\n");
         ret.error = 7;
         return ret;
@@ -189,7 +192,7 @@ struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, ui
 size_t get_user_leaf(struct ES *enclave_state, uint8_t ** out)
 {
     size_t block_size = sizeof(struct userLeaf);
-    for (int i=0; i< NUM_USERS; i++) {
+    for (int i=0; i< enclave_state->num_users; i++) {
         out[i] = (uint8_t *) malloc(block_size);
         struct userInfo info = enclave_state->appdata.user_info[i];
         struct userLeaf leaf = {info.retrieve_count, info.retrieve_time, info.started_retrieve, i};
@@ -197,6 +200,18 @@ size_t get_user_leaf(struct ES *enclave_state, uint8_t ** out)
     }
     return block_size;
 }
+
+void free_user_leaf(struct ES *enclave_state, uint8_t **data) {
+    if (data != NULL){
+        for(int i = 0; i < enclave_state->num_users; i++){
+            if (data[i] != NULL){
+                free(data[i]);
+                data[i] = NULL;
+            }
+        }
+    }
+}
+
 #endif
 
 
@@ -216,9 +231,11 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct
 
 
 /* Initializes the Application Data as per expectation */
-int initES(struct ES* enclave_state, struct dAppData *dAD)
+int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
 {
-    for (int i = 0; i < NUM_USERS; i++) {
+    size_t user_info_size = sizeof(struct userInfo) * num_users;
+    enclave_state->appdata.user_info = (struct userInfo *) malloc(user_info_size);
+    for (int i = 0; i < num_users; i++) {
         enclave_state->appdata.user_info[i].started_retrieve = false;
         enclave_state->appdata.user_info[i].retrieve_time = 0;
         enclave_state->appdata.user_info[i].retrieve_count = 0;
@@ -226,48 +243,25 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
     }
     enclave_state->appdata.retrieve_count = 0;
     enclave_state->appdata.last_reset_time = 0;
-//    struct userInfo * user_info = calloc(NUM_USERS,sizeof(struct userInfo));
-//    if(user_info == NULL) return -1;
-
-//    printf("calloc 0??\n");
-//    int * retrieve_list = calloc(0,sizeof(int));
-//    if(retrieve_list == NULL) return -1;
-
-//    enclave_state->appdata.user_info = user_info;
-
-//    enclave_state->appdata.num_data = 0;
-
 
     /* Initialize metadata regarding dynamic data-structures for sealing purposes */
 
     // Number of dynamic data structures
-    dAD->num_dDS = 0;
+    dAD->num_dDS = 1;
 
     // For each dDS, assign the pointer and the size of the DS
-//    struct dynamicDS *tDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
-//    if(tDS == NULL) return -1;
-//    tDS->buffer = user_info;
-//    tDS->buffer_size = NUM_USERS*sizeof(struct userInfo);
-
-//    struct dynamicDS *nDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
-//    if(nDS == NULL) return -1;
-//    nDS->buffer = retrieve_list;
-//    nDS->buffer_size = 0;
-
-    struct dynamicDS **dDS = (struct dynamicDS **)calloc(dAD->num_dDS, sizeof(struct dynamicDS *));
+    struct dynamicDS *dDS = (struct dynamicDS *)malloc(dAD->num_dDS * sizeof(struct dynamicDS));
     if(dDS == NULL) return -1;
-//    dDS[0] = nDS;
-//    dDS[1] = tDS;
+    dDS[0].buffer = enclave_state->appdata.user_info;
+    dDS[0].buffer_size = user_info_size;
     dAD->dDS = dDS;
-//
     return 0;
 }
 
 int initAD(struct ES* enclave_state, struct dAppData *dAD)
 {
-//    enclave_state->appdata.user_info = dAD->dDS[0]->buffer;
+   enclave_state->appdata.user_info = dAD->dDS[0].buffer;
 //    enclave_state->appdata.retrieve_list = dAD->dDS[1]->buffer;
-//
     return 0;
 }
 

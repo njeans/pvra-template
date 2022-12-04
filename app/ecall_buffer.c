@@ -11,7 +11,7 @@
 #include "app.h"
 
 
-bool enclave_get_init_buffer_sizes(void) {
+bool enclave_get_init_buffer_sizes(uint64_t num_users) {
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
   printf("[GatewayApp] Querying enclave for buffer sizes\n");
@@ -20,7 +20,7 @@ bool enclave_get_init_buffer_sizes(void) {
    * Invoke ECALL, 'ecall_init_buffer_sizes()', to calculate the sizes of
    * buffers needed for the untrusted app to store initial data seal data from the enclave.
    */
-  sgx_lasterr = ecall_init_buffer_sizes(enclave_id, &ecall_retval, &sealed_state_buffer_size);
+  sgx_lasterr = ecall_init_buffer_sizes(enclave_id, &ecall_retval, num_users, &sealed_state_buffer_size);
   if (sgx_lasterr == SGX_SUCCESS && (ecall_retval != 0)) {
     printf("[GatewayApp] ERROR: ecall_init_buffer_sizes returned %s\n",
             decode_sgx_status(ecall_retval));

@@ -35,7 +35,7 @@ static sgx_errlist_t sgx_errlist[] = {
     {SGX_ERROR_OUT_OF_TCS, "Out of TCS."},
     {SGX_ERROR_ENCLAVE_CRASHED, "The enclave is crashed."},
 
-    {SGX_ERROR_MAC_MISMATCH, "Report varification error occurred."},
+    {SGX_ERROR_MAC_MISMATCH, "Report verification error occurred."},
     {SGX_ERROR_INVALID_ATTRIBUTE, "The enclave is not authorized."},
     {SGX_ERROR_INVALID_CPUSVN, "Invalid CPUSVN."},
     {SGX_ERROR_INVALID_ISVSVN, "Invalid ISVSVN."},

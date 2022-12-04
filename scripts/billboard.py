@@ -103,7 +103,7 @@ def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths
     return contract
 
 
-def get_keys(num_users=NUM_USERS):
+def gen_keys(num_users=NUM_USERS):
     print_vv("num_users", num_users)
     with open(BILLBOARD_ACCOUNTS_PATH) as f:
         accounts = json.loads(f.read())

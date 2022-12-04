@@ -15,7 +15,7 @@
 
 #include "app.h"
 
-bool initPVRA(void) {
+bool initPVRA(uint64_t num_users) {
 
   printf("[hiPVRA] Invoking ecall_initPVRA\n");
 
@@ -36,7 +36,7 @@ bool initPVRA(void) {
 
   sgx_lasterr = ecall_initPVRA(
       enclave_id, &ecall_retval, 
-      &target_info,
+      &target_info, num_users,
       (char *)pubkeys_buffer, pubkeys_buffer_size,
       &report,
       (uint8_t *)sealed_state_buffer, sealed_state_buffer_size,
