@@ -50,25 +50,22 @@
 
 sgx_status_t ecall_initPVRA(
     sgx_target_info_t *target_info,
-    char *userpubkeys, size_t userpubkeys_size,
+    uint64_t num_users, char *userpubkeys, size_t userpubkeys_size,
     sgx_report_t *report,
     uint8_t *sealedstate, size_t sealedstate_size,
     uint8_t encpubkey_ser[65],
     uint8_t encpubkey_signature_ser[64],
     uint8_t useraddrs_signature_ser[65]) {
 
-
-  struct ES enclave_state;
   sgx_status_t ret = SGX_ERROR_UNEXPECTED;
   int err;
+  struct ES enclave_state;
+  struct dAppData dAD;
+  init_enclave_state(&enclave_state, &dAD);
+  enclave_state.num_users  = num_users;
 
   // Control Timing Measurement of an OCALL Overhead.
   if(I_DEBUGRDTSC) ocall_rdtsc();
-  if(I_DEBUGRDTSC) ocall_rdtsc();
-
-
-
-
 
   //    Generate secp256k1 Enclave Encryption Key    //
   unsigned char seed_e = 'c';
@@ -147,15 +144,15 @@ sgx_status_t ecall_initPVRA(
 
 
   //    Initialize Anti-Replay Metadata    //
-
-  memset(enclave_state.antireplay.seqno, 0, sizeof(enclave_state.antireplay.seqno));
+  enclave_state.antireplay.seqno = (uint64_t *) malloc(sizeof(uint64_t)*num_users);
+  for (uint64_t i = 0; i < num_users; i++) {
+    enclave_state.antireplay.seqno[i] = 0;
+  }
   if(DEBUGPRINT) printf("[eiPVRA] Initialized seqno metadata success\n");
 
 
   //    Initialize Application Data    //
-
-  struct dAppData dAD;
-  err = initES(&enclave_state, &dAD);
+  err = initES(&enclave_state, &dAD, num_users);
 
   if(err != 0) {
     printf("[eiPVRA] initES() memory allocation failure.\n");
@@ -170,38 +167,37 @@ sgx_status_t ecall_initPVRA(
 
 
   // Parsing userpubkeys from pubkeys.list
-  const char new_line = '\n';
-  int num_pubkeys = 0;
-  for(int i = 0; i< strlen(userpubkeys); i+=129) {
-    hexstr_to_bytes(userpubkeys + (129 * num_pubkeys), 128, enclave_state.auditmetadata.master_user_pubkeys[num_pubkeys]);
-    num_pubkeys++;
-      if (num_pubkeys >= MAX_USERS) {
-        printf("[eiPVRA] pubkeys not enough allocated space.\n");
-        ret = SGX_ERROR_INVALID_PARAMETER;
-        goto cleanup;
-      }
+  hexstr_to_bytes(userpubkeys, 128, enclave_state.publickeys.admin_pubkey);
+printf("initPVRA %p\n", enclave_state.publickeys.user_pubkeys);
+  enclave_state.publickeys.user_pubkeys = (pubkey_t *) malloc(sizeof(pubkey_t)*num_users);
+printf("initPVRA b %p\n", enclave_state.publickeys.user_pubkeys);
+  int uidx = 0;
+  for(int i = 129; i< strlen(userpubkeys); i+=129) {
+    hexstr_to_bytes(userpubkeys + i, 128, enclave_state.publickeys.user_pubkeys[uidx]);
+    uidx++;
+    if (uidx > num_users) {
+      printf("[eiPVRA] input does not contain %u+1 pubkeys\n", num_users);
+      ret = SGX_ERROR_INVALID_PARAMETER;
+      goto cleanup;   
+    }
   }
 
-  enclave_state.auditmetadata.num_pubkeys = num_pubkeys;
 
   if(DEBUGPRINT) {
-      printf("[eiPVRA] Initialized [%d] User Public Keys success\n", num_pubkeys);
-      for (int i = 0; i < enclave_state.auditmetadata.num_pubkeys; i++) {
-        print_hexstring(enclave_state.auditmetadata.master_user_pubkeys[i], 64);
+      printf("[eiPVRA] Initialized [%d] Public Keys success\n", num_users+1);
+      printf("ADMIN:\n");
+      print_hexstring(enclave_state.publickeys.admin_pubkey, 64);
+      printf("USERS:\n");
+      for (int i = 0; i < num_users; i++) {
+        print_hexstring(enclave_state.publickeys.user_pubkeys[i], 64);
       }
   }
-  //    Initialize AUDIT LOG metadata    //
-
-  enclave_state.auditmetadata.audit_index = 0;
-  enclave_state.auditmetadata.audit_num = 1;
-  if(DEBUGPRINT) printf("[eiPVRA] Initialized audit log metadata success\n");
 
 
   //    Sign all USER pubkeys    //
-
   unsigned char msg_hash[32];
-  hash_address_list(&enclave_state.auditmetadata.master_user_pubkeys, num_pubkeys, &msg_hash);
-  if(DEBUGPRINT) printf("[eiPVRA] USER addrs hash\n");
+  hash_address_list(&enclave_state.publickeys.admin_pubkey, enclave_state.publickeys.user_pubkeys, num_users, &msg_hash);
+  if(DEBUGPRINT) printf("[eiPVRA] Admin+Users eth addresses hash\n");
   if(DEBUGPRINT) print_hexstring(&msg_hash, HASH_SIZE);
 
 
@@ -211,10 +207,16 @@ sgx_status_t ecall_initPVRA(
     goto cleanup;
   }
 
-  if(DEBUGPRINT) printf("[eiPVRA] Signed [%d] User Public Keys\n", num_pubkeys);
+  if(DEBUGPRINT) printf("[eiPVRA] Signed [%d] Public Keys\n", num_users+1);
   if(DEBUGPRINT) printf("[eiPVRA] ADDRESS SIGNATURE serialized\n");
   if(DEBUGPRINT) print_hexstring(useraddrs_signature_ser, 65);
 
+
+  //    Initialize AUDIT LOG metadata    //
+  enclave_state.auditlog.num_entries = 0;
+  enclave_state.auditlog.audit_num = 1;
+  enclave_state.auditlog.entries = NULL;
+  if(DEBUGPRINT) printf("[eiPVRA] Initialized audit log metadata success\n");
 
   if(I_DEBUGRDTSC) ocall_rdtsc();
   
@@ -222,7 +224,7 @@ sgx_status_t ecall_initPVRA(
 
 
 
-  //    Generate Quote    //
+  //    Generate Report    //
 
   sgx_report_data_t report_data = {{0}};
   memcpy((uint8_t *const) &report_data, (uint8_t *)&enclave_state.enclavekeys.sig_pubkey, 64);
@@ -230,29 +232,26 @@ sgx_status_t ecall_initPVRA(
   if(DEBUGPRINT) printf("[eiPVRA] Calling enclave to generate attestation report\n");
   ret = sgx_create_report(target_info, &report_data, report);
   if(ret == SGX_SUCCESS) {
-    if(DEBUGPRINT) printf("[eiPVRA] Quote generated success\n");
+    if(DEBUGPRINT) printf("[eiPVRA] Report generated success\n");
   } else {
-    printf("[eiPVRA] Quote generation failed %d\n", ret);
+    printf("[eiPVRA] Report generation failed %d\n", ret);
     goto cleanup;
   }
   if(I_DEBUGRDTSC) ocall_rdtsc();
 
   //    Seal Enclave State    //
-  size_t actual_sealedstate_size;
-  ret = seal_enclave_state(sealedstate, sealedstate_size, &actual_sealedstate_size, &enclave_state, &dAD);
-  if (actual_sealedstate_size != sealedstate_size){
-    printf("[eiPVRA] sealsize incorrect %lu != %lu\n", actual_sealedstate_size, sealedstate_size);
-    ret = SGX_ERROR_UNEXPECTED;
-    goto cleanup;
-  }
+  ret = seal_enclave_state(&enclave_state, &dAD, sealedstate_size, sealedstate);
   if(ret == SGX_SUCCESS) {
-    if(DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%lu]\n", actual_sealedstate_size);
-  }
+    if(DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%lu]\n", sealedstate_size);
+  } else {
+    printf("[eiPVRA] seal_enclave_state error: [%d]\n", ret);
+  } 
 
   goto cleanup;
 
 cleanup:
   if(I_DEBUGRDTSC) ocall_rdtsc();
+  free_enclave_state(&enclave_state, &dAD);
   return ret;
 
 }

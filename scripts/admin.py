@@ -121,7 +121,7 @@ def AdminHandler(admin_lib):
 
 
 class Admin:
-    def __init__(self, w3, bb_info):
+    def __init__(self, w3, bb_info, num_users):
         self.address, self.public_key, self.secret_key = bb_info
         print_vv(f"initialize Admin with address {print_hex_trunc(self.address)} using port {ADMIN_PORT}")
         server_address = ('localhost', ADMIN_PORT)
@@ -130,7 +130,7 @@ class Admin:
         self.state_counter = 0
         self.state_counter_lock = threading.Lock()
         self.audit_num = 0
-        self._init_enclave()
+        self._init_enclave(num_users)
         self._init_contract()
         self.server_thread = threading.Thread(None, self.httpd.serve_forever)
         self.admin_user = user_lib.User(-1, bb_info, self.w3, self.contract)
@@ -198,8 +198,8 @@ class Admin:
         # print("enclave_address", ee)
         # assert ee == tmp_addr
 
-    def _init_enclave(self):
-        enclave.initPvra()
+    def _init_enclave(self, num_users):
+        enclave.initPvra(num_users)
         # auditee.verify_ias_report()
         res = verify_secp256k1_path(SIGN_KEY_PATH, ENCLAVE_PUBLIC_KEY_PATH, ENCLAVE_PUBLIC_KEY_SIG_PATH)
         print_v(f"verifying signed encryption key: {res}")

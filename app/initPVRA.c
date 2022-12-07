@@ -15,7 +15,7 @@
 
 #include "app.h"
 
-bool initPVRA(void) {
+bool initPVRA(uint64_t num_users) {
 
   printf("[hiPVRA] Invoking ecall_initPVRA\n");
 
@@ -36,7 +36,7 @@ bool initPVRA(void) {
 
   sgx_lasterr = ecall_initPVRA(
       enclave_id, &ecall_retval, 
-      &target_info,
+      &target_info, num_users,
       (char *)pubkeys_buffer, pubkeys_buffer_size,
       &report,
       (uint8_t *)sealed_state_buffer, sealed_state_buffer_size,
@@ -88,7 +88,7 @@ bool initPVRA(void) {
   //fprintf(stdout, "[GatewayApp]: status of sgx_get_quote(): %08x\n", status);
   //printf("[hiPVRA] status of sgx_get_quote(): %s\n", status == SGX_SUCCESS ? "success" : "error");
   if (status != SGX_SUCCESS) {
-    fprintf(stderr, "[GatewayApp]: sgx_get_quote: error %s\n", decode_sgx_status(status));
+    printf("[GatewayApp]: sgx_get_quote: error %s\n", decode_sgx_status(status));
     return 1;
   }
 

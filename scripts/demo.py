@@ -115,9 +115,9 @@ def setup(num_users=NUM_USERS):
     assert num_users > 0
 
     w3 = billboard.setup_w3()
-    bb_info = billboard.get_keys()
+    bb_info = billboard.gen_keys(num_users)
 
-    admin = admin_lib.Admin(w3, bb_info[0])
+    admin = admin_lib.Admin(w3, bb_info[0], num_users)
     admin.start_server()
     contract = admin.contract
     users = [user_lib.User(i-1, bb_info[i], w3, contract) for i in range(1, num_users+1)]

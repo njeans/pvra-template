@@ -20,12 +20,14 @@ def print_(*args, c=""):
     print(NOCOLOR, end="")
 
 
-def initPvra():
+def initPvra(num_users):
+    num_users = str(num_users)
     init_cmd = APP_PATH + " --initPVRA" + \
                 " --enclave-path " + SIGNED_ENCLAVE_PATH + \
                " --sealedState " + SEAL_STATE_PATH + \
                " --quotefile " + QUOTE_FILE_PATH + \
                " --signature " + ENCLAVE_PUBLIC_KEY_SIG_PATH + \
+               " --numusers " + num_users + \
                " --userpubkeys " + USER_LIST_PATH + \
                " --sigpubkeys " + USER_LIST_SIG_PATH
 

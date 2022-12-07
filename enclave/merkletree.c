@@ -1,5 +1,5 @@
-//#include <stdio.h>
-//#include <stdlib.h>
+// #include <stdio.h>
+// #include <stdlib.h>
 
 #include "merkletree.h"
 #include "keccak256.h"
@@ -37,21 +37,22 @@ uint32_t next_root_2(uint32_t num) {
     return v;
 }
 
-int build_tree(merkle_tree *mt, uint8_t *leaves[], uint32_t num_leaves, uint32_t block_size) {
+int build_tree(merkle_tree *mt, uint8_t **leaves, uint32_t num_leaves, uint32_t leaf_size) {
     uint32_t total_leaves = next_root_2(num_leaves);
     mt->num_leaves = total_leaves;
-    mt->block_size = block_size;
+    mt->leaf_size = leaf_size;
     mt->num_nodes = 2*total_leaves - 1;
 //    printf("num_nodes %d total_leaves %d\n",mt->num_nodes, total_leaves);
     mt->nodes = (uint8_t **) malloc(sizeof(uint8_t*) * mt->num_nodes);
     mt->leaves = (uint8_t **) malloc(sizeof(uint8_t*) * total_leaves);
     for (int i=0; i < total_leaves ; i++) {
-        if (i < num_leaves) mt->leaves[i] = leaves[i];
-        else mt->leaves[i] = (uint8_t *) malloc(block_size);
+        mt->leaves[i] = (uint8_t *) malloc(leaf_size);
+        memset(mt->leaves[i], 0, leaf_size);
+        if (i < num_leaves) memcpy(mt->leaves[i], leaves[i], leaf_size);
         mt->nodes[i] = (uint8_t *) malloc(HASH_SIZE);
-        hash_leaf(mt->nodes[i], mt->leaves[i], mt->block_size);
+        hash_leaf(mt->nodes[i], mt->leaves[i], mt->leaf_size);
 //        printf("hashing leaf %d ", i);
-//        print_hexstring_n(mt->leaves[i], block_size);
+//        print_hexstring_n(mt->leaves[i], leaf_size);
 //        printf(" -> ");
 //        print_hexstring(mt->nodes[i], HASH_SIZE);
     }
@@ -118,17 +119,17 @@ size_t calc_tree_size(uint32_t num_leaves, uint32_t block_size) {
 int serialize_tree(uint8_t * out, merkle_tree *mt) {
      int offset = 0;
 
-     memcpy_big_uint32(out, mt->block_size);
-//     printf("serialize block size %u; ", mt->block_size);
-//     print_hexstring(out, sizeof(mt->block_size));
-     offset+= sizeof(mt->block_size);
+     memcpy_big_uint32(out, mt->leaf_size);
+//     printf("serialize block size %u; ", mt->leaf_size);
+//     print_hexstring(out, sizeof(mt->leaf_size));
+     offset+= sizeof(mt->leaf_size);
 
      memcpy_big_uint32(out + offset, mt->num_leaves);
      offset+= sizeof(mt->num_leaves);
 
      for(int i = 0; i < mt->num_leaves; i++) {
-       memcpy(out + offset, mt->leaves[i], mt->block_size);
-       offset += mt->block_size;
+       memcpy(out + offset, mt->leaves[i], mt->leaf_size);
+       offset += mt->leaf_size;
      }
 
      for(int i = 0; i < mt->num_nodes; i++) {
@@ -152,7 +153,7 @@ void print_tree(merkle_tree *mt) {
     printf("leaves: %d [ ", mt->num_leaves);
     for(i=0; i<mt->num_leaves; i++){
         printf("\"");
-        print_hexstring_n(mt->leaves[i], mt->block_size);
+        print_hexstring_n(mt->leaves[i], mt->leaf_size);
         if (i == mt->num_leaves-1)
             printf("\"]\n");
         else

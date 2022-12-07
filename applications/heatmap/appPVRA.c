@@ -54,7 +54,7 @@ int geo_time_index(struct cInputs geo_time)
     float side_length_long = HEATMAP_GRANULARITY/(LONG_HEATMAP_MAX- LONG_HEATMAP_MIN);
     int lat = ((geo_time.lat - LAT_HEATMAP_MIN)*side_length_lat);
     int lng = ((geo_time.lng - LONG_HEATMAP_MIN)*side_length_long);
-    if(DEBUGPRINT) printf("geo_time_index %d\n",lat*HEATMAP_GRANULARITY + lng);
+    if(DEBUGPRINT) printf("[hm] geo_time_index %d\n",lat*HEATMAP_GRANULARITY + lng);
    return lat*HEATMAP_GRANULARITY + lng;
 }
 
@@ -81,6 +81,7 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI, uint32
             ret.heatmap_data[i] = 0;
         }
     }
+    enclave_state->appdata.num_data = 0;
     sprintf(ret.message, "success getHeatMap");
     if(DEBUGPRINT) printf("[apPVRA] %s\n", ret.message);
     return ret;
@@ -97,50 +98,30 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct
     return 0;
 }
 
-
+//todo add validation on users
 /* Initializes the Application Data as per expectation */
-int initES(struct ES* enclave_state, struct dAppData *dAD)
+int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
 {
-    char *user_info = calloc(NUM_USERS*PUBLIC_KEY_SIZE,sizeof(char));
-    if(user_info == NULL) return -1;
-
-    struct cInputs *user_data = calloc(NUM_USERS*MAX_DATA,sizeof(struct cInputs));
-    if(user_data == NULL) return -1;
-
-    enclave_state->appdata.user_info = user_info;
-    enclave_state->appdata.user_data = user_data;
+    size_t user_data_size = num_users*MAX_DATA*sizeof(locationData);
+    enclave_state->appdata.user_data = (locationData *) malloc(user_data_size);
+    if(enclave_state->appdata.user_data == NULL) return -1;
 
     enclave_state->appdata.num_data = 0;
-
-
     /* Initialize metadata regarding dynamic data-structures for sealing purposes */
 
     // Number of dynamic data structures
-    dAD->num_dDS = 2;
-
-    // For each dDS, assign the pointer and the size of the DS
-    struct dynamicDS *tDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
-    if(tDS == NULL) return -1;
-    tDS->buffer = user_info;
-    tDS->buffer_size = NUM_USERS*PUBLIC_KEY_SIZE*sizeof(char);
-
-    struct dynamicDS *nDS = (struct dynamicDS *)calloc(1, sizeof(struct dynamicDS));
-    if(nDS == NULL) return -1;
-    nDS->buffer = user_data;
-    nDS->buffer_size = NUM_USERS*MAX_DATA*sizeof(struct cInputs);
-
-    struct dynamicDS **dDS = (struct dynamicDS **)calloc(dAD->num_dDS, sizeof(struct dynamicDS *));
+    dAD->num_dDS = 1;
+    struct dynamicDS *dDS = (struct dynamicDS *)malloc(dAD->num_dDS*sizeof(struct dynamicDS));
     if(dDS == NULL) return -1;
-    dDS[0] = tDS;
-    dDS[1] = nDS;
+    dDS[0].buffer = enclave_state->appdata.user_data;
+    dDS[0].buffer_size = user_data_size;
     dAD->dDS = dDS;
     return 0;
 }
 
 int initAD(struct ES* enclave_state, struct dAppData *dAD)
 {
-    enclave_state->appdata.user_info = dAD->dDS[0]->buffer;
-    enclave_state->appdata.user_data = dAD->dDS[1]->buffer;
+    enclave_state->appdata.user_data = dAD->dDS[0].buffer;
     return 0;
 }
 

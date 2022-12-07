@@ -23,7 +23,6 @@
 #define START_RET 3
 #define COMPLETE_RET 4
 
-#define NUM_USERS 6
 #define MAX_RETRIEVE 4
 #define WAIT_TIME 60 //seconds
 #define RESET_TIME 60 //seconds
@@ -63,9 +62,9 @@ struct cResponse
 
 struct AD
 {
-	struct userInfo user_info[NUM_USERS];
 	int last_reset_time;
 	int retrieve_count;
+	struct userInfo *user_info;
 };
 
 #endif
