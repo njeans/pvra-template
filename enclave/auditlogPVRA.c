@@ -96,7 +96,8 @@ sgx_status_t ecall_auditlogPVRA(
   }
 
 #ifdef MERKLE_TREE
-    leaf_data = (uint8_t **) malloc(enclave_state.num_users * sizeof(uint8_t *));
+    leaf_data = (uint8_t **) calloc(enclave_state.num_users, sizeof(uint8_t *));
+    printf("leaf_data b %p\n", leaf_data);
     size_t leaf_size = get_user_leaf(&enclave_state, leaf_data);
   if(DEBUGPRINT) {
       printf("[eaPVRA] PRINTING User Leaf Nodes leaf_size: %lu\n", leaf_size);
@@ -108,7 +109,7 @@ sgx_status_t ecall_auditlogPVRA(
   size_t enc_leaf_size = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + leaf_size;
   size_t mt_size = calc_tree_size(enclave_state.num_users, enc_leaf_size);
 
-  enc_leaf_data = (uint8_t**) malloc(enclave_state.num_users * sizeof(uint8_t *));
+  enc_leaf_data = (uint8_t**) calloc(enclave_state.num_users, sizeof(uint8_t *));
   for(int i = 0; i < enclave_state.num_users; i++) {
     unsigned char AESKey[AESGCM_128_KEY_SIZE];
     sgx_status_t ret = genkey_aesgcm128(enclave_state.publickeys.user_pubkeys[i], enclave_state.enclavekeys.enc_prikey, AESKey);

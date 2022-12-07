@@ -189,6 +189,11 @@ struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, ui
 }
 
 #ifdef MERKLE_TREE
+size_t calc_user_leaf_size(struct ES *enclave_state)
+{
+    return sizeof(struct userLeaf);
+}
+
 size_t get_user_leaf(struct ES *enclave_state, uint8_t ** out)
 {
     size_t block_size = sizeof(struct userLeaf);

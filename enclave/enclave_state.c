@@ -63,12 +63,8 @@ size_t calc_auditlog_out_buffer_size(struct AL * auditlog) {
  * @param [in] enclave_state: current struct ES that will be used for creating the merkle tree
  * @return size_t buffer size
  */
-size_t calc_merkletree_out_buffer_size(struct ES * enclave_state)
-{
-  size_t data_size = enclave_state->num_users * sizeof(uint8_t*);
-  uint8_t **data = (uint8_t **) malloc(enclave_state->num_users * sizeof(uint8_t *));
-  size_t block_size = get_user_leaf(enclave_state, data);
-  free_user_leaf(data);
+size_t calc_merkletree_out_buffer_size(struct ES * enclave_state) {
+  size_t block_size = calc_user_leaf_size(enclave_state);
   size_t enc_block_size = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + block_size;
   size_t mt_size = calc_tree_size(enclave_state->num_users, enc_block_size);
   return mt_size;
@@ -149,7 +145,6 @@ sgx_status_t ecall_cmd_buffer_sizes(uint8_t *sealedstate, size_t sealedstate_siz
  * some other appropriate sgx_status_t value upon failure.
  */
 sgx_status_t ecall_init_buffer_sizes(uint64_t num_users, size_t *sealed_state_size) {
-
   sgx_status_t ret = SGX_SUCCESS;
   struct ES enclave_state;
   struct dAppData dAD;
@@ -182,7 +177,6 @@ void init_enclave_state(struct ES *enclave_state,  struct dAppData * dAD){
   enclave_state->publickeys.user_pubkeys = NULL;
   dAD->num_dDS = 0;
   dAD->dDS = NULL;
-printf("init es b %p\n", enclave_state->publickeys.user_pubkeys);
 }
 
 /**
