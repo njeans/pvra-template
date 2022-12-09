@@ -15,12 +15,15 @@ services:
     command: ./aesm_service --no-daemon
 
   billboard:
-    image: trufflesuite/ganache-cli:v6.12.2
+    image: ghcr.io/foundry-rs/foundry:latest
     ports:
       - 8545:8545
     volumes:
       - accounts:/accounts/
-    command: ["--deterministic", "nerla","--gasLimit","0x6691b70", "--accounts", "10", "--account_keys_path", "/accounts/accounts.json", "--debug"]
+    environment:
+      ANVIL_IP_ADDR: 0.0.0.0
+    entrypoint: ""
+    command: ["anvil", "--config-out=/accounts/accounts.json"]
 
   enclave-sim:
     image: ${APP_NAME}-enclave-sim
