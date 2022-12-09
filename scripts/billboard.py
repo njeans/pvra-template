@@ -4,6 +4,7 @@ import json
 import sys
 import os
 import time
+import web3
 from web3 import Web3
 import solcx
 from solcx import compile_source
@@ -48,11 +49,11 @@ def setup_w3(bb_url=BILLBOARD_URL):
 def get_account(user_num, accounts_path=BILLBOARD_ACCOUNTS_PATH):
     user_num = int(user_num)
     with open(accounts_path) as f:
-        accounts_info = json.loads(f.read())
-    user_address = list(accounts_info["addresses"].keys())[user_num]
-    private_key = bytes(accounts_info["addresses"][user_address]["secretKey"]["data"])
-    # secret_key = secp256k1.PrivateKey(private_key, raw=True)
-    return Web3.toChecksumAddress(user_address), private_key
+        accounts = json.load(f)
+    user_address = accounts["available_accounts"][user_num]
+    priv = bytes.fromhex(accounts["private_keys"][user_num][2:])
+    pub = secp256k1.PrivateKey(priv, raw=True).pubkey.serialize(compressed=False)[1:]
+    return (Web3.toChecksumAddress(user_address), pub, priv)
 
 
 def compile_source_file(base_path, contract_source_path, allowed):
@@ -75,7 +76,7 @@ def compile_source_file(base_path, contract_source_path, allowed):
 
 def deploy_contract(w3=setup_w3(), admin_addr=""):
     if admin_addr == "":
-        admin_addr, _ = get_account(0)
+        admin_addr, _, _ = get_account(0)
     base_path, contract_source_path, allowed = SOLIDITY_PATHS
     contract_id,abis,bins = compile_source_file(base_path, contract_source_path, allowed)
     contract = w3.eth.contract(abi=abis, bytecode=bins)
@@ -86,7 +87,13 @@ def deploy_contract(w3=setup_w3(), admin_addr=""):
     # print("ias_report_signature=", ias_report["headers"]["X-IASReport-Signature"])
     # print("admin_addr="+admin_addr)
     tx_hash = contract.constructor(ENCLAVE_PUBLIC_KEY(), b'{"ias":"report"}').transact({"from": admin_addr})
-    contract_address = w3.eth.get_transaction_receipt(tx_hash)['contractAddress']
+    contract_address = None
+    while contract_address is None:
+        try:
+           contract_address = w3.eth.get_transaction_receipt(tx_hash)['contractAddress']
+        except web3.exceptions.TransactionNotFound:
+            print("contract_address", contract_address)
+            time.sleep(1)
     contract = w3.eth.contract(address=contract_address, abi=abis)
     print_(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}')
     with open(CONTRACT_ADDRESS_PATH, "w") as f:
@@ -106,14 +113,14 @@ def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths
 def gen_keys(num_users=NUM_USERS):
     print_vv("num_users", num_users)
     with open(BILLBOARD_ACCOUNTS_PATH) as f:
-        accounts = json.loads(f.read())
-    user_addresses = list(accounts["addresses"].keys())
+        accounts = json.load(f)
+    user_addresses = accounts["available_accounts"]
     public_keys = ["" for _ in range(num_users+1)]
     keys = ["" for _ in range(num_users+1)]
     for i in range(num_users+1):
         address = user_addresses[i]  # admin is account at position 0
-        priv = bytes(accounts["addresses"][address]["secretKey"]["data"])
-        pub = bytes(accounts["addresses"][address]["publicKey"]["data"])
+        priv = bytes.fromhex(accounts["private_keys"][i][2:])
+        pub = secp256k1.PrivateKey(priv, raw=True).pubkey.serialize(compressed=False)[1:]
         public_keys[i] = pub.hex()
         keys[i] = (Web3.toChecksumAddress(address), pub, priv)
         print_vv(f" user {i}: address: {print_hex_trunc(address)} pubkey: {print_hex_trunc(pub)}")
