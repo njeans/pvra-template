@@ -279,3 +279,23 @@ sgx_status_t encrypt_aesgcm128(uint8_t AESKey[AESGCM_128_KEY_SIZE], uint8_t * bu
   if(C_DEBUGRDTSC) ocall_rdtsc();
   return ret;
 }
+
+int getaddrinfo2(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo *res) {
+    size_t num = 2;
+    int ret;
+//    struct addrinfo *result = (struct addrinfo **) malloc(sizeof(struct addrinfo)*num);
+    printf("calling ocall_getaddrinfo\n");
+    sgx_status_t sgxres = ocall_getaddrinfo(&ret, node, service, hints, res);
+    if(sgxres == SGX_SUCCESS) {
+        return ret;
+    }
+    printf("sgxres err %d ocall_getaddrinfo\n", sgxres);
+    return -1;
+}
+
+int ocall_close(int sockfd) {
+    int ret = -1;
+    if (u_close(&ret, sockfd) == SGX_SUCCESS)
+        return ret;
+    return -1;
+}

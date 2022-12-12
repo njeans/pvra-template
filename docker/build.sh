@@ -47,11 +47,11 @@ done
 
 set -e
 
-echo -e "Changing permissions on CCF user0 cert/private keys at \n\t${ccf_cert_dir}/user0_cert.pem \n\t${ccf_cert_dir}/user0_privk.pem"
-sudo chmod +r $ccf_cert_dir/user0_cert.pem $ccf_cert_dir/user0_privk.pem
+# echo -e "Changing permissions on CCF user0 cert/private keys at \n\t${ccf_cert_dir}/user0_cert.pem \n\t${ccf_cert_dir}/user0_privk.pem"
+# sudo chmod +r $ccf_cert_dir/user0_cert.pem $ccf_cert_dir/user0_privk.pem
 
-echo "Hardcoding certificates" #todo add to dockerfile
-python3 $PROJECT_ROOT/scripts/utils.py gen_ca_bundle "${ccf_cert_dir}/service_cert.pem" $PROJECT_ROOT/enclave/ca_bundle.h
+# echo "Hardcoding certificates" #todo add to dockerfile
+# python3 $PROJECT_ROOT/scripts/utils.py gen_ca_bundle "${ccf_cert_dir}/service_cert.pem" $PROJECT_ROOT/enclave/ca_bundle.h
 
 echo "Building PVRA image"
 docker-compose build $pvra_platform

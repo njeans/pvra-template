@@ -17,7 +17,7 @@ lib%_stub_u.a: %.edl
 lib%_stub_u.so: %.edl
 	$(SGX_EDGER8R) $(SGX_EDGER8R_FLAGS) --untrusted $< --search-path $(SGX_SDK)/include
 	$(CC) $(SGX_HOST_CFLAGS) $(SGX_HOST_CPPFLAGS) $(TARGET_ARCH) -c $*_u.c -o $*_u.o
-	$(CC) $(LDFLAGS) $(TARGET_ARCH) -shared $*_u.o $(LOADLIBES) $(SGX_HOST_LDLIBS) -o $@
+	$(CC) $(SGX_HOST_LDFLAGS) $(TARGET_ARCH) -shared $*_u.o $(LOADLIBES) $(SGX_HOST_LDLIBS) -o $@
 
 # Implicit rules to generate trusted (enclave) stubs
 

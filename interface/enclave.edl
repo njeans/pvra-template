@@ -7,6 +7,12 @@
 
 enclave
 {
+    from "sgx_tstdc.edl" import *;
+    from "sgx_socket.edl" import *;
+    from "sgx_tsgxssl.edl" import *;
+    //from "sgx_ttls.edl" import *;
+    from "sgx_pthread.edl" import *;
+
 	include "sgx_quote.h"
 
     trusted
@@ -62,5 +68,6 @@ enclave
         //void ocallbuf(int size);
         void ocall_allocate_seal(size_t seal_size);
         //void ocall_print_int([in, int] const int num);
+        void ocall_gai_print_strerror(int errcode);
     };
 };

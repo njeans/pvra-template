@@ -119,6 +119,7 @@ sgx_status_t ecall_auditlogPVRA(
     enc_leaf_data[i] = (uint8_t *) malloc(enc_leaf_size);
     ret = encrypt_aesgcm128(AESKey, leaf_data[i], leaf_size, enc_leaf_data[i]);
     if (ret != SGX_SUCCESS) {
+        printf("[eaPVRA] encrypt_aesgcm128 failed %d\n", SGX_SUCCESS);
         goto cleanup;
     }
   }

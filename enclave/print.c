@@ -68,3 +68,8 @@ int sprintf(char * out, const char* fmt, ...)
     memcpy(out, &buf, (int)strnlen(buf, BUFSIZ - 1) + 1);
     return (int)strnlen(buf, BUFSIZ - 1) + 1;
 }
+
+
+void gai_strerror_print(int errcode) {
+    // ocall_gai_print_strerror(errcode);
+}

@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <netdb.h>
 
 /* Ensure that ocall_print_string has extern C linkage */
 #include <enclave_u.h>
@@ -47,7 +48,6 @@ void ocall_allocate_seal(size_t init_sealsize) {
   sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
   printf("DONE ALLOCATING %p %p\n", sealed_out_buffer, sealed_state_buffer);
 }
-
 
 
 // void ocall_print_int(const int num) {

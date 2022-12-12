@@ -4,3 +4,6 @@ debug
 .git
 shared/ccf/sandbox_common/*
 !shared/ccf/sandbox_common/nodecert.pem
+!shared/ccf/sandbox_common/user0_privk.pem
+!shared/ccf/sandbox_common/user0_cert.pem
+!shared/ccf/sandbox_common/service_cert.pem

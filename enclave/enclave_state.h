@@ -5,8 +5,8 @@
 #include "constants.h"
 #include "appPVRA.h"
 
-#ifndef ENCLAVESTATE_H
-#define ENCLAVESTATE_H
+#ifndef __ENCLAVESTATE_H_
+#define __ENCLAVESTATE_H_
 
 
 struct EK

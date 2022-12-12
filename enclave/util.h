@@ -3,8 +3,7 @@
 #include <secp256k1_recovery.h>
 #include "constants.h"
 #include "enclave_state.h"
-
-void get_address(pubkey_t * pubkey, address_t* out);
+#include <netdb.h>
 
 void get_packed_address(pubkey_t * pubkey, packed_address_t* out);
 
@@ -25,3 +24,7 @@ sgx_status_t sign_rec_secp256k1(secp256k1_prikey seckey, unsigned char data_hash
 sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], unsigned char AESkey[AESGCM_128_KEY_SIZE]);
 
 sgx_status_t encrypt_aesgcm128(unsigned char AESKey[AESGCM_128_KEY_SIZE], uint8_t * buff, size_t buff_size, uint8_t * enc_out);
+
+int ocall_close(int sockfd);
+
+int getaddrinfo2(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo *res);
