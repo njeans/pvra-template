@@ -9,7 +9,7 @@
 #include <sgx_urts.h> /* For sgx_launch_token_t */
 
 #include "app.h"
-
+#define SGX_DEBUG_FLAG 1
 bool create_enclave(const char *const enclave_binary) {
   printf("[GatewayApp]: Creating enclave\n");
 

@@ -1,3 +1,3 @@
-[submodule "billboard/solidity/openzeppelin-contracts"]
-	path = billboard/solidity/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
+[submodule "counter-service"]
+	path = counter-service
+	url = https://github.com/njeans/counter-service.git

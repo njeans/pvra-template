@@ -2,3 +2,5 @@ venv
 ccf-2.0.1
 debug
 .git
+shared/ccf/sandbox_common/*
+!shared/ccf/sandbox_common/nodecert.pem

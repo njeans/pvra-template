@@ -25,6 +25,35 @@ services:
     entrypoint: ""
     command: ["anvil", "--config-out=/accounts/accounts.json", "--accounts", "10"]
 
+  ccf-virtual:
+    image: scs-virtual
+    build:
+      context: ../counter-service
+      dockerfile: docker/ccf_app_js.Dockerfile
+      args:
+        platform: virtual
+    hostname: ccf
+    # command: " --config-file /app/cchost_config_virtual_js.json --enclave-type virtual"
+    volumes:
+      - ../shared/ccf:/app/workspace/
+      # - ../counter-service:/app/prop/
+    ports:
+      - 8546:8080
+
+  ccf-sgx:
+    image: scs-sgx
+    build:
+      context: ../counter-service
+      dockerfile: docker/ccf_app_js.Dockerfile
+    hostname: ccf
+    command: " --config-file /app/cchost_config_enclave_js.json --enclave-type release"
+    depends_on:
+      - aesm
+    volumes:
+      - ../shared/ccf:/common/
+    ports:
+      - 8546:8000
+
   enclave-sim:
     image: ${APP_NAME}-enclave-sim
     build:
@@ -36,6 +65,7 @@ services:
         APP_NAME: ${APP_NAME}
     depends_on:
       - billboard
+      - ccf-virtual
     environment:
       deployment_location: DOCKER
       SGX_MODE: SW
@@ -47,13 +77,16 @@ services:
       NUM_USERS: ${NUM_USERS}
       PROJECT_ROOT: /home/photon/${APP_NAME}
     volumes:
-      - accounts:/home/photon/${APP_NAME}/accounts/
-      - ../solidity:/home/photon/${APP_NAME}/solidity/
-      - ../enclave:/home/photon/${APP_NAME}/enclave/
       - ../app:/home/photon/${APP_NAME}/app/
+      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../common:/home/photon/${APP_NAME}/common
+      - ../enclave:/home/photon/${APP_NAME}/enclave/
       - ../interface:/home/photon/${APP_NAME}/interface/
       - ../scripts:/home/photon/${APP_NAME}/scripts/
-      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../solidity:/home/photon/${APP_NAME}/solidity/
+      - ../trustedLib:/home/photon/${APP_NAME}/trustedLib
+      - accounts:/home/photon/${APP_NAME}/accounts/
+      - ../shared/ccf/sandbox_common:/home/photon/${APP_NAME}/ccf/
       - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
     command: python demo.py
 
@@ -91,8 +124,9 @@ services:
     stdin_open: true
     tty: true
     depends_on:
-      - billboard
       - aesm
+      - ccf-sgx
+      - billboard
     working_dir: /home/photon/${APP_NAME}/scripts
     command: python demo.py
 

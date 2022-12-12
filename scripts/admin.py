@@ -1,7 +1,6 @@
 import json
-import os
 import threading
-import time
+import ctypes
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 from http import HTTPStatus
@@ -17,6 +16,7 @@ import application
 import billboard as bb
 import enclave
 import auditee
+import ccf
 import merkletree
 import user as user_lib
 
@@ -224,7 +224,11 @@ class Admin:
 
     def _send_command(self, cmd, pubkey, seq):
         self.state_counter_lock.acquire()
-        resp, sig = enclave.commandPVRA(self.state_counter, cmd, pubkey, seq)
+        seq_buff = bytes(ctypes.c_uint64(seq))
+        full_cmd = seq_buff+pubkey+cmd
+        tx_hash = ccf.get_ft(full_cmd)
+        ccf.get_ft_sig(tx_hash)
+        resp, sig = enclave.commandPVRA(self.state_counter, full_cmd)
         self.state_counter += 1
         self.state_counter_lock.release()
         return resp, sig

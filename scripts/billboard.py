@@ -14,17 +14,6 @@ from utils import *
 from constants import *
 
 
-def print_vv(*args, c=""):
-    if verbose >= 2:
-        print(c+"[billboard.py]", *args)
-        print(NOCOLOR, end="")
-
-
-def print_(*args, c=""):
-    print(c+"[billboard.py]", *args)
-    print(NOCOLOR, end="")
-
-
 def setup_w3(bb_url=BILLBOARD_URL):
     connected = False
     max_tries = 10
@@ -74,7 +63,7 @@ def compile_source_file(base_path, contract_source_path, allowed):
     return contract_id, abis, bins
 
 
-def deploy_contract(w3=setup_w3(), admin_addr=""):
+def deploy_contract(w3=lambda : setup_w3(), admin_addr=""):
     if admin_addr == "":
         admin_addr, _, _ = get_account(0)
     base_path, contract_source_path, allowed = SOLIDITY_PATHS
@@ -95,7 +84,7 @@ def deploy_contract(w3=setup_w3(), admin_addr=""):
             print("contract_address", contract_address)
             time.sleep(1)
     contract = w3.eth.contract(address=contract_address, abi=abis)
-    print_(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}')
+    print_(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}', n="billboard.py")
     with open(CONTRACT_ADDRESS_PATH, "w") as f:
         f.write(contract_address)
     return contract_address, contract, contract_id
@@ -135,7 +124,7 @@ def send_tx(w3, foo, user_addr, value=0):
     try:
         gas_estimate = foo.estimateGas()  # for some reason this fails sometimes when it shouldn't
     except Exception as e:
-        print_(f"estimate gas error {e}", c=ERRORc)
+        print_(f"estimate gas error {e}", c=ERRORc, n="billboard.py")
         gas_estimate = 0
 
     if gas_estimate < 10000000:
@@ -144,7 +133,7 @@ def send_tx(w3, foo, user_addr, value=0):
         print_vv(f"transaction receipt mined: {receipt}")
         return receipt.gasUsed
     else:
-        print_(f"send_tx error Gas cost exceeds 10000000 < {gas_estimate}", c=ERRORc)
+        print_(f"send_tx error Gas cost exceeds 10000000 < {gas_estimate}", c=ERRORc, n="billboard.py")
         exit(1)
 
 

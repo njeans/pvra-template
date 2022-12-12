@@ -2,6 +2,13 @@
 import secp256k1
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
+
+import cryptography
+from cryptography.x509 import load_pem_x509_certificate
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import ec, utils
+from cryptography.hazmat.primitives import hashes
+
 from web3.auto import w3
 from eth_account.messages import encode_defunct
 
@@ -103,3 +110,18 @@ def recover_eth_path(publickey_path, data_path, signature_path):
     # print(eq)
     # assert eq
     return convert_publickey_address(publickey.hex()) == res
+
+
+def verify_x509_data(data, sig, raw_cert):
+    cert = load_pem_x509_certificate(raw_cert, default_backend())
+    pk = cert.public_key()
+    assert isinstance(pk, ec.EllipticCurvePublicKey)
+    try:
+        pk.verify(
+            sig,
+            data,
+            ec.ECDSA(utils.Prehashed(hashes.SHA256())),
+        )
+        return True
+    except cryptography.exceptions.InvalidSignature:
+        return False
