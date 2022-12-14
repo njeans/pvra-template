@@ -10,10 +10,10 @@ enclave
     from "sgx_tstdc.edl" import *;
     from "sgx_socket.edl" import *;
     from "sgx_tsgxssl.edl" import *;
-    //from "sgx_ttls.edl" import *;
     from "sgx_pthread.edl" import *;
 
 	include "sgx_quote.h"
+	include "netdb.h"
 
     trusted
     {
@@ -55,19 +55,18 @@ enclave
             [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
             [out] size_t *newsealedstate_size,
             [out] size_t *newauditlog_buffer_size);
-
-        #undef BUFLEN
-        #undef MBED_TLS_KEY_SIZE
-        #undef MBEDTLS_MPI_MAX_SIZE
     };
 
     untrusted
     {
         void ocall_print_string([in, string] const char *str);
         void ocall_rdtsc(void);
-        //void ocallbuf(int size);
         void ocall_allocate_seal(size_t seal_size);
-        //void ocall_print_int([in, int] const int num);
         void ocall_gai_print_strerror(int errcode);
+        int ocall_getaddrinfo(
+            [in, string] const char *node, 
+            [in, string] const char *service, 
+            [in] const struct addrinfo *hints, 
+            [out] struct addrinfo *res);
     };
 };

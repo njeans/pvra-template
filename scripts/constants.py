@@ -1,5 +1,4 @@
 import os
-from utils import get_cert_fingerprint
 
 verbose = 2
 
@@ -24,6 +23,7 @@ NUM_USERS = int(os.environ.get('NUM_USERS', 4))
 IAS_URL = os.environ.get('IAS_URL', "https://api.trustedservices.intel.com/sgx/dev/attestation/v4/report")
 IAS_PRIMARY_KEY = os.environ.get("IAS_PRIMARY_KEY")
 
+CCF_ENABLE = bool(int(os.environ.get("CCF_ENABLE", 0)))
 if os.environ.get("deployment_location", "") == "DOCKER":
     CCF_URL = os.environ.get("CCF_URL", 'https://ccf:8080')
     CCF_CERTS_DIR = os.environ.get("CCF_CERTS_DIR", os.path.join(PROJECT_ROOT, "ccf"))
@@ -35,12 +35,13 @@ CCF_SERVICE_CERT_PATH = os.path.join(CCF_CERTS_DIR, "service_cert.pem")
 CCF_NODE_CERT_PATH = os.path.join(CCF_CERTS_DIR, "nodecert.pem") #todo multiple nodes
 CCF_USER_CERT_PATH = os.path.join(CCF_CERTS_DIR, "user0_cert.pem")
 CCF_USER_KEY_PATH = os.path.join(CCF_CERTS_DIR, "user0_privk.pem")
-with open(CCF_SERVICE_CERT_PATH) as f:
-    CCF_SERVICE_CERT = f.read()
-with open(CCF_USER_CERT_PATH) as f:
-    CCF_USER_CERT = f.read()
-
-CCF_USERID = get_cert_fingerprint(CCF_USER_CERT)
+if CCF_ENABLE:
+    with open(CCF_SERVICE_CERT_PATH) as f:
+        CCF_SERVICE_CERT = f.read()
+    with open(CCF_USER_CERT_PATH) as f:
+        CCF_USER_CERT = f.read()
+    from utils import get_cert_fingerprint
+    CCF_USERID = get_cert_fingerprint(CCF_USER_CERT)
 
 BILLBOARD_URL = os.environ.get('BILLBOARD_URL', 'http://billboard:8545')
 

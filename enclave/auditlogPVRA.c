@@ -28,6 +28,8 @@
 #include <secp256k1_recovery.h>
 
 #include "enclave_state.h"
+//#include "util.h"
+
 
 #ifdef MERKLE_TREE
 #include "merkletree.h"

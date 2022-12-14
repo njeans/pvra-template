@@ -15,8 +15,8 @@ from crypto import *
 import application
 import billboard as bb
 import enclave
-import auditee
-import ccf
+# import auditee
+import scs
 import merkletree
 import user as user_lib
 
@@ -226,8 +226,9 @@ class Admin:
         self.state_counter_lock.acquire()
         seq_buff = bytes(ctypes.c_uint64(seq))
         full_cmd = seq_buff+pubkey+cmd
-        tx_hash = ccf.get_ft(full_cmd)
-        ccf.get_ft_sig(tx_hash)
+        if CCF_ENABLE:
+            tx_hash = scs.get_ft(full_cmd)
+            scs.get_ft_sig(tx_hash)
         resp, sig = enclave.commandPVRA(self.state_counter, full_cmd)
         self.state_counter += 1
         self.state_counter_lock.release()

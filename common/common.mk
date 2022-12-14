@@ -70,7 +70,7 @@ SGX_TSERVICE_LIB := sgx_tservice$(SGX_SIM_LIB)
 
 SGXSSL_U_Library_Name := sgx_usgxssl
 SGXSSL_Library_Name := sgx_tsgxssl
-OpenSSL_SSL_Library_Name := sgx_tsgxssl_ssl
+# OpenSSL_SSL_Library_Name := sgx_tsgxssl_ssl
 OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
 U_TLS_Library_Name := sgx_utls
 SGX_TLS_Library_Name := sgx_ttls
@@ -134,7 +134,7 @@ SGX_ENCLAVE_LDFLAGS := \
 
 SGX_ENCLAVE_LDLIBS := -L$(SGX_LIBRARY_PATH) -L$(SGXSSL_PKG_PATH)/lib64 \
 	-Wl,--whole-archive -l$(SGX_TRTS_LIB) -l$(SGXSSL_Library_Name) -Wl,--no-whole-archive \
-	-l$(OpenSSL_SSL_Library_Name)  -l$(OpenSSL_Crypto_Library_Name) \
+	-l$(OpenSSL_Crypto_Library_Name) \
 	-Wl,--start-group  -lsgx_pthread -lmbedtls_SGX_t -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l$(SGX_TSERVICE_LIB) -l$(SGX_TLS_Library_Name) -Wl,--end-group
  
 

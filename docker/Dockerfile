@@ -7,35 +7,8 @@ FROM ubuntu:20.04 AS demo-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED 1
+RUN apt-get update && apt-get install -y software-properties-common libssl-dev
 
-RUN apt-get update && apt-get install -y software-properties-common libssl-dev \
-    build-essential \
-    ocaml \
-    ocamlbuild \
-    automake \
-    autoconf \
-    libtool \
-    wget \
-    libssl-dev \
-    git \
-    cmake \
-    perl \
-    libssl-dev \
-	libcurl4-openssl-dev \
-	protobuf-compiler \
-	libprotobuf-dev \
-	debhelper \
-	cmake \
-	reprepro \
-	unzip \
-	pkgconf \
-	libboost-dev \
-	libboost-system-dev \
-	libboost-thread-dev \
-	protobuf-c-compiler \
-	libprotobuf-c-dev \
-	lsb-release \
-	libsystemd0
 
 # Python 3.9
 RUN apt-get install -y \
@@ -84,7 +57,7 @@ RUN set -ex; \
 RUN add-apt-repository -y ppa:ethereum/ethereum
 RUN apt-get install -y solc
 
-# docker cli
+# # docker cli
 # RUN set -ex; \
 #     \
 #     apt-get update; \
@@ -103,50 +76,26 @@ RUN apt-get install -y solc
 
 # RUN apt-get update && apt-get install -y docker-ce-cli
 
-WORKDIR /
-RUN git clone https://github.com/intel/linux-sgx.git
-WORKDIR /linux-sgx
-RUN git checkout sgx_2.17
-RUN make preparation
-RUN cp external/toolset/ubuntu20.04/* /usr/local/bin
-# RUN cp external/dcap_source/QuoteVerification/sgxssl/Linux/package/include/* /opt/sgxsdk/include
-RUN which ar as ld objcopy objdump ranlib
-
-RUN make sdk_install_pkg USE_OPT_LIBS=0
-RUN echo -e 'no\n/opt/intel' | ./linux/installer/bin/sgx_linux_x64_sdk_2.17.100.3.bin
-RUN echo 'source /opt/intel/sgxsdk/environment' >> /root/.bashrc
-RUN make psw_install_pkg
-RUN make deb_local_repo
-RUN echo "deb [trusted=yes arch=amd64] file:/linux-sgx/linux/installer/deb/sgx_debian_local_repo focal main" >> /etc/apt/sources.list;
-RUN apt-get update && apt-get install -y --no-install-recommends libsgx-epid \
-                    libsgx-launch \
-                    libsgx-quote-ex \
-                    libsgx-urts;
-
-WORKDIR /opt/intel/
-RUN cp /opt/intel/sgxsdk/SampleCode/SampleAttestedTLS/prepare_sgxssl.sh .
-RUN ./prepare_sgxssl.sh
-
-# # SGX PSW
-# ENV INTEL_SGX_URL "https://download.01.org/intel-sgx"
-# RUN set -eux; \
-#     url="$INTEL_SGX_URL/sgx_repo/ubuntu"; \
-#     echo "deb [arch=amd64] $url focal main" \
-#                 | tee /etc/apt/sources.list.d/intel-sgx.list; \
-#     wget -qO - "$url/intel-sgx-deb.key" | apt-key add -; \
-#     apt-get update; \
-#     apt-get install -y --no-install-recommends \
-#                 libsgx-headers \
-#                 libsgx-ae-epid \
-#                 libsgx-ae-le \
-#                 libsgx-ae-pce \
-#                 libsgx-enclave-common \
-#                 libsgx-enclave-common-dev \
-#                 libsgx-epid \
-#                 libsgx-epid-dev \
-#                 libsgx-uae-service \
-#                 libsgx-urts; \
-#     rm -rf /var/lib/apt/lists/*;
+# SGX PSW
+ENV INTEL_SGX_URL "https://download.01.org/intel-sgx"
+RUN set -eux; \
+    url="$INTEL_SGX_URL/sgx_repo/ubuntu"; \
+    echo "deb [arch=amd64] $url focal main" \
+                | tee /etc/apt/sources.list.d/intel-sgx.list; \
+    wget -qO - "$url/intel-sgx-deb.key" | apt-key add -; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+                libsgx-headers \
+                libsgx-ae-epid \
+                libsgx-ae-le \
+                libsgx-ae-pce \
+                libsgx-enclave-common \
+                libsgx-enclave-common-dev \
+                libsgx-epid \
+                libsgx-epid-dev \
+                libsgx-uae-service \
+                libsgx-urts; \
+    rm -rf /var/lib/apt/lists/*;
 
 # install nix
 ARG UID=1000
@@ -165,10 +114,10 @@ USER photon
 
 WORKDIR /home/photon
 
+# TODO does nix have to be installed in this image?
 #COPY --chown=photon:photon ./nix.conf /home/photon/.config/nix/nix.conf
 
 # RUN curl -L https://nixos.org/nix/install | sh
-
 # RUN . /home/photon/.nix-profile/etc/profile.d/nix.sh && \
 #   nix-channel --add https://nixos.org/channels/nixos-21.11 nixpkgs && \
 #   nix-channel --update
@@ -205,7 +154,7 @@ ENV APP_NAME $APP_NAME
 ARG SGX_MODE=HW
 ENV SGX_MODE $SGX_MODE
 
-COPY common /usr/src/common/
+COPY common /usr/src/common
 COPY enclave /usr/src/enclave
 COPY interface /usr/src/interface
 COPY makefile /usr/src/makefile
@@ -217,14 +166,14 @@ COPY --from=demo-base /home/photon/enclave/ca_bundle.h enclave/ca_bundle.h
 COPY nix /usr/src/nix
 COPY nix/$SGX_MODE.nix /usr/src/default.nix
 
-# RUN nix-build
+RUN nix-build
 
 ##############################################################################
 #                                                                            #
 #                            Build app (untrusted)                           #
 #                                                                            #
 ##############################################################################
-FROM demo-base AS build-app
+FROM initc3/linux-sgx:2.17.1 AS build-app
 
 RUN apt-get update && apt-get install -y \
                 autotools-dev \
@@ -285,11 +234,8 @@ ENV deployment_location=DOCKER
 ARG CCF_ENABLE=1
 ENV CCF_ENABLE $CCF_ENABLE
 
-ENV SGX_SDK /opt/intel/sgxsdk
-ENV SGXSSL_SDK /opt/intel/sgxssl
+ENV SGX_SDK /opt/sgxsdk
 ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
-ENV PATH $PATH:$SGX_SDK/bin:$SGX_SDK/bin/x64
-ENV PKG_CONFIG_PATH $SGX_SDK/pkgconfig
 
 RUN mkdir -p $PROJECT_ROOT/test_sgx/client
 RUN mkdir -p $PROJECT_ROOT/test_sgx/host
@@ -297,9 +243,6 @@ RUN mkdir -p $PROJECT_ROOT/bin
 
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxsdk /opt/intel/sgxsdk/
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxssl /opt/intel/sgxssl/
-
-# COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
-# COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
 
 WORKDIR /home/photon/$APP_NAME
 
@@ -315,14 +258,16 @@ COPY --chown=photon:photon applications/$APP_NAME/*.h app/
 COPY --chown=photon:photon applications/$APP_NAME/*.h enclave/
 COPY --chown=photon:photon applications/$APP_NAME/*.c enclave/
 COPY --chown=photon:photon applications/$APP_NAME/*.py scripts
-COPY --from=demo-base --chown=photon:photon /home/photon/enclave/ca_bundle.h enclave/ca_bundle.h
 
+COPY --from=demo-base --chown=photon:photon /home/photon/enclave/ca_bundle.h enclave/ca_bundle.h
+ 
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/nodecert.pem ccf/
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/service_cert.pem ccf/
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_cert.pem ccf/
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_privk.pem ccf/
 
-RUN make clean && make
+COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
+COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
 
 WORKDIR /home/photon/$APP_NAME/scripts
 

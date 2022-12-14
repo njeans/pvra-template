@@ -27,4 +27,4 @@ sgx_status_t encrypt_aesgcm128(unsigned char AESKey[AESGCM_128_KEY_SIZE], uint8_
 
 int ocall_close(int sockfd);
 
-int getaddrinfo2(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo *res);
+// int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo *res);

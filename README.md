@@ -96,7 +96,7 @@ export CCF_PATH=<optional> #todo how to run CCF
 
 ##### Use Docker & Docker-Compose
 
-* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L26)
+* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L23)
 * Hardware mode
 ```bash
 export SGX_MODE=HW

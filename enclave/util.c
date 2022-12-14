@@ -242,10 +242,9 @@ sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], 
     return SGX_ERROR_UNEXPECTED;
   }
   //todo validate keys in initPVRA
-
-  err = secp256k1_ec_pubkey_parse(ctx, &user_pubkey, user_pubkey_buff, 65); //todo use flags in secp.h
+  err = secp256k1_ec_pubkey_parse(ctx, &user_pubkey, &user_pubkey_buff, 65); //todo use flags in secp.h
   if(err == 0) {
-    printf("[genkey_aesgcm128] secp256k1_ec_pubkey_parse() failed\n");
+    printf("[genkey_aesgcm128] secp256k1_ecdh() failed\n");
     return SGX_ERROR_UNEXPECTED;
   }
 
@@ -259,14 +258,14 @@ sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], 
   return SGX_SUCCESS;
 }
 
-sgx_status_t encrypt_aesgcm128(uint8_t AESKey[AESGCM_128_KEY_SIZE], uint8_t * buff, size_t buff_size, uint8_t * enc_out){
+sgx_status_t encrypt_aesgcm128(unsigned char AESKey[AESGCM_128_KEY_SIZE], uint8_t * buff, size_t buff_size, uint8_t * enc_out){
 
   uint8_t *tag_dst = enc_out;
   uint8_t *iv_src = enc_out + AESGCM_128_MAC_SIZE;
   uint8_t *ct_dst = enc_out + AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE;
   sgx_status_t ret = sgx_read_rand(iv_src, AESGCM_128_IV_SIZE);
   if (ret != SGX_SUCCESS) {
-    printf("[enc_aesgcm128] sgx_read_rand() failed!\n");
+    printf("[eiPVRA] sgx_read_rand() failed!\n");
     return ret;
   }
   ret = sgx_rijndael128GCM_encrypt((sgx_aes_gcm_128bit_key_t *) AESKey,
@@ -280,22 +279,3 @@ sgx_status_t encrypt_aesgcm128(uint8_t AESKey[AESGCM_128_KEY_SIZE], uint8_t * bu
   return ret;
 }
 
-int getaddrinfo2(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo *res) {
-    size_t num = 2;
-    int ret;
-//    struct addrinfo *result = (struct addrinfo **) malloc(sizeof(struct addrinfo)*num);
-    printf("calling ocall_getaddrinfo\n");
-    sgx_status_t sgxres = ocall_getaddrinfo(&ret, node, service, hints, res);
-    if(sgxres == SGX_SUCCESS) {
-        return ret;
-    }
-    printf("sgxres err %d ocall_getaddrinfo\n", sgxres);
-    return -1;
-}
-
-int ocall_close(int sockfd) {
-    int ret = -1;
-    if (u_close(&ret, sockfd) == SGX_SUCCESS)
-        return ret;
-    return -1;
-}

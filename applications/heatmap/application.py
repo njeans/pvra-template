@@ -122,7 +122,7 @@ def save_heatmap(hm):
     im2 = plt.imshow(heatmap_vals_round.transpose(), origin='lower', cmap='Reds', aspect='equal', extent=(0.0, width, 0.0, height))
     bmap = plt.imread(hm_info["map_file"])
     im = plt.imshow(bmap, extent=(0, width, 0, height), alpha=.3)
-    fname = f"heatmap_{hm_granularity}_{datetime.datetime.now()}.png"
+    fname = os.path.join(constants.APP_SRC_PATH, "data", f"heatmap_{hm_granularity}_{datetime.datetime.now()}.png")
     plt.savefig(fname)
     return fname
 

@@ -81,7 +81,6 @@ def deploy_contract(w3=lambda : setup_w3(), admin_addr=""):
         try:
            contract_address = w3.eth.get_transaction_receipt(tx_hash)['contractAddress']
         except web3.exceptions.TransactionNotFound:
-            print("contract_address", contract_address)
             time.sleep(1)
     contract = w3.eth.contract(address=contract_address, abi=abis)
     print_(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}', n="billboard.py")
