@@ -14,6 +14,7 @@ enclave
 
 	include "sgx_quote.h"
 	include "netdb.h"
+    // include "openssl/ssl.h"
 
     trusted
     {
@@ -68,5 +69,10 @@ enclave
             [in, string] const char *service, 
             [in] const struct addrinfo *hints, 
             [out] struct addrinfo *res);
+        
+        // int ocall_SSL_connect([in] ssl_crock_st *ssl);
+        // int ocall_SSL_write([in] ssl_crock_st *ssl, [in, size=num] const uint8_t *buf, int num);
+        // int ocall_SSL_read([in] ssl_crock_st *ssl, [out, size=num] uint8_t *buf, int num);
+
     };
 };

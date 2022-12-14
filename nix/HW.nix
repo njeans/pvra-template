@@ -11,8 +11,8 @@ pkgs.stdenv.mkDerivation {
   # best, be one commit behind the commit including this file.
   #src = pkgs.fetchFromGitHub {
   #  owner = "sbellem";
-  #  repo = "sgx-iot";
-  #  rev = "045bfa2fc7f8b2a22d32c76ad8962bdef27596c3";
+  #  repo = "pvra-template";
+  #  rev = "";
     # Command to get the sha256 hash:
     # nix run -f '<nixpkgs>' nix-prefetch-github -c nix-prefetch-github --rev 045bfa2fc7f8b2a22d32c76ad8962bdef27596c3 sbellem sgx-iot
   #  sha256 = "06f151k8fn3pgbs1piiakws8y1x0ga947k4gk3bl2nvq76vbpyyb";

@@ -133,11 +133,10 @@ RUN pip install -r requirements.txt
 ENV PATH="/home/photon/.local/bin:${PATH}"
 
 # gen_ca_bundle
-RUN mkdir enclave
-COPY --chown=photon:photon scripts/utils.py scripts/utils.py
+COPY --chown=photon:photon scripts/utils.py utils.py
 COPY --chown=photon:photon shared/ccf/sandbox_common/nodecert.pem .
-RUN python scripts/utils.py gen_ca_bundle nodecert.pem enclave/ca_bundle.h
-RUN rm nodecert.pem
+RUN python utils.py gen_ca_bundle nodecert.pem ca_bundle.h
+RUN rm nodecert.pem utils.py
 
 ##############################################################################
 #                                                                            #
@@ -161,12 +160,12 @@ COPY makefile /usr/src/makefile
 COPY trustedLib /usr/src/trustedLib
 COPY applications/$APP_NAME/*.c enclave/
 COPY applications/$APP_NAME/*.h enclave/
-COPY --from=demo-base /home/photon/enclave/ca_bundle.h enclave/ca_bundle.h
+COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
 
 COPY nix /usr/src/nix
 COPY nix/$SGX_MODE.nix /usr/src/default.nix
 
-RUN nix-build
+# RUN nix-build
 
 ##############################################################################
 #                                                                            #
@@ -207,7 +206,7 @@ COPY nix/ nix/
 COPY makefile makefile
 #COPY auditee/* .
 COPY trustedLib/ trustedLib/
-COPY --from=demo-base /home/photon/enclave/ca_bundle.h enclave/ca_bundle.h
+COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
 
 ARG SGX_MODE=HW
 ENV SGX_MODE $SGX_MODE
@@ -215,7 +214,7 @@ ENV SGX_MODE $SGX_MODE
 ARG SGX_DEBUG=0
 ENV SGX_DEBUG $SGX_DEBUG
 
-RUN make untrusted
+# RUN make untrusted
 
 ##############################################################################
 #                                                                            #
@@ -226,15 +225,15 @@ FROM demo-base
 
 ARG APP_NAME=heatmap
 ENV APP_NAME $APP_NAME
+ENV PROJECT_ROOT="/home/photon/${APP_NAME}"
 
 ARG NUM_USERS=4
 ENV NUM_USERS $NUM_USERS
-ENV PROJECT_ROOT="/home/photon/${APP_NAME}"
 ENV deployment_location=DOCKER
 ARG CCF_ENABLE=1
 ENV CCF_ENABLE $CCF_ENABLE
 
-ENV SGX_SDK /opt/sgxsdk
+ENV SGX_SDK /opt/intel/sgxsdk
 ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
 RUN mkdir -p $PROJECT_ROOT/test_sgx/client
@@ -243,7 +242,9 @@ RUN mkdir -p $PROJECT_ROOT/bin
 
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxsdk /opt/intel/sgxsdk/
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxssl /opt/intel/sgxssl/
-
+RUN sudo apt-get install -y unzip
+WORKDIR /opt/intel/sgxsdk/SampleCode/SampleAttestedTLS/
+RUN ./prepare_sgxssl.sh
 WORKDIR /home/photon/$APP_NAME
 
 COPY --chown=photon:photon makefile makefile
@@ -259,15 +260,16 @@ COPY --chown=photon:photon applications/$APP_NAME/*.h enclave/
 COPY --chown=photon:photon applications/$APP_NAME/*.c enclave/
 COPY --chown=photon:photon applications/$APP_NAME/*.py scripts
 
-COPY --from=demo-base --chown=photon:photon /home/photon/enclave/ca_bundle.h enclave/ca_bundle.h
+COPY --from=demo-base --chown=photon:photon /home/photon/ca_bundle.h enclave/ca_bundle.h
  
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/nodecert.pem ccf/
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/service_cert.pem ccf/
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_cert.pem ccf/
 COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_privk.pem ccf/
 
-COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
-COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
+# COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
+# COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
+# RUN make clean && make
 
 WORKDIR /home/photon/$APP_NAME/scripts
 
