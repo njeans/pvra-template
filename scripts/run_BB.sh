@@ -4,4 +4,4 @@ export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networ
 echo "BILLBOARD_URL=$BILLBOARD_URL"
 sleep 5
 set -e
-docker exec billboard cat accounts.json > $PROJECT_ROOT/billboard/accounts.json
+docker exec billboard cat accounts.json > $PROJECT_ROOT/accounts/accounts.json

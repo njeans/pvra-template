@@ -79,17 +79,16 @@ export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>
 export NUM_USERS=<NUM_USERS>
 export APP_NAME=<APP_NAME>
 export SGX_MODE=<HW or SW>
-export CCF_PATH=<optional> #todo how to run CCF
 ```
 
-* CCF public key is hardcoded in the enclave image as a root of trust and must be updated in enclave/initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
+* CCF public key is hardcoded in the enclave image as a root of trust and must be updated in `enclave/ca_bundle.sh` In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
 
 * In order to run an existing application pass the APP_NAME to ```./setup.sh``` script.
   
-    * ```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the directory in `$PROJECT_ROOT/application` and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
+    * ```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the directory in `$PROJECT_ROOT/application`. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
 
 ```bash
-./setup.sh -a $APP_NAME -c $CCF_PATH
+./setup.sh -a $APP_NAME
 ```
 
 #### Running
@@ -101,16 +100,14 @@ export CCF_PATH=<optional> #todo how to run CCF
 ```bash
 export SGX_MODE=HW
 cd $PROJECT_ROOT/docker
-docker-compose build enclave
-docker-compose run --rm enclave bash
+./build_pvra.sh
 ```
 
 * Simulation mode
 ```bash
 export SGX_MODE=SW
 cd $PROJECT_ROOT/docker
-docker-compose build enclave-sim
-docker-compose run --rm enclave-sim bash
+./run_pvra.sh
 ```
 
 ##### Build Locally
@@ -121,6 +118,9 @@ pip install -r requirements.txt
 export SGX_SDK=/opt/sgxsdk #or your local sgx sdk path
 export LD_LIBRARY_PATH=$SGX_SDK/sdk_libs:$LD_LIBRARY_PATH
 export SGX_MODE=<HW or SW>
+cd $PROJECT_ROOT/docker
+./build_ccf.sh
+./deploy_ccf.sh
 cd $PROJECT_ROOT/scripts
 ./build.sh
 ./run_BB.sh
@@ -169,17 +169,20 @@ cd $PROJECT_ROOT/scripts
 * `setup.sh` : setup application specific files
 
 
-* `scripts/build.sh` copy relevant application files and build the enclave and untrusted host (works for building locally and in docker container)
+* `scripts/build.sh` copy relevant application files and build the enclave and untrusted host (works when building locally and in docker container)
 * `scripts/copy.sh` copy relevant application files
-* `scripts/run_BB.sh` start a truffle/ganache bulletin board instance for local (non docker-compose) deployments
-* `scripts/stop_BB.sh` stop a truffle/ganache bulletin board instance for local (non docker-compose) deployments
+* `scripts/run_BB.sh` start a foundry/anvil bulletin board instance for local (non docker-compose) deployments
+* `scripts/stop_BB.sh` stop a foundry/anvil bulletin board instance for local (non docker-compose) deployments
 
 
-* `docker/build.sh` : build docker images
+* `docker/build.sh` : build docker images (and deploys ccf as this is required to build pvra)
     * build a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
-* `docker/run.sh` : run docker containers
+* `docker/run_pvra.sh` : run docker containers
     * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
-    * `docker/run.sh <cmd>` runs <cmd> with the docker container
-      * ex: `./run.sh bash` opens bash terminal in enclave docker container
-      * ex: `./run.sh "python demo.py test"` runs test in enclave docker container
+    * `docker/run_pvra.sh <cmd>` runs <cmd> with the docker container
+      * ex: `./run_pvra.sh bash` opens bash terminal in enclave docker container
+      * ex: `./run_pvra.sh "python demo.py test"` runs test in enclave docker container
+* `docker/build_run.sh` : combines `build.sh` and `run_pvra.sh`
+* `docker/build_ccf.sh` : builds state continuity ccf images
+* `docker/deploy_ccf.sh` : deploy 3 node state continuity ccf network
 ### Sample VSC Run: TODO update

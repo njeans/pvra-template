@@ -15,7 +15,7 @@ then
   cp $PROJECT_ROOT/src/*.py $PROJECT_ROOT/scripts/
   cp $PROJECT_ROOT/src/*.c $PROJECT_ROOT/enclave
   cp $PROJECT_ROOT/src/*.h $PROJECT_ROOT/enclave
-  cp $PROJECT_ROOT/src/*.h $PROJECT_ROOT/app
+  cp $PROJECT_ROOT/src/*.h $PROJECT_ROOT/untrusted
 else
 
   if [[ -z "${APP_NAME}" ]];
@@ -27,6 +27,6 @@ else
   cp $PROJECT_ROOT/applications/$APP_NAME/*.py $PROJECT_ROOT/scripts/
   cp $PROJECT_ROOT/applications/$APP_NAME/*.c $PROJECT_ROOT/enclave/
   cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/enclave/
-  cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/app/
+  cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/untrusted/
 
 fi

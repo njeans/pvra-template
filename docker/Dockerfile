@@ -134,9 +134,11 @@ ENV PATH="/home/photon/.local/bin:${PATH}"
 
 # gen_ca_bundle
 COPY --chown=photon:photon scripts/utils.py utils.py
-COPY --chown=photon:photon shared/ccf/sandbox_common/nodecert.pem .
-RUN python utils.py gen_ca_bundle nodecert.pem ca_bundle.h
-RUN rm nodecert.pem utils.py
+COPY --chown=photon:photon shared/ccf_sandbox/nodecert0.pem .
+COPY --chown=photon:photon shared/ccf_sandbox/nodecert1.pem .
+COPY --chown=photon:photon shared/ccf_sandbox/nodecert2.pem .
+RUN python utils.py gen_ca_bundle '["nodecert0.pem","nodecert1.pem","nodecert2.pem"]' ca_bundle.h
+RUN rm nodecert0.pem utils.py
 
 ##############################################################################
 #                                                                            #
@@ -160,7 +162,7 @@ COPY makefile /usr/src/makefile
 COPY trustedLib /usr/src/trustedLib
 COPY applications/$APP_NAME/*.c enclave/
 COPY applications/$APP_NAME/*.h enclave/
-COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
+# COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
 
 COPY nix /usr/src/nix
 COPY nix/$SGX_MODE.nix /usr/src/default.nix
@@ -169,10 +171,10 @@ COPY nix/$SGX_MODE.nix /usr/src/default.nix
 
 ##############################################################################
 #                                                                            #
-#                            Build app (untrusted)                           #
+#                            Build untrusted                                 #
 #                                                                            #
 ##############################################################################
-FROM initc3/linux-sgx:2.17.1 AS build-app
+FROM initc3/linux-sgx:2.17.1 AS build-untrusted
 
 RUN apt-get update && apt-get install -y \
                 autotools-dev \
@@ -195,18 +197,18 @@ ENV PATH $PATH:$SGX_SDK/bin:$SGX_SDK/bin/x64
 ENV PKG_CONFIG_PATH $SGX_SDK/pkgconfig
 ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
-COPY app/ app/
+COPY untrusted/ untrusted/
 COPY enclave/ enclave/
 COPY applications/$APP_NAME/*.c enclave/
 COPY applications/$APP_NAME/*.h enclave/
-COPY applications/$APP_NAME/*.h app/
+COPY applications/$APP_NAME/*.h untrusted/
 COPY common/ common/
 COPY interface/ interface/
 COPY nix/ nix/
 COPY makefile makefile
 #COPY auditee/* .
 COPY trustedLib/ trustedLib/
-COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
+# COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
 
 ARG SGX_MODE=HW
 ENV SGX_MODE $SGX_MODE
@@ -252,23 +254,23 @@ COPY --chown=photon:photon trustedLib trustedLib
 COPY --chown=photon:photon solidity solidity
 COPY --chown=photon:photon common common
 COPY --chown=photon:photon interface interface
-COPY --chown=photon:photon app app
+COPY --chown=photon:photon untrusted untrusted
 COPY --chown=photon:photon enclave enclave
 COPY --chown=photon:photon scripts scripts
-COPY --chown=photon:photon applications/$APP_NAME/*.h app/
+COPY --chown=photon:photon applications/$APP_NAME/*.h untrusted/
 COPY --chown=photon:photon applications/$APP_NAME/*.h enclave/
 COPY --chown=photon:photon applications/$APP_NAME/*.c enclave/
 COPY --chown=photon:photon applications/$APP_NAME/*.py scripts
 
-COPY --from=demo-base --chown=photon:photon /home/photon/ca_bundle.h enclave/ca_bundle.h
+# COPY --from=demo-base --chown=photon:photon /home/photon/ca_bundle.h enclave/ca_bundle.h
  
-COPY --chown=photon:photon ./shared/ccf/sandbox_common/nodecert.pem ccf/
-COPY --chown=photon:photon ./shared/ccf/sandbox_common/service_cert.pem ccf/
-COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_cert.pem ccf/
-COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_privk.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf/sandbox_common/nodecert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf/sandbox_common/service_cert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_cert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_privk.pem ccf/
 
 # COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
-# COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
+# COPY --from=build-untrusted --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
 # RUN make clean && make
 
 WORKDIR /home/photon/$APP_NAME/scripts

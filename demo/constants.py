@@ -25,14 +25,13 @@ IAS_PRIMARY_KEY = os.environ.get("IAS_PRIMARY_KEY")
 
 CCF_ENABLE = bool(int(os.environ.get("CCF_ENABLE", 0)))
 if os.environ.get("deployment_location", "") == "DOCKER":
-    CCF_URL = os.environ.get("CCF_URL", 'https://ccf:8080')
+    CCF_URL = os.environ.get("CCF_URL", 'https://ccf0:8080')
     CCF_CERTS_DIR = os.environ.get("CCF_CERTS_DIR", os.path.join(PROJECT_ROOT, "ccf"))
 else:
     CCF_URL = os.environ.get("CCF_URL", 'https://localhost:8546')
-    CCF_CERTS_DIR = os.environ.get("CCF_CERTS_DIR", os.path.join(PROJECT_ROOT, "shared", "ccf", "sandbox_common"))
+    CCF_CERTS_DIR = os.environ.get("CCF_CERTS_DIR", os.path.join(PROJECT_ROOT, "shared", "ccf_sandbox"))
 
 CCF_SERVICE_CERT_PATH = os.path.join(CCF_CERTS_DIR, "service_cert.pem")
-CCF_NODE_CERT_PATH = os.path.join(CCF_CERTS_DIR, "nodecert.pem") #todo multiple nodes
 CCF_USER_CERT_PATH = os.path.join(CCF_CERTS_DIR, "user0_cert.pem")
 CCF_USER_KEY_PATH = os.path.join(CCF_CERTS_DIR, "user0_privk.pem")
 if CCF_ENABLE:

@@ -108,7 +108,7 @@ def large_test(admin, users, num_tests=12):
                   [False, False, False, results[0]],
                   [False, False, True, results[1]]]
     for i in range(num_users):
-        user_data = [({"tid": STATUS_UPDATE, "test_result": test_cases[i % len(test_cases)][j%3], "seq": j+1}, "success statusUpdate"), for j in range(num_tests)]
+        user_data = [({"tid": STATUS_UPDATE, "test_result": test_cases[i % len(test_cases)][j%3], "seq": j+1}, "success statusUpdate") for j in range(num_tests)]
         user_data.append(({"tid": STATUS_QUERY, "seq": num_tests+2}, test_cases[i % len(test_cases)][3]))
         test_data.append(user_data)
         admin_data.append([None for _ in range(len(user_data))])

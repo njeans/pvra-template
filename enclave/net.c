@@ -21,6 +21,6 @@ void freeaddrinfo(struct addrinfo *ai) {
         free(ai);
 }
 
- int SSL_connect(SSL *ssl) {
-    return -1;
- }
+//  int SSL_connect(SSL *ssl) {
+//     return -1;
+//  }
