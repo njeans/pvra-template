@@ -121,7 +121,7 @@ services:
       NODE_NUM: "1"
       platform: sgx
     depends_on:
-      ccf0:
+      ccf0-sgx:
         condition: service_healthy
     volumes:
       # - ccf_sandbox:/sandbox_common
@@ -138,7 +138,7 @@ services:
     hostname: ccf2
     domainname: ccf2
     depends_on:
-      ccf0:
+      ccf0-sgx:
         condition: service_healthy
     environment:
       deployment_location: DOCKER

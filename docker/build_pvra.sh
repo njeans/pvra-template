@@ -1,6 +1,4 @@
 #!/bin/bash
-set -e
-set +x
 
 ccf_server=https://localhost:8546
 ccf_cert_dir=$PROJECT_ROOT/shared/ccf_sandbox
@@ -19,6 +17,7 @@ echo -e "Making sure the CCF app frontend is up and the certs are fresh"
 
 # curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" | jq .
 status="$(curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" $only_status_code)"
+echo $status
 if [ "200" != $status ]; then
     echo -e "CCF app frontent end is not up...\ntry calling ./build_ccf.sh and ./deploy_ccf.sh"
     exit 1

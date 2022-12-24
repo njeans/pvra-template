@@ -9,12 +9,12 @@ fi
 
 mbedtls=$PROJECT_ROOT/trustedLib/mbedtls-SGX
 scs=$PROJECT_ROOT/counter-service
-if [[ ! -e "$mbedtls" || ! -e "$scs" ]];
-then
+if [[ -z "$(ls -A $mbedtls)" || -z "$(ls -A $scs)" ]]; then
   echo "Setting up submodules"
-  git submodule update --recursive
+  git submodule update --init
 fi
-if [[ ! -e "$mbedtls/build" ]];
+
+if [[ -d $mbedtls && -z "$(ls -A $mbedtls/build)" ]];
 then
   cd $mbedtls
   mkdir build && cd build
@@ -73,7 +73,7 @@ then
   cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/enclave/
   cp $PROJECT_ROOT/applications/$APP_NAME/*.c $PROJECT_ROOT/enclave/
   cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/untrusted/
-  cp $PROJECT_ROOT/applications/$APP_NAME/*.py $PROJECT_ROOT/scripts/
+  cp $PROJECT_ROOT/applications/$APP_NAME/*.py $PROJECT_ROOT/demo/
 else
   echo "Error: Application Directory $PROJECT_ROOT/applications/$APP_NAME/ does not exist."
 fi
