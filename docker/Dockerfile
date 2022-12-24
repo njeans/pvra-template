@@ -133,12 +133,13 @@ RUN pip install -r requirements.txt
 ENV PATH="/home/photon/.local/bin:${PATH}"
 
 # gen_ca_bundle
-COPY --chown=photon:photon scripts/utils.py utils.py
-COPY --chown=photon:photon shared/ccf_sandbox/nodecert0.pem .
-COPY --chown=photon:photon shared/ccf_sandbox/nodecert1.pem .
-COPY --chown=photon:photon shared/ccf_sandbox/nodecert2.pem .
-RUN python utils.py gen_ca_bundle '["nodecert0.pem","nodecert1.pem","nodecert2.pem"]' ca_bundle.h
-RUN rm nodecert0.pem utils.py
+ARG CCF_ENABLE=1
+ENV CCF_ENABLE $CCF_ENABLE
+COPY --chown=photon:photon demo/utils.py utils.py
+COPY --chown=photon:photon shared/ccf_sandbox/nodecert*.pem certs/
+RUN python utils.py gen_ca_bundle -p ca_bundle.h -ccf-enable $CCF_ENABLE -cd certs
+RUN rm utils.py
+RUN rm -rf certs
 
 ##############################################################################
 #                                                                            #
@@ -208,7 +209,7 @@ COPY nix/ nix/
 COPY makefile makefile
 #COPY auditee/* .
 COPY trustedLib/ trustedLib/
-# COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
+COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
 
 ARG SGX_MODE=HW
 ENV SGX_MODE $SGX_MODE
@@ -256,11 +257,12 @@ COPY --chown=photon:photon common common
 COPY --chown=photon:photon interface interface
 COPY --chown=photon:photon untrusted untrusted
 COPY --chown=photon:photon enclave enclave
+COPY --chown=photon:photon demo demo
 COPY --chown=photon:photon scripts scripts
 COPY --chown=photon:photon applications/$APP_NAME/*.h untrusted/
 COPY --chown=photon:photon applications/$APP_NAME/*.h enclave/
 COPY --chown=photon:photon applications/$APP_NAME/*.c enclave/
-COPY --chown=photon:photon applications/$APP_NAME/*.py scripts
+COPY --chown=photon:photon applications/$APP_NAME/*.py demo
 
 # COPY --from=demo-base --chown=photon:photon /home/photon/ca_bundle.h enclave/ca_bundle.h
  
@@ -273,6 +275,6 @@ COPY --chown=photon:photon applications/$APP_NAME/*.py scripts
 # COPY --from=build-untrusted --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
 # RUN make clean && make
 
-WORKDIR /home/photon/$APP_NAME/scripts
+WORKDIR /home/photon/$APP_NAME/demo
 
 CMD python demo.py

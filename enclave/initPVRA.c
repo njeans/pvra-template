@@ -247,7 +247,6 @@ printf("initPVRA b %p\n", enclave_state.publickeys.user_pubkeys);
     printf("[eiPVRA] seal_enclave_state error: [%d]\n", ret);
   } 
 
-  printf("d\n");
   goto cleanup;
 
 cleanup:

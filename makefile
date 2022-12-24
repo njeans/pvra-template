@@ -6,19 +6,20 @@
 
 include common/common.mk
 
-.PHONY: all clean
+.PHONY: all clean untrusted enclave
 
-all: enclave.signed.so untrusted
+all:
+	$(MAKE) $(MFLAGS) -C enclave SGX_MODE=$(SGX_MODE) $(MAKECMDGOALS)
+	$(MAKE) $(MFLAGS) -C untrusted SGX_MODE=$(SGX_MODE) $(MAKECMDGOALS)
 
-enclave.signed.so:
+enclave:
 	$(MAKE) $(MFLAGS) -C enclave SGX_MODE=$(SGX_MODE)
 
 
 untrusted:
-	$(MAKE) $(MFLAGS) -C app SGX_MODE=$(SGX_MODE)
-
+	$(MAKE) $(MFLAGS) -C untrusted SGX_MODE=$(SGX_MODE)
 
 clean:
 	$(MAKE) $(MFLAGS) -C enclave SGX_MODE=$(SGX_MODE) $(MAKECMDGOALS)
-	$(MAKE) $(MFLAGS) -C app SGX_MODE=$(SGX_MODE) $(MAKECMDGOALS)
+	$(MAKE) $(MFLAGS) -C untrusted SGX_MODE=$(SGX_MODE) $(MAKECMDGOALS)
 	rm -rf bin

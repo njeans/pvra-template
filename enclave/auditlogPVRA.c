@@ -141,8 +141,8 @@ sgx_status_t ecall_auditlogPVRA(
   }
   serialize_tree(auditlog, &mt);
   cleanup_tree(&mt);
-  free_user_leaf(leaf_data);
-  free_user_leaf(enc_leaf_data);
+  free_user_leaf(&enclave_state, leaf_data);
+  free_user_leaf(&enclave_state, enc_leaf_data);
   free(leaf_data);
   leaf_data = NULL;
   free(enc_leaf_data);
@@ -218,12 +218,12 @@ sgx_status_t ecall_auditlogPVRA(
     if(A_DEBUGRDTSC) ocall_rdtsc();
 #ifdef MERKLE_TREE
     if (leaf_data != NULL) {
-      free_user_leaf(leaf_data);
+      free_user_leaf(&enclave_state, leaf_data);
       free(leaf_data);
       leaf_data=NULL;
     }
     if (enc_leaf_data != NULL) {
-      free_user_leaf(enc_leaf_data);
+      free_user_leaf(&enclave_state, enc_leaf_data);
       free(enc_leaf_data);
       enc_leaf_data=NULL;
     }

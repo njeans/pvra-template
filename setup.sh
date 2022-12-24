@@ -1,11 +1,5 @@
 #!/bin/bash
-# This script is run before make to prepare application files and CCF credentials
-
-if [[ -z "${CCF_ENABLE}" ]]; 
-then
-  echo "Error: environment variable CCF_ENABLE not set."
-  exit
-fi
+# This script is run before make to prepare application files
 
 if [[ -z "${PROJECT_ROOT}" ]];
 then
@@ -13,12 +7,24 @@ then
   exit
 fi
 
+mbedtls=$PROJECT_ROOT/trustedLib/mbedtls-SGX
+scs=$PROJECT_ROOT/counter-service
+if [[ ! -e "$mbedtls" || ! -e "$scs" ]];
+then
+  echo "Setting up submodules"
+  git submodule update --recursive
+fi
+if [[ ! -e "$mbedtls/build" ]];
+then
+  cd $mbedtls
+  mkdir build && cd build
+  cmake ..
+  make -j && make install
+fi
+
 POSITIONAL_ARGS=()
 
 DEFAULT_APP_NAME=vsc
-
-APP_NAME=""
-CCF_PATH=$PROJECT_ROOT/shared/ccf/sandbox_common/
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -59,13 +65,14 @@ if [ "$APP_NAME" == "" ]
 then
   echo "Defaulting to APP_NAME = $DEFAULT_APP_NAME"
   APP_NAME=$DEFAULT_APP_NAME
+else 
+  echo "Setup $APP_NAME"
 fi
-
 if [ -d "$PROJECT_ROOT/applications/$APP_NAME/"  ]
 then
   cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/enclave/
   cp $PROJECT_ROOT/applications/$APP_NAME/*.c $PROJECT_ROOT/enclave/
-  cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/app/
+  cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/untrusted/
   cp $PROJECT_ROOT/applications/$APP_NAME/*.py $PROJECT_ROOT/scripts/
 else
   echo "Error: Application Directory $PROJECT_ROOT/applications/$APP_NAME/ does not exist."

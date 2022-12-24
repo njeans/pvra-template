@@ -60,19 +60,20 @@ def commandPVRA(state_counter, full_cmd):
 
 def auditlogPVRA(state_counter):
     # todo get FT .. why doesn't this need an FT rn?
+    seal_out_path = SEAL_OUT_PATH(state_counter)+"_audit"
     audit_cmd = APP_PATH + " --auditlogPVRA" + \
                 " --enclave-path " + SIGNED_ENCLAVE_PATH + \
                 " --sealedState " + SEAL_STATE_PATH + \
                 " --auditlog " + AUDIT_LOG_PATH + \
                 " --auditlogsig " + AUDIT_LOG_SIG_PATH + \
-                " --sealedOut " + SEAL_OUT_PATH(state_counter)+"_audit"
+                " --sealedOut " + seal_out_path
     print_vv(f'calling auditlogPVRA state_counter {state_counter} with {audit_cmd}', n=FILENAME)
     res = subprocess.run(audit_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if res.returncode != 0:
         print_(f"auditlogPVRA failed with code {res.returncode}\n{res.stdout.decode('utf-8')}{res.stderr.decode('utf-8')}", c=ERRORc, n=FILENAME)
         exit(res.returncode)
     print_v(res.stdout.decode("utf-8"), n=FILENAME)
-    cp = subprocess.run(f"cp {SEAL_OUT_PATH}_audit {SEAL_STATE_PATH}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    cp = subprocess.run(f"cp {seal_out_path} {SEAL_STATE_PATH}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     assert cp.returncode == 0
     with open(AUDIT_LOG_PATH, "rb") as f:
         audit_log = f.read()

@@ -11,12 +11,12 @@ Enclave_Include_Paths := -I$(SGX_SDK)/include \
        -I$(SGX_SDK)/include/tlibc \
        -I../trustedLib/secp256k1/include \
        -I$(SGXSSL_PKG_PATH)/include \
-       -I$(SGX_SDK)/SampleCode/SampleAttestedTLS/sgx_socket/include \
 	   -I../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/include \
-       -I../interface
+       -I../interface #\
+	   -I$(SGX_SDK)/SampleCode/SampleAttestedTLS/sgx_socket/include \
 
 SGX_EDGER8R_FLAGS += --trusted-dir ../interface \
-	--search-path $(SGXSSL_PKG_PATH)/include  \
+	--search-path $(SGXSSL_PKG_PATH)/include  #\
     --search-path $(SGX_SDK)/SampleCode/SampleAttestedTLS/sgx_socket/include
 
 CFLAGS += $(Enclave_Include_Paths) $(SGX_ENCLAVE_CFLAGS) -std=c99 -Wno-unused-parameter
@@ -37,7 +37,8 @@ all: ../interface/libenclave_stub_t.a enclave.signed.so
 
 ../interface/libenclave_stub_t.a: ../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/lib/mbedtls_SGX.edl ../interface/enclave.edl
 
-enclave.unsigned.so: decode_sgx_status.o net.o htonl.o  htons.o  trusted_sgx_socket.o ../trustedLib/secp256k1/lib/libsecp256k1.a ../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/lib/libmbedtls_SGX_t.a print.o enclave_state.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o util.o merkletree.o
+enclave.unsigned.so: net.o htonl.o  htons.o  ../trustedLib/secp256k1/lib/libsecp256k1.a ../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/lib/libmbedtls_SGX_t.a print.o enclave_state.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o util.o merkletree.o
+#decode_sgx_status.o  trusted_sgx_socket.o
 
 enclave.signed.so: enclave.key.pem
 

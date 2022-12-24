@@ -173,7 +173,7 @@ sgx_status_t ecall_commandPVRA(
     goto cleanup;
   }
 
-  if(DEBUGPRINT) printf("[ecPVRA] SCS Received newFT = %.*s\n", 8, FT);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS Received newFT = %.*s\n", sizeof(FT), FT);
   if(DEBUGPRINT) printf("[ecPVRA] SCS Expected newFT = ");
   if(DEBUGPRINT) print_hexstring(ft_hash, HASH_SIZE);
 
@@ -185,7 +185,7 @@ sgx_status_t ecall_commandPVRA(
   ex_hexstring[64] = 0;
 
   /*    Comparing expected newFT to FT returned from SCS    */
-  for(int i = 0; i < 64; i++) { //todo this is weird and will break because FT is len 8
+  for(int i = 0; i < sizeof(FT); i++) { //todo this is weird and will break because FT is len 8
     if(ex_hexstring[i] != FT[i]) {
       printf("[ecPVRA] SCS FT Match: failure");
       if (CCF_ENABLE == 1){
@@ -345,7 +345,15 @@ sgx_status_t ecall_commandPVRA(
 
 
   
-  /*   (6) PROCESS COMMAND    */
+  /*   (6) FT UPDATE    */
+
+  memcpy(enclave_state.counter.freshness_tag, ft_hash, 32); //todo why is this done here
+  if(DEBUGPRINT) printf("[ecPVRA] SCS Local FT updated ");
+  if(DEBUGPRINT) print_hexstring(enclave_state.counter.freshness_tag, 32);
+
+  if(C_DEBUGRDTSC) ocall_rdtsc();
+
+  /*   (7) PROCESS COMMAND    */
 #ifdef NUM_ADMIN_COMMANDS
   struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*, uint32_t);
 #else
@@ -361,14 +369,6 @@ sgx_status_t ecall_commandPVRA(
   /*   APPLICATION KERNEL INVOKED    */
   cResp = (*functions[CC.eCMD.CT])(&enclave_state, &CC.eCMD.CI, user_idx);
   
-  /*   (7) FT UPDATE    */
-
-  memcpy(enclave_state.counter.freshness_tag, ft_hash, 32); //todo why is this done here
-  if(DEBUGPRINT) printf("[ecPVRA] SCS Local FT updated ");
-  if(DEBUGPRINT) print_hexstring(enclave_state.counter.freshness_tag, 32);
-
-  if(C_DEBUGRDTSC) ocall_rdtsc();
-
 
   /*   (8) SIGN cRESPONSE    */
 

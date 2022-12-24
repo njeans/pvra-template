@@ -92,6 +92,6 @@ accounts/
 *.bin
 
 # application specific
-application/heatmap/out
+application/heatmap/data
 
 *tmp*

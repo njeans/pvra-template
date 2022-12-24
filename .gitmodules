@@ -1,6 +1,6 @@
 [submodule "counter-service"]
 	path = counter-service
 	url = https://github.com/njeans/counter-service.git
-[submodule "mbedtls-SGX"]
+[submodule "trustedLib/mbedtls-SGX"]
 	path = trustedLib/mbedtls-SGX
 	url = https://github.com/bl4ck5un/mbedtls-SGX.git

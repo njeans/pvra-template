@@ -6,12 +6,12 @@ ccf_server=https://localhost:8546
 ccf_cert_dir=$PROJECT_ROOT/shared/ccf_sandbox
 only_status_code="-s -o /dev/null -w %{http_code}"
 
-if [ "$SGX_MODE" = "SW" ]; then
-  echo "Starting CCF virtual server"
-  ccf_platform=virtual
-else
+if [ "$SGX_MODE" = "HW" ]; then
   echo "Starting CCF sgx server"
   ccf_platform=sgx
+else
+  echo "Starting CCF virtual server"
+  ccf_platform=virtual
 fi
 
 docker-compose up -d ccf0-$ccf_platform ccf1-$ccf_platform ccf2-$ccf_platform

@@ -21,6 +21,7 @@
 
 #define AESGCM_128_MAC_SIZE 16
 #define AESGCM_128_IV_SIZE 12
+#define HASH_SIZE 32
 
 extern sgx_enclave_id_t enclave_id;
 extern sgx_launch_token_t launch_token;
