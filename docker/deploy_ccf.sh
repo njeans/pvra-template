@@ -23,7 +23,7 @@ total=20
 sleep $total
 
 set +e
-
+# Using the same way as https://github.com/microsoft/CCF/blob/1f26340dea89c06cf615cbd4ec1b32665840ef4e/tests/start_network.py#L94
 status="$(curl "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" $only_status_code)"
 while [ "200" != $status ]
 do

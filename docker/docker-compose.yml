@@ -164,6 +164,8 @@ services:
     depends_on:
       - billboard
       - ccf0-virtual
+      - ccf1-virtual
+      - ccf2-virtual
     working_dir: /home/photon/${APP_NAME}/demo
     environment:
       deployment_location: DOCKER
@@ -234,6 +236,8 @@ services:
     depends_on:
       - aesm
       - ccf0-sgx
+      - ccf1-sgx
+      - ccf2-sgx
       - billboard
     working_dir: /home/photon/${APP_NAME}/demo
     command: python demo.py
