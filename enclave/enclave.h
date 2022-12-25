@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2019 Intel Corporation
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #ifndef _ENCLAVE_H_
 #define _ENCLAVE_H_
 

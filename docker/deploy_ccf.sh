@@ -16,10 +16,6 @@ fi
 
 docker-compose up -d ccf0-$ccf_platform ccf1-$ccf_platform ccf2-$ccf_platform
 
-# Using the same way as https://github.com/microsoft/CCF/blob/1f26340dea89c06cf615cbd4ec1b32665840ef4e/tests/start_network.py#L94
-# There is a side effect here in the case of the sandbox as it creates the 'workspace/sandbox_common' everytime
-# it starts up. The following condition not only checks that this pem file has been created, it also checks it
-# is valid. Don't be caught out by the folder existing from a previous run.
 echo -e "💤 Waiting for the CCF app frontend..."
 
 max=100

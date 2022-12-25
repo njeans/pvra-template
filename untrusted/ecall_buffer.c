@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2019 Intel Corporation
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include <stdio.h>
 
 #include <enclave_u.h> /* For sgx_enclave_id_t */

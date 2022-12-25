@@ -1,9 +1,3 @@
-#
-# Copyright (C) 2011-2019 Intel Corporation
-#
-# SPDX-License-Identifier: BSD-3-Clause
-#
-
 include common/common.mk
 
 .PHONY: all clean untrusted enclave

@@ -1,15 +1,3 @@
-/*
- * Copyright (C) 2019 Intel Corporation
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
-#include "app.h"
-
-
-/* Globals */
-
-uint64_t tsc_dump[50];
 int tsc_idx;
 
 sgx_enclave_id_t enclave_id;

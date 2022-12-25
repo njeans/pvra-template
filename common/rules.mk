@@ -1,9 +1,3 @@
-#
-# Copyright (C) 2011-2019 Intel Corporation
-#
-# SPDX-License-Identifier: BSD-3-Clause
-#
-
 .SUFFIXES: .edl _u.h _u.c _u.o _stub_u.a _stub_u.so _t.h _t.c _t.o _stub_t.a .unsigned.so .signed.so
 
 # Implicit rules to generate untrusted (host) stubs

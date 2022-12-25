@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2019 Intel Corporation
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include <stdio.h>
 
 #include <sgx_urts.h> /* For sgx_launch_token_t */

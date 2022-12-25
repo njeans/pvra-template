@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2019 Intel Corporation
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include <stdio.h>
 
 #include "app.h"
@@ -21,7 +15,6 @@ bool read_file_into_memory(const char *const filename, void **buffer,
     goto cleanup;
   }
 
-  /* Read sensor data from file */
   file = open_file(filename, "rb");
   if (file == NULL) {
     fprintf(stderr, "[GatewayApp]: read_file_into_memory() fopen %s failed\n", filename);
