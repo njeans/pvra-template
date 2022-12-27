@@ -5,8 +5,6 @@
 
 void print(const char *const str) { ocall_print_string(str); }
 
-void printint(const int * num) { ocall_print_int(num); }
-
 int printf(const char* fmt, ...)
 {
     char buf[BUFSIZ] = { '\0' };
@@ -15,6 +13,17 @@ int printf(const char* fmt, ...)
     vsnprintf(buf, BUFSIZ, fmt, ap);
     va_end(ap);
     ocall_print_string(buf);
+    return (int)strnlen(buf, BUFSIZ - 1) + 1;
+}
+
+int printf_stderr(const char* fmt, ...)
+{
+    char buf[BUFSIZ] = { '\0' };
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, BUFSIZ, fmt, ap);
+    va_end(ap);
+    ocall_print_stderr(buf);
     return (int)strnlen(buf, BUFSIZ - 1) + 1;
 }
 

@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
     (opt_initPVRA ? save_quote(opt_quote_file) : true) &&
     (opt_initPVRA ? save_signature(opt_signature_file, enclave_pubkey_signature_buffer, 64) : true) &&
     (opt_initPVRA ? save_signature(opt_sigpubkeys_file, user_addr_signature_buffer, 65) : true) &&
-    (opt_initPVRA ? save_message() : true) &&
+    (opt_initPVRA ? save_enclave_key() : true) &&
 
     (opt_commandPVRA ? load_ft(opt_FT_file) : true) &&
     (opt_commandPVRA ? load_sig(opt_signedFT_file) : true) &&
@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
     (opt_auditlogPVRA ? save_sealO(opt_sealedout_file) : true);
 
   if (sgx_lasterr != SGX_SUCCESS) {
-    fprintf(stderr, "[agPVRA]: ERROR: %s\n", decode_sgx_status(sgx_lasterr));
+    fprintf(stderr, "ERROR: %s\n", decode_sgx_status(sgx_lasterr));
   }
 
   destroy_enclave();

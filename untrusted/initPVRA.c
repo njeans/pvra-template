@@ -41,7 +41,7 @@ bool initPVRA(uint64_t num_users) {
   t = clock() - t;
   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
   printf("[hiPVRA] ecall_initPVRA took %f seconds\n", time_taken);
-  printf("\n");
+
   for(int i = 0; i < tsc_idx; i++)
     printf("%lu\n", tsc_dump[i]);
 
@@ -56,7 +56,6 @@ bool initPVRA(uint64_t num_users) {
   sgx_quote_t *quote;
   uint32_t quote_size = 0;
 
-  //printf("[GatewayApp]: Call sgx_calc_quote_size() ...\n");
   status = sgx_calc_quote_size(NULL, 0, &quote_size);
   if (status != SGX_SUCCESS) {
     fprintf(stderr, "SGX error while getting quote size: %08x\n", status);
@@ -73,18 +72,24 @@ bool initPVRA(uint64_t num_users) {
   // get quote
   sgx_quote_sign_type_t unlinkable = SGX_UNLINKABLE_SIGNATURE;
 
-  if ( getenv( "SGX_SPID" ) != NULL && strnlen(getenv( "SGX_SPID" ), 16) == 16){
-    from_hexstring((unsigned char *)&spid, (unsigned char *)getenv("SGX_SPID"),16);
+  if ( getenv( "SGX_SPID" ) != NULL && strnlen(getenv( "SGX_SPID" ), 32) == 32){
+    from_hexstring((unsigned char *)&spid, (unsigned char *)getenv("SGX_SPID"), 16);
+      printf("SGX_SPID environment variable set to %s\n", getenv( "SGX_SPID" ));
+  } else{
+    if (getenv( "SGX_MODE" ) != NULL && strcmp(getenv( "SGX_MODE" ), "HW\0") != 0){
+      char * dummy_spid = "00000000000000000000000000000000\0";
+      printf("SGX_SPID environment variable not set defaulting to %s\n", dummy_spid);
+      from_hexstring((unsigned char *)&spid, (unsigned char *)dummy_spid, 16);
+    } else {
+      printf("SGX_SPID environment variable not set\n");
+      return -1;
+    }
   }
-  else{
-    printf("SGX_SPID environment variable not set\n");
-    return -1;
-  }
-  //printf("[GatewayApp]: Call sgx_get_quote() ...\n");
+
   status = sgx_get_quote(&report, unlinkable, &spid, NULL, NULL, 0, NULL, quote,
                          quote_size);
-  //fprintf(stdout, "[GatewayApp]: status of sgx_get_quote(): %08x\n", status);
-  //printf("[hiPVRA] status of sgx_get_quote(): %s\n", status == SGX_SUCCESS ? "success" : "error");
+
+
   if (status != SGX_SUCCESS) {
     printf("[GatewayApp]: sgx_get_quote: error %s\n", decode_sgx_status(status));
     return 1;

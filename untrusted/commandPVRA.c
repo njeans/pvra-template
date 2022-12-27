@@ -15,13 +15,6 @@ bool commandPVRA(void) {
 
   sgx_status_t ecall_retval = SGX_SUCCESS;
 
-
-//  sgx_report_t report;
-//  sgx_spid_t spid;
-//  sgx_target_info_t target_info;
-//  sgx_epid_group_id_t epid_gid;
-//  sgx_status_t status;
-
   clock_t t;
   t = clock();
   tsc_idx = 0;
@@ -38,10 +31,10 @@ bool commandPVRA(void) {
   
   t = clock() - t;
   double time_taken = ((double)t)/CLOCKS_PER_SEC; // calculate the elapsed time
-  printf("[hcPVRA] ecall_commandPVRA took %f seconds\n", time_taken);
+  printf("ecall_commandPVRA took %f seconds\n", time_taken);
 
   for(int i = 0; i < tsc_idx; i++)
-    printf("%lu\n", tsc_dump[i]);
+    printf("%d: %lu\n", i, tsc_dump[i]);
 
 
   return (sgx_lasterr == SGX_SUCCESS);

@@ -117,13 +117,8 @@ pip3 install -r requirements.txt
 export SGX_SDK=/opt/intel/sgxsdk #or your local sgx sdk path
 export LD_LIBRARY_PATH=$SGX_SDK/sdk_libs:$LD_LIBRARY_PATH
 export SGX_MODE=<HW or SW>
-cd $PROJECT_ROOT/docker
-./build_ccf.sh
-./deploy_ccf.sh
 cd $PROJECT_ROOT/scripts
-./build.sh
-./run_BB.sh
-export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' billboard):8545"
+./build_deploy_local.sh
 ```
 
 #### Run python scripts
@@ -164,17 +159,24 @@ docker-compose down
 
 * `scripts/build.sh` copy relevant application files and build the enclave and untrusted host (works when building locally and in docker container)
 * `scripts/copy.sh` copy relevant application files
+* `scripts/build_deploy_local.sh` build CCF image, setup a docker containers for bulletin board and CCF nodes, build pvra binaries and run demo locally
 * `scripts/deploy_local.sh` setup a docker containers for bulletin board and CCF nodes, build pvra binaries and run demo locally
 
-
-* `docker/build.sh` : build docker images (and deploys ccf as this is required to build pvra)
-    * build a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
-* `docker/run_pvra.sh` : run docker containers
-    * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
+* `docker/build_ccf.sh` : builds state continuity CCF images
+* `docker/build_pvra.sh` : builds pvra image
+* `docker/deploy_ccf.sh` : deploy 3 node state continuity CCF network
+    * runs a virtual/sgx enclave based on `SGX_MODE` environment variable (default is SW)
+* `docker/deploy_pvra.sh` : deploy pvra image and runs default demo `python demo.py`
+    * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is SW)
+* `docker/run_pvra.sh` : run pvra docker container
+    * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is SW)
     * `docker/run_pvra.sh <cmd>` runs <cmd> with the docker container
-      * ex: `./run_pvra.sh bash` opens bash terminal in enclave docker container
-      * ex: `./run_pvra.sh "python demo.py test"` runs test in enclave docker container
+      * ex: `./run_pvra.sh bash` opens bash terminal in pvra docker container
+      * ex: `./run_pvra.sh "python demo.py test 2"` runs demo in test mode with 2 users in pvra docker container
+  
+* `docker/build.sh` : combines `build_ccf.sh` and `build_pvra.sh`
+* `docker/build_deploy.sh` : combines `build.sh` and `deploy_pvra.sh`
 * `docker/build_run.sh` : combines `build.sh` and `run_pvra.sh`
-* `docker/build_ccf.sh` : builds state continuity ccf images
-* `docker/deploy_ccf.sh` : deploy 3 node state continuity ccf network
+* `docker/deploy.sh` : combines `deploy_ccf.sh` and `deploy_pvra.sh`
+* `docker/run.sh` : combines `deploy_ccf.sh` and `run_pvra.sh`
 ### Sample VSC Run: TODO update

@@ -23,7 +23,7 @@ in the License.
 char *base64_encode(const char *msg, size_t sz) {
   BIO *b64, *bmem;
   char *bstr, *dup;
-  int len;
+  long len;
 
   b64 = BIO_new(BIO_f_base64());
   bmem = BIO_new(BIO_s_mem());
@@ -42,14 +42,18 @@ char *base64_encode(const char *msg, size_t sz) {
   BIO_flush(b64);
 
   len = BIO_get_mem_data(bmem, &bstr);
-  dup = (char *)malloc(len + 1);
+  if (len < 0) {
+    BIO_free(b64);
+    return NULL;
+  }
+  dup = (char *)malloc((size_t) len + 1);
   if (dup == NULL) {
     BIO_free(bmem);
     BIO_free(b64);
     return NULL;
   }
 
-  memcpy(dup, bstr, len);
+  memcpy(dup, bstr, (size_t) len);
   dup[len] = 0;
 
   BIO_free(bmem);
@@ -75,11 +79,12 @@ char *base64_decode(const char *msg, size_t *sz) {
 
   BIO_push(b64, bmem);
 
-  *sz = BIO_read(b64, buf, (int)len);
-  if (*sz == -1) {
+  int ret = BIO_read(b64, buf, (int)len);
+  if (ret != (int) len ) {
     free(buf);
     return NULL;
   }
+  *sz = (size_t) ret;
 
   BIO_free_all(bmem);
 

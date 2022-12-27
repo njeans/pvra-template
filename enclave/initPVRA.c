@@ -15,7 +15,7 @@
 //#include <sgx_tseal.h>
 //#include <sgx_utils.h>
 //
-#include <mbedtls/md.h>
+// #include <mbedtls/md.h>
 //#include <mbedtls/ctr_drbg.h>
 //#include <mbedtls/bignum.h>
 //#include <mbedtls/pk.h>
@@ -103,16 +103,7 @@ sgx_status_t ecall_initPVRA(
   //    Sign secp256k1 Enclave Encryption Key    //
 
   unsigned char encpubkey_hash[HASH_SIZE];
-  err = mbedtls_md(
-      mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
-      encpubkey_ser,
-      65,
-      encpubkey_hash);
-  if(err != 0) {
-    printf("[eiPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
-    ret = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
-  }
+  sha256(encpubkey_ser, sizeof(encpubkey_ser), encpubkey_hash);
 
   if(DEBUGPRINT) printf("[eiPVRA] Public Enclave Encryption Key hash\n");
   if(DEBUGPRINT) print_hexstring(encpubkey_hash, sizeof(encpubkey_hash));
@@ -127,19 +118,8 @@ sgx_status_t ecall_initPVRA(
 
   if(I_DEBUGRDTSC) ocall_rdtsc();
 
-
-
-
-
-  //    Initialize Enclave State    //
-
-
   //    Initialize SCS Metadata    //
   memset(enclave_state.counter.freshness_tag, 0, 32);
-  const uint8_t *CCF_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEA22K4KWhmw4IggNWUqtU+yY3C65QgtmVWWFTcTrTUBQwAHC7aqmBK\nBaLM4gAuqAx5nqj0nbfJyaRLzDZImZtI0jF810DJYiQSbArzU7BsTaPAypGC/qB2\ntiRPH+UYNGbFaKhPw/ymdSlqixd0D5YBMMLY6V+GieYNrlkKIQyLEQ7Odwg9UEtf\nyW++Jhdp2BHl5U5c6ZfpOPxpG7vb5tH22z1R6vzYulZ1h6WI+vl92d3REs+Yh9N0\nZMZ/x4J0+4m1T3PmEL1lTKuXxrpYtswYRdfY4+IlVIjzVUDyWv4D9QlcjI3QPxP7\neOtjNcPmGsculftOn70ghJtcvKuUjHAzNQIDAQAB\n-----END PUBLIC KEY-----\n";
-
-  memcpy(enclave_state.counter.CCF_key, CCF_key, strlen(CCF_key));
-  if(DEBUGPRINT) printf("[eiPVRA] Public CCF Signing Key (RSA2048.pem)\n%s\n", CCF_key);
   if(DEBUGPRINT) printf("[eiPVRA] Initialized SCS metadata success\n");
 
 
@@ -155,7 +135,7 @@ sgx_status_t ecall_initPVRA(
   err = initES(&enclave_state, &dAD, num_users);
 
   if(err != 0) {
-    printf("[eiPVRA] initES() memory allocation failure.\n");
+    printf_stderr("[eiPVRA] initES() memory allocation failure.\n");
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
@@ -174,7 +154,7 @@ sgx_status_t ecall_initPVRA(
     hexstr_to_bytes(userpubkeys + i, 128, enclave_state.publickeys.user_pubkeys[uidx]);
     uidx++;
     if (uidx > num_users) {
-      printf("[eiPVRA] input does not contain %u+1 pubkeys\n", num_users);
+      printf_stderr("[eiPVRA] input does not contain %u+1 pubkeys\n", num_users);
       ret = SGX_ERROR_INVALID_PARAMETER;
       goto cleanup;   
     }
@@ -242,7 +222,7 @@ sgx_status_t ecall_initPVRA(
   if(ret == SGX_SUCCESS) {
     if(DEBUGPRINT) printf("[eiPVRA] Initial seal_size: [%lu]\n", sealedstate_size);
   } else {
-    printf("[eiPVRA] seal_enclave_state error: [%d]\n", ret);
+    printf_stderr("[eiPVRA] seal_enclave_state error: [%d]\n", ret);
   } 
 
   goto cleanup;

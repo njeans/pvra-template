@@ -8,37 +8,38 @@
 bool allocate_buffers(void) {
   printf("[agPVRA] Allocating buffers\n");
   signature_buffer_size = 65;
-  signature_buffer = calloc(signature_buffer_size, 1);
+  signature_buffer = malloc(signature_buffer_size);
 
-  auditlog_buffer = calloc(auditlog_buffer_size, 1);
+  auditlog_buffer = malloc(auditlog_buffer_size);
 
-  auditlog_signature_buffer = calloc(65, 1);
+  auditlog_signature_buffer = malloc(65);
 
 
   // if it is NULL it was not loaded from the seal state file
   if (sealed_state_buffer == NULL)
-    sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
+    sealed_state_buffer = malloc(sealed_state_buffer_size);
 
-  sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
+  sealed_out_buffer = malloc(sealed_out_buffer_size);
 
-  enclave_pubkey_buffer = calloc(64, 1);
+  enclave_pubkey_buffer = malloc(64);
   enclave_pubkey_signature_buffer = malloc(64);
   user_addr_signature_buffer = malloc(65);
   cResponse_buffer_size = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + sizeof(struct cResponse);
-  cResponse_buffer = calloc(cResponse_buffer_size, 1);
+  cResponse_buffer = malloc(cResponse_buffer_size);
 
-  cRsig_buffer = calloc(64, 1);
-
-  FT_buffer_size = 64;
-  FT_buffer = calloc(FT_buffer_size, 1);
+  cRsig_buffer = malloc(64);
 
 
   if (signature_buffer == NULL ||
+      auditlog_buffer == NULL ||
+      auditlog_signature_buffer == NULL ||
       sealed_state_buffer == NULL ||
-      cResponse_buffer == NULL ||
       sealed_out_buffer == NULL ||
-      cRsig_buffer == NULL ||
-      FT_buffer == NULL) {
+      enclave_pubkey_buffer == NULL ||
+      enclave_pubkey_signature_buffer == NULL ||
+      user_addr_signature_buffer == NULL ||
+      cResponse_buffer == NULL ||
+      cRsig_buffer == NULL) {
     fprintf(stderr, "[agPVRA] allocate_buffers() memory allocation failure\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
   }
@@ -47,9 +48,7 @@ bool allocate_buffers(void) {
 }
 
 void cleanup_buffers(void) {
-  printf("[GatewayApp]: Deallocating buffers\n");
-
-
+  printf("Deallocating buffers\n");
 
   if (signature_buffer != NULL) {
     free(signature_buffer);
@@ -91,9 +90,39 @@ void cleanup_buffers(void) {
     sealed_out_buffer = NULL;
   }
 
+  if (auditlog_buffer != NULL) {
+    free(auditlog_buffer);
+    auditlog_buffer = NULL;
+  }
+
+  if (auditlog_signature_buffer != NULL) {
+    free(auditlog_signature_buffer);
+    auditlog_signature_buffer = NULL;
+  }
+
   if (FT_buffer != NULL) {
     free(FT_buffer);
     FT_buffer = NULL;
+  }
+
+  if (enclave_pubkey_buffer != NULL) {
+    free(enclave_pubkey_buffer);
+    enclave_pubkey_buffer = NULL;
+  }
+
+  if (enclave_pubkey_signature_buffer != NULL) {
+    free(enclave_pubkey_signature_buffer);
+    enclave_pubkey_signature_buffer = NULL;
+  }
+
+  if (pubkeys_buffer != NULL) {
+    free(pubkeys_buffer);
+    pubkeys_buffer = NULL;
+  }
+
+  if (user_addr_signature_buffer != NULL) {
+    free(user_addr_signature_buffer);
+    user_addr_signature_buffer = NULL;
   }
 
 }

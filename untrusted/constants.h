@@ -1,5 +1,5 @@
 // for development, set to 1 for production deployments
-#define CCF_ENABLE 0
+#define CCF_ENABLE 1
 #define DETERMINISTIC_KEYS 1
 
 #define I_DEBUGRDTSC 0

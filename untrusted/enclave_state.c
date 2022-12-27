@@ -30,7 +30,6 @@ bool load_keys(const char *const keys_file) {
   return ret_status;
 }
 
-
 bool load_seal(const char *const sealedstate_file) {
   printf("[hcPVRA] Loading sealed state from file\n");
 
@@ -74,7 +73,6 @@ bool load_ft(const char *const FT_file) {
   return ret_status;
 }
 
-
 bool load_cmd(const char *const eCMD_file) {
   printf("[hcPVRA] Loading eCMD\n");
 
@@ -97,14 +95,14 @@ bool save_signature(const char *const signature_file, unsigned char *signature_s
 
   if (signature_src_buffer_size != 64 && signature_src_buffer_size != 65) {
     fprintf(stderr,
-            "[GatewayApp]: assertion failed: signature_src_buffer_size != 64 or 65\n");
+            "assertion failed: signature_src_buffer_size != 64 or 65\n");
     ret_status = false;
     goto cleanup;
   }
 
   file = fopen(signature_file, "wb");
   if (file == NULL) {
-    fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
+    fprintf(stderr, "save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
     goto cleanup;
@@ -125,12 +123,12 @@ cleanup:
   return ret_status;
 }
 
-bool save_message(void) {
+bool save_enclave_key(void) {
   bool ret_status = true;
   FILE *file = NULL;
   file = fopen("enclave_enc_pubkey.bin", "wb");
   if (file == NULL) {
-    fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
+    fprintf(stderr, "save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
     goto cleanup;
@@ -154,19 +152,19 @@ cleanup:
 bool save_quote(const char *const quote_file) {
   bool ret_status = true;
 
-  printf("[GatewayApp]: Saving quote size: %lu\n", quote_buffer_size);
+  printf("Saving quote size: %lu\n", quote_buffer_size);
 
   FILE *fquote = fopen(quote_file, "wb");
 
   if (fquote == NULL) {
-    fprintf(stderr, "[GatewayApp]: save_quote() fopen failed %s\n",quote_file);
+    fprintf(stderr, "save_quote() fopen failed %s\n",quote_file);
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     return false;
   }
 
-  //printf("\n[GatewayApp]: MRENCLAVE: \n");
+  //printf("\nMRENCLAVE: \n");
   if (fwrite((char *)quote_buffer, quote_buffer_size, 1, fquote) != 1) {
-    fprintf(stderr, "[GatewayApp]: Quote only partially written.\n");
+    fprintf(stderr, "Quote only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
   }
@@ -280,7 +278,7 @@ bool format_sig(const char *const sig_file) {
 
   ecdsa_sig = ECDSA_SIG_new();
   if (ecdsa_sig == NULL) {
-    fprintf(stderr, "[GatewayApp]: memory alloction failure ecdsa_sig\n");
+    fprintf(stderr, "memory alloction failure ecdsa_sig\n");
     ret_status = false;
     goto cleanup;
   }
@@ -307,7 +305,7 @@ bool format_sig(const char *const sig_file) {
 
   file = fopen(sig_file, "wb");
   if (file == NULL) {
-    fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
+    fprintf(stderr, "save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
     ret_status = false;
     goto cleanup;

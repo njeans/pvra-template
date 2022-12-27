@@ -7,6 +7,11 @@ then
   echo "Error: environment variable PROJECT_ROOT not set."
   exit 1
 fi
+ 
+if [[ ${deployment_location} != "DOCKER" ]];
+then
+  export SGXSSL_SDK=$PROJECT_ROOT/trustedLib/intel-sgx-ssl
+fi
 
 cd $PROJECT_ROOT/scripts
 ./copy.sh

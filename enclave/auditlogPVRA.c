@@ -16,9 +16,6 @@
  * @return SGX_SUCCESS (Error code = 0x0000) on success,
  * some sgx_status_t value upon failure.
  */
-
-
-
 sgx_status_t ecall_auditlogPVRA(
     uint8_t *sealedstate, size_t sealedstate_size,
     uint8_t *auditlog, size_t auditlog_size,
@@ -69,7 +66,6 @@ sgx_status_t ecall_auditlogPVRA(
 
 #ifdef MERKLE_TREE
     leaf_data = (uint8_t **) calloc(enclave_state.num_users, sizeof(uint8_t *));
-    printf("leaf_data b %p\n", leaf_data);
     size_t leaf_size = get_user_leaf(&enclave_state, leaf_data);
   if(DEBUGPRINT) {
       printf("[eaPVRA] PRINTING User Leaf Nodes leaf_size: %lu\n", leaf_size);
@@ -91,7 +87,7 @@ sgx_status_t ecall_auditlogPVRA(
     enc_leaf_data[i] = (uint8_t *) malloc(enc_leaf_size);
     ret = encrypt_aesgcm128(AESKey, leaf_data[i], leaf_size, enc_leaf_data[i]);
     if (ret != SGX_SUCCESS) {
-        printf("[eaPVRA] encrypt_aesgcm128 failed %d\n", SGX_SUCCESS);
+        printf_stderr("[eaPVRA] encrypt_aesgcm128 failed %d\n", SGX_SUCCESS);
         goto cleanup;
     }
   }
@@ -125,7 +121,7 @@ sgx_status_t ecall_auditlogPVRA(
   size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditlog);
 #endif
   if (auditlog_size != calc_auditlog_size) {
-    printf("[eaPVRA] auditlog_size incorrect %lu != %lu\n", calc_auditlog_size, auditlog_size);
+    printf_stderr("[eaPVRA] auditlog_size incorrect %lu != %lu\n", calc_auditlog_size, auditlog_size);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }

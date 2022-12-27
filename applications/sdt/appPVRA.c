@@ -1,6 +1,7 @@
-#include <mbedtls/md.h>
+// #include <mbedtls/md.h>
 #include "enclave_state.h"
 #include "appPVRA.h"
+#include "util.h"
 
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
@@ -131,13 +132,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
 
 
     char key_hash[HASH_SIZE];
-    int err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), CI->recover_key, KEY_SIZE, key_hash);
-    if(err != 0) {
-        sprintf(ret.message, "mbedtls_md sha256 calculation failed -0x%04x", -err);
-        printf("[sdt] %s\n", ret.message);
-        ret.error = 6;
-        return ret;
-    }
+    sha256(CI->recover_key, KEY_SIZE, key_hash);
 
     if(strncmp(enclave_state->appdata.user_info[user_idx].recover_key_hash, key_hash, HASH_SIZE) != 0) {
         sprintf(ret.message, "recover key does not match recover_key_hash");
@@ -149,7 +144,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
             print_hexstring_n(key_hash, HASH_SIZE);
         }
         printf("\n");
-        ret.error = 7;
+        ret.error = 6;
         return ret;
     }
 

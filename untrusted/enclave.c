@@ -5,7 +5,7 @@
 #include "app.h"
 #define SGX_DEBUG_FLAG 1
 bool create_enclave(const char *const enclave_binary) {
-  printf("[GatewayApp]: Creating enclave\n");
+  printf("Creating enclave\n");
 
   /* SGX_DEBUG_FLAG is a macro set in sgx_urts.h to enable debugging when
      building in debug and pre-release mode.  In common/common.mk
@@ -19,11 +19,9 @@ bool create_enclave(const char *const enclave_binary) {
 }
 
 void destroy_enclave(void) {
-  //printf("[GatewayApp]: Destroying enclave\n");
-
   sgx_status_t err = sgx_destroy_enclave(enclave_id);
   if (err != SGX_SUCCESS) {
-    fprintf(stderr, "[GatewayApp]: ERROR: %s\n", decode_sgx_status(err));
+    fprintf(stderr, "sgx_destroy_enclave ERROR: %s\n", decode_sgx_status(err));
     return;
   }
   enclave_id = 0;

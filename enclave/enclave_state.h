@@ -11,12 +11,6 @@
 
 struct EK
 {
-  	//uint8_t priv_key_buffer[2049];
-  	//uint8_t pub_key_buffer[2049];
-	//sgx_ec256_private_t sign_prikey;
-	//sgx_ec256_public_t sign_pubkey;
-
-
 	secp256k1_pubkey sig_pubkey;
 	secp256k1_prikey sig_prikey;
 	secp256k1_pubkey enc_pubkey;
@@ -25,11 +19,7 @@ struct EK
 
 struct SCS
 {
-	//sgx_ec256_public_t CCF_key;
-	//const char CCF_key = "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAs1l0PEtgQRtk5mkclhMFTtkLGWUG/11ZiMG+wA7FCIljrs0u6rzT\n8XSILc0Gr7JEAQO+2r8r23HQnqQMRrAL8TnTHXWrClat7SFoOQlIQ3Oy0C2sxmk+\nKFhKFZy9fxCVcy4H+Qu6OF4HY6Aym08/oPBhIEnw7W29eH7VrkCrRDa9MwYZibD1\nyz8GM7OwrltU5wWt8GL0SMcMRe0rAfziwS+8u+rGFGVrPZ8f2ZhZrq0bfCIWdtp6\n58K1LqKomLayIDowy+9Lk79nI17xV7YnJammzZgSaNQXy+Az9c1rszT7RHK4rhUN\n0J8IDxuZVpzWjIEJQXY92yZQ0x7loNq8uwIDAQAB\n-----END RSA PUBLIC KEY-----\n";
-	uint8_t CCF_key[2049];
-	char freshness_tag[32];
-
+	char freshness_tag[HASH_SIZE];
 };
 
 struct AR
@@ -79,7 +69,7 @@ struct private_command {
 struct clientCommand
 {
 	uint64_t seqNo;
-	uint8_t user_pubkey[64];
+	pubkey_t user_pubkey;
 	struct private_command eCMD;
 };
 

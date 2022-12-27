@@ -42,7 +42,6 @@ sgx_status_t ecall_commandPVRA(
 
   // Control Timing Measurement of an OCALL Overhead.
   if(C_DEBUGRDTSC) ocall_rdtsc();
-  if(C_DEBUGRDTSC) ocall_rdtsc();
 
 
   /*    Unseal Enclave State    */
@@ -159,7 +158,7 @@ sgx_status_t ecall_commandPVRA(
   /*    Verifying SCS Signature    */
   err = check_ccf_proof(&scs_proof, FT_signature, FT_signature_size);
   if(err != 0) {
-    printf("[ecPVRA] SCS Signature verification failed\n");
+    printf_stderr("[ecPVRA] SCS Signature verification failed\n");
     if (CCF_ENABLE == 1) {
         ret = SGX_ERROR_INVALID_PARAMETER;
         goto cleanup;
@@ -189,7 +188,7 @@ sgx_status_t ecall_commandPVRA(
   }
 
   if (user_idx == -2) {
-    printf("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
+    printf_stderr("[ecPVRA] user_pubkey NOT FOUND rejecting command\n");
     formatResponse(enc_cResponse + AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE, -2, "user public key NOT FOUND rejecting command");
     ret = sign_cResponse(enclave_state.enclavekeys.enc_prikey, enc_cResponse, cResponse_signature);
     goto seal_cleanup;
@@ -214,6 +213,7 @@ sgx_status_t ecall_commandPVRA(
   size_t ct_len = eCMD_full_size;
   size_t ct_src_len = ct_len - AESGCM_128_MAC_SIZE - AESGCM_128_IV_SIZE;
   if (ct_src_len != sizeof(struct private_command)) {
+    printf_stderr("[ecPVRA] BAD eCMD length %d expected length %d", ct_src_len, sizeof(struct private_command));
     sprintf(resp, "BAD eCMD length %d expected length %d", ct_src_len, sizeof(struct private_command));
     formatResponse(&cResp, -3, resp);
     sign_cResponse(enclave_state.enclavekeys.enc_prikey, &cResp, cResponse_signature);
@@ -235,7 +235,7 @@ sgx_status_t ecall_commandPVRA(
   );
 
   if(err) {
-    printf("[ecPVRA] Failed to Decrypt Command err: %d\n", err);
+    printf_stderr("[ecPVRA] Failed to Decrypt Command err: %d\n", err);
     sprintf(resp, "Failed to Decrypt Command err: %d", err);
     formatResponse(&cResp, -3, resp);
     sign_cResponse(enclave_state.enclavekeys.enc_prikey, &cResp, cResponse_signature);
@@ -258,7 +258,7 @@ sgx_status_t ecall_commandPVRA(
   /*    (5) SEQNO Verification    */
   if (user_idx >= 0) { //i.e. not admin
     if(CC.seqNo != enclave_state.antireplay.seqno[user_idx]+1) {
-        printf("[ecPVRA] SeqNo failure received [%lu] != [%lu] Not logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx]+1);
+        printf_stderr("[ecPVRA] SeqNo failure received [%lu] != [%lu] Not logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx]+1);
         sprintf(resp, "SeqNo failure received [%lu] != [%lu] NOT logging\n", CC.seqNo, enclave_state.antireplay.seqno[user_idx]+1);
         formatResponse(&cResp, -4, resp);
         sign_cResponse(enclave_state.enclavekeys.enc_prikey, &cResp, cResponse_signature);

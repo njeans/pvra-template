@@ -25,31 +25,12 @@ extern sgx_status_t sgx_lasterr;
 extern uint64_t tsc_dump[50];
 extern int tsc_idx;
 
-
-extern void *public_key_buffer;          /* unused for signing */
-extern size_t public_key_buffer_size;    /* unused for signing */
-extern void *sealed_pubkey_buffer;       /* unused for signing */
-extern size_t sealed_pubkey_buffer_size; /* unused for signing */
-extern void *sealed_privkey_buffer;
-extern size_t sealed_privkey_buffer_size;
-extern void *aes_gcm_key_buffer;
-extern size_t aes_gcm_key_buffer_size;
-extern char * encrypted_message_buffer;
-extern char * decrypted_message_buffer;
-extern size_t encrypt_decrypt_message_size;
-extern char * json_student_buffer;
-extern size_t json_student_buffer_size;
-extern char * json_enclave_state_buffer;
-extern size_t json_enclave_state_buffer_size;
 extern void *signature_buffer;
 extern size_t signature_buffer_size;
 
 extern void * enclave_pubkey_signature_buffer;
 extern void * user_addr_signature_buffer;
 
-extern size_t signature_rec_buffer_size;
-extern void *input_buffer;
-extern size_t input_buffer_size;
 extern void *quote_buffer;
 extern size_t quote_buffer_size;
 
@@ -63,7 +44,6 @@ extern void *signedFT_buffer;
 extern size_t signedFT_buffer_size;
 extern void *eCMD_buffer;
 extern size_t eCMD_buffer_size;
-extern void *eAESkey_buffer;
 
 extern void *cResponse_buffer;
 extern size_t cResponse_buffer_size;
@@ -88,14 +68,10 @@ extern void *auditlog_signature_buffer;
 /* Function prototypes */
 
 bool initPVRA(uint64_t num_users);
-
 bool commandPVRA(void);
-
 bool auditlogPVRA(void);
 
 const char *decode_sgx_status(sgx_status_t status);
-
-FILE *open_file(const char *const filename, const char *const mode);
 
 bool create_enclave(const char *const enclave_binary);
 
@@ -108,22 +84,9 @@ bool allocate_buffers(void);
 bool read_file_into_memory(const char *const filename, void **buffer,
                            size_t *buffer_size);
 
-bool load_enclave_state(const char *const statefile);
-
-bool load_sealed_data(const char *const sealed_data_file, void *buffer,
-                      size_t buffer_size);
-
-bool load_sealedprivkey(const char *const sealedprivkey_file);
-
-bool load_sealedpubkey(const char *const sealedpubkey_file);
-
 bool load_seal(const char *const sealedstate_file);
 
 bool load_keys(const char *const keys_file);
-
-bool load_input_file(const char *const input_file);
-
-bool load_text(const char *const txt_file, char * text, size_t * text_size);
 
 bool load_ft(const char *const FT_file);
 
@@ -133,54 +96,9 @@ bool load_cmd(const char *const eCMD_file);
 
 bool format_sig(const char *const sig_file);
 
-bool enclave_sign_data(void);
-
-bool enclave_generate_key(void);
-
-bool enclave_generate_key_vsc(void);
-
-bool enclave_mbedtls_test(char  * enc_enclave_state_txt_file, char  * enc_client_input_txt_file);
-bool enclave_verify_enclave_state_and_command_signature(char  * enc_enclave_state_txt_file, char  * enc_client_input_txt_file, 
-                                                        char * signature_file, char * pub_key_txt_file, int counter);
-bool enclave_sign_enclave_state_and_command(char  * enc_enclave_state_txt_file, char  * enc_client_input_txt_file, 
-                                            int counter, char * priv_key_txt_file, char * signature_out_file);
-bool enclave_generate_key_ecdsa(uint8_t * pub_key_out_file, uint8_t * priv_key_out_file);
-
-size_t get_encrypted_buffer_size(void);
-size_t get_decrypted_buffer_size(void);
-bool copy_to_decrypted_buffer(uint8_t * decMessageIn, size_t messageSize);
-bool copy_to_encrypted_buffer(uint8_t * encMessageIn, size_t messageSize);
-bool encrypt_file(char * dec_txt_file_in, char * enc_txt_file_out);
-bool decrypt_file(char * enc_txt_file_in, char * dec_txt_file_out);
-bool enclave_encrypt_aes(void);
-bool enclave_decrypt_aes(void);
-
-bool create_student_json(char * name, char * uin);
-bool encrypt_and_save_json_student(char * txt_file_out);
-bool load_and_decrypt_json_student(char * txt_file_in);
-bool test_json(char * s);
-
-bool create_client_input_json(char * txt_file, int uuid, int command, char result);
-bool create_enclave_state_json(char * txt_file);
-bool enclave_enclave_state_add_counter_mismatch(char * enc_enclave_state_txt_file, char  * enc_client_input_txt_file, int delta);
-bool encrypt_and_save_json_enclave_state(char * txt_file_out);
-bool load_and_decrypt_json_enclave_state(char * txt_file_in);
-bool add_user_json_enclave_state(char * txt_file);
-bool test_ecall_vsc(void);
-
-bool enclave_generate_quote(sgx_report_data_t report_data);
-
-bool enclave_gen_quote(void);
-
 // bool save_enclave_state(const char *const statefile);
 bool save_enclave_state(const char *const sealedprivkey_file,
                         const char *const sealedpubkey_file);
-
-bool save_state(const char *const statefile, void *buffer, size_t buffer_size);
-
-bool save_aes_gcm_key(const char *const key_file);
-
-bool save_text(char * text, size_t text_size, const char *const txt_file);
 
 BIGNUM *bignum_from_little_endian_bytes_32(const unsigned char *const bytes);
 
@@ -194,7 +112,7 @@ bool save_seal(const char *const sealedstate_file);
 
 bool save_sealO(const char *const sealedout_file);
 
-bool save_message(void);
+bool save_enclave_key(void);
 
 bool save_cResponse(const char *const cResponse_file);
 
