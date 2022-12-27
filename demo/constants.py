@@ -27,9 +27,11 @@ CCF_ENABLE = bool(int(os.environ.get("CCF_ENABLE", 0)))
 if os.environ.get("deployment_location", "") == "DOCKER":
     CCF_URL = os.environ.get("CCF_URL", 'https://ccf0:8080')
     CCF_CERTS_DIR = os.environ.get("CCF_CERTS_DIR", os.path.join(PROJECT_ROOT, "ccf"))
+    BILLBOARD_URL = os.environ.get('BILLBOARD_URL', 'http://billboard:8545')
 else:
     CCF_URL = os.environ.get("CCF_URL", 'https://localhost:8546')
     CCF_CERTS_DIR = os.environ.get("CCF_CERTS_DIR", os.path.join(PROJECT_ROOT, "shared", "ccf_sandbox"))
+    BILLBOARD_URL = os.environ.get('BILLBOARD_URL', 'http://localhost:8545')
 
 CCF_SERVICE_CERT_PATH = os.path.join(CCF_CERTS_DIR, "service_cert.pem")
 CCF_USER_CERT_PATH = os.path.join(CCF_CERTS_DIR, "user0_cert.pem")
@@ -44,7 +46,6 @@ if CCF_ENABLE:
     from utils import get_cert_fingerprint
     CCF_USERID = get_cert_fingerprint(CCF_USER_CERT)
 
-BILLBOARD_URL = os.environ.get('BILLBOARD_URL', 'http://billboard:8545')
 
 ADMIN_IP = 'localhost'
 ADMIN_PORT = 8081

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
-
+if [[ -z "${PROJECT_ROOT}" ]];
+then
+  echo "Error: environment variable PROJECT_ROOT not set."
+  exit 1
+fi
 ccf_server=https://localhost:8546
 ccf_cert_dir=$PROJECT_ROOT/shared/ccf_sandbox
 only_status_code="-s -o /dev/null -w %{http_code}"

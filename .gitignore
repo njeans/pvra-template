@@ -87,6 +87,7 @@ test_sgx/
 untrusted/appPVRA.h
 enclave/appPVRA.*
 enclave/enclave.key.pem
+enclave/ca_bundle.h
 demo/application.py
 accounts/
 *.bin

@@ -19,7 +19,8 @@ services:
     ports:
       - 8545:8545
     volumes:
-      - accounts:/accounts/
+      # - accounts:/accounts/
+      - ../accounts:/accounts
     environment:
       ANVIL_IP_ADDR: 0.0.0.0
     entrypoint: ""
@@ -178,19 +179,20 @@ services:
       NUM_USERS: ${NUM_USERS}
       PROJECT_ROOT: /home/photon/${APP_NAME}
     volumes:
-      - ../untrusted:/home/photon/${APP_NAME}/untrusted/
+      - ../untrusted:/home/photon/${APP_NAME}/untrusted
       - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
       - ../common:/home/photon/${APP_NAME}/common
-      - ../enclave:/home/photon/${APP_NAME}/enclave/
-      - ../interface:/home/photon/${APP_NAME}/interface/
-      - ../scripts:/home/photon/${APP_NAME}/scripts/
-      - ../demo:/home/photon/${APP_NAME}/demo/
-      - ../solidity:/home/photon/${APP_NAME}/solidity/
+      - ../enclave:/home/photon/${APP_NAME}/enclave
+      - ../interface:/home/photon/${APP_NAME}/interface
+      - ../scripts:/home/photon/${APP_NAME}/scripts
+      - ../demo:/home/photon/${APP_NAME}/demo
+      - ../solidity:/home/photon/${APP_NAME}/solidity
       - ../trustedLib:/home/photon/${APP_NAME}/trustedLib
-      - accounts:/home/photon/${APP_NAME}/accounts/
-      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf/
+      # - accounts:/home/photon/${APP_NAME}/accounts/
+      - ../accounts:/home/photon/${APP_NAME}/accounts
+      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf
       - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
-      - ../../linux-sgx/SampleCode/SampleAttestedTLS/:/SampleAttestedTLS
+      # - ../../linux-sgx/SampleCode/SampleAttestedTLS/:/SampleAttestedTLS
     command: python demo.py
 
   enclave:
@@ -218,18 +220,19 @@ services:
     devices:
       - /dev/isgx
     volumes:
-      - ../untrusted:/home/photon/${APP_NAME}/untrusted/
+      - ../untrusted:/home/photon/${APP_NAME}/untrusted
       - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
       - ../common:/home/photon/${APP_NAME}/common
-      - ../enclave:/home/photon/${APP_NAME}/enclave/
-      - ../interface:/home/photon/${APP_NAME}/interface/
-      - ../scripts:/home/photon/${APP_NAME}/scripts/
-      - ../demo:/home/photon/${APP_NAME}/demo/
-      - ../solidity:/home/photon/${APP_NAME}/solidity/
+      - ../enclave:/home/photon/${APP_NAME}/enclave
+      - ../interface:/home/photon/${APP_NAME}/interface
+      - ../scripts:/home/photon/${APP_NAME}/scripts
+      - ../demo:/home/photon/${APP_NAME}/demo
+      - ../solidity:/home/photon/${APP_NAME}/solidity
       - ../trustedLib:/home/photon/${APP_NAME}/trustedLib
       - aesmd-socket:/var/run/aesmd
-      - accounts:/home/photon/${APP_NAME}/accounts/
-      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf/
+      - ../accounts:/home/photon/${APP_NAME}/accounts
+      # - accounts:/home/photon/${APP_NAME}/accounts
+      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf
       - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
     stdin_open: true
     tty: true
@@ -243,7 +246,7 @@ services:
     command: python demo.py
 
 volumes:
-  accounts:
+  # accounts:
   # ccf_sandbox:
   ccf_workspace:
   ccf_workspace_sgx:

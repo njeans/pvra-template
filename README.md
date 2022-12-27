@@ -94,7 +94,7 @@ export SGX_MODE=<HW or SW>
 
 ##### Use Docker & Docker-Compose
 
-* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L26)
+* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L27)
 * Hardware mode
 ```bash
 export SGX_MODE=HW
@@ -109,12 +109,12 @@ cd $PROJECT_ROOT/docker
 ./deploy.sh
 ```
 
-##### Build Locally
-* python 3, sgxsdk, and docker required
+##### Locally
+* python3.8 or 3.9, sgxsdk, and docker, solidity compiler required
 
 ```bash
-pip install -r requirements.txt
-export SGX_SDK=/opt/sgxsdk #or your local sgx sdk path
+pip3 install -r requirements.txt
+export SGX_SDK=/opt/intel/sgxsdk #or your local sgx sdk path
 export LD_LIBRARY_PATH=$SGX_SDK/sdk_libs:$LD_LIBRARY_PATH
 export SGX_MODE=<HW or SW>
 cd $PROJECT_ROOT/docker
@@ -151,17 +151,11 @@ make clean
 
 #### Stop docker containers
 
-* Docker deployment
+* Docker/Local deployment
 
 ```bash
 cd $PROJECT_ROOT/docker
 docker-compose down
-```
-
-* Local deployment
-```bash
-cd $PROJECT_ROOT/scripts
-./stop_BB.sh
 ```
 
 ### Useful scripts
@@ -170,8 +164,7 @@ cd $PROJECT_ROOT/scripts
 
 * `scripts/build.sh` copy relevant application files and build the enclave and untrusted host (works when building locally and in docker container)
 * `scripts/copy.sh` copy relevant application files
-* `scripts/run_BB.sh` start a foundry/anvil bulletin board instance for local (non docker-compose) deployments
-* `scripts/stop_BB.sh` stop a foundry/anvil bulletin board instance for local (non docker-compose) deployments
+* `scripts/deploy_local.sh` setup a docker containers for bulletin board and CCF nodes, build pvra binaries and run demo locally
 
 
 * `docker/build.sh` : build docker images (and deploys ccf as this is required to build pvra)

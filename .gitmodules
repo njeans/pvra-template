@@ -4,3 +4,6 @@
 [submodule "trustedLib/mbedtls-SGX"]
 	path = trustedLib/mbedtls-SGX
 	url = https://github.com/bl4ck5un/mbedtls-SGX.git
+[submodule "trustedLib/intel-sgx-ssl"]
+	path = trustedLib/intel-sgx-ssl
+	url = https://github.com/intel/intel-sgx-ssl.git

@@ -41,7 +41,6 @@ def commandPVRA(state_counter, full_cmd):
           " --cRsig " + CRESPONSE_SIG_PATH + \
           " --sealedOut " + SEAL_OUT_PATH(state_counter)
     print_vv(f'calling commandPVRA  state_counter {state_counter} with {cmd}', n=FILENAME)
-    # exit(0)
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     try:
         stdout = res.stdout.decode('utf-8')
