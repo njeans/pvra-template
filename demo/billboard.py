@@ -13,6 +13,7 @@ import secp256k1
 from utils import *
 from constants import *
 
+FILENAME="billboard.py"
 
 def setup_w3(bb_url=BILLBOARD_URL):
     connected = False
@@ -83,7 +84,7 @@ def deploy_contract(w3=lambda : setup_w3(), admin_addr=""):
         except web3.exceptions.TransactionNotFound:
             time.sleep(1)
     contract = w3.eth.contract(address=contract_address, abi=abis)
-    print_(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}', n="billboard.py")
+    print_(f'Deployed {contract_id} to: {contract_address} with hash  {tx_hash.hex()}', n=FILENAME)
     with open(CONTRACT_ADDRESS_PATH, "w") as f:
         f.write(contract_address)
     return contract_address, contract, contract_id
@@ -99,7 +100,7 @@ def get_contract(w3, contract_address_path=CONTRACT_ADDRESS_PATH, solidity_paths
 
 
 def gen_keys(num_users=NUM_USERS):
-    print_vv("num_users", num_users)
+    print_vv("num_users", num_users, n=FILENAME)
     with open(BILLBOARD_ACCOUNTS_PATH) as f:
         accounts = json.load(f)
     user_addresses = accounts["available_accounts"]
@@ -111,7 +112,7 @@ def gen_keys(num_users=NUM_USERS):
         pub = secp256k1.PrivateKey(priv, raw=True).pubkey.serialize(compressed=False)[1:]
         public_keys[i] = pub.hex()
         keys[i] = (Web3.toChecksumAddress(address), pub, priv)
-        print_vv(f" user {i}: address: {print_hex_trunc(address)} pubkey: {print_hex_trunc(pub)}")
+        print_vv(f" user {i}: address: {print_hex_trunc(address)} pubkey: {print_hex_trunc(pub)}", n=FILENAME)
     with open(USER_LIST_PATH, "w") as f:
         # f.write(str(num_users+1) + "\n")
         f.write("\n".join(public_keys))
@@ -119,20 +120,20 @@ def gen_keys(num_users=NUM_USERS):
 
 
 def send_tx(w3, foo, user_addr, value=0):
-    print_vv(f"send_tx from address: {user_addr} {foo}")
+    print_vv(f"send_tx from address: {user_addr} {foo}", n=FILENAME)
     try:
         gas_estimate = foo.estimateGas()  # for some reason this fails sometimes when it shouldn't
     except Exception as e:
-        print_(f"estimate gas error {e}", c=ERRORc, n="billboard.py")
+        print_(f"estimate gas error {e}", c=ERRORc, n=FILENAME)
         gas_estimate = 0
 
     if gas_estimate < 10000000:
         tx_hash = foo.transact({"from": user_addr, "value": value})
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-        print_vv(f"transaction receipt mined: {receipt}")
+        print_vv(f"transaction receipt mined: {receipt}", n=FILENAME)
         return receipt.gasUsed
     else:
-        print_(f"send_tx error Gas cost exceeds 10000000 < {gas_estimate}", c=ERRORc, n="billboard.py")
+        print_(f"send_tx error Gas cost exceeds 10000000 < {gas_estimate}", c=ERRORc, n=FILENAME)
         exit(1)
 
 

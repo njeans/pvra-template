@@ -13,6 +13,13 @@ void ocall_print_string(const char *str) {
   printf("%s", str);
 }
 
+void ocall_print_stderr(const char *str) {
+  /* Proxy/Bridge will check the length and null-terminate
+   * the input string to prevent buffer overflow.
+   */
+  fprintf(stderr ,"%s", str);
+}
+
 unsigned cycles_low, cycles_high;
 
 static __inline__ unsigned long long rdtsc(void)
@@ -30,27 +37,3 @@ void ocall_rdtsc(void) {
   tsc_dump[tsc_idx] = ( ((uint64_t)cycles_high << 32) | cycles_low );
   tsc_idx++;
 }
-
-
-void ocall_allocate_seal(size_t init_sealsize) {
-  sealed_state_buffer_size = init_sealsize;
-  free(sealed_state_buffer);
-  sealed_state_buffer = calloc(sealed_state_buffer_size, 1);
-
-  sealed_out_buffer_size = init_sealsize;
-  free(sealed_out_buffer);
-  sealed_out_buffer = calloc(sealed_out_buffer_size, 1);
-  printf("DONE ALLOCATING %p %p\n", sealed_out_buffer, sealed_state_buffer);
-}
-
-
-// void ocall_print_int(const int num) {
-//    /* Proxy/Bridge will check the length and null-terminate
-//     * the input string to prevent buffer overflow.
-//     */
-//    printf("%d", num);
-//}
-
-//
-//void ocallbuf(const int size) {
-//}
