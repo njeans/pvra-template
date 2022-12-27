@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include "app.h"
 
 bool read_file_into_memory(const char *const filename, void **buffer,
@@ -10,14 +9,14 @@ bool read_file_into_memory(const char *const filename, void **buffer,
 
   if (buffer == NULL || buffer_size == NULL) {
     fprintf(stderr,
-            "[GatewayApp]: read_file_into_memory() invalid parameter\n");
+            "read_file_into_memory() invalid parameter\n");
     ret_status = false;
     goto cleanup;
   }
 
-  file = open_file(filename, "rb");
+  file = fopen(filename, "rb");
   if (file == NULL) {
-    fprintf(stderr, "[GatewayApp]: read_file_into_memory() fopen %s failed\n", filename);
+    fprintf(stderr, "read_file_into_memory() fopen %s failed\n", filename);
     ret_status = false;
     goto cleanup;
   }
@@ -25,7 +24,7 @@ bool read_file_into_memory(const char *const filename, void **buffer,
   fseek(file, 0, SEEK_END);
   file_len = ftell(file);
   if (file_len < 0 || file_len > INT_MAX) {
-    fprintf(stderr, "[GatewayApp]: Invalid input file size\n");
+    fprintf(stderr, "read_file_into_memory() Invalid input file size\n");
     ret_status = false;
     goto cleanup;
   }
@@ -34,14 +33,18 @@ bool read_file_into_memory(const char *const filename, void **buffer,
   *buffer = malloc(*buffer_size);
   if (*buffer == NULL) {
     fprintf(stderr,
-            "[GatewayApp]: read_file_into_memory() memory allocation failed\n");
+            "read_file_into_memory() memory allocation failed\n");
     ret_status = false;
     goto cleanup;
   }
 
-  fseek(file, 0, SEEK_SET);
+  if (fseek(file, 0L, SEEK_SET) != 0) { 
+    fprintf(stderr, "read_file_into_memory() fseek failed\n");
+    ret_status = false;
+    goto cleanup;
+  }
   if (fread(*buffer, *buffer_size, 1, file) != 1) {
-    fprintf(stderr, "[GatewayApp]: Input file only partially read.\n");
+    fprintf(stderr, "read_file_into_memory() input file only partially read.\n");
     ret_status = false;
     goto cleanup;
   }

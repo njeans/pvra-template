@@ -4,8 +4,6 @@
 #include "app.h"
 #include "appPVRA.h"
 
-//#define INITSEALSIZE 7184
-//#define INITSEALSIZE 7024
 
 bool allocate_buffers(void) {
   printf("[agPVRA] Allocating buffers\n");

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include <enclave_u.h> /* For sgx_enclave_id_t */
+#include <enclave_u.h>
 
 #include <openssl/bn.h>
 #include <openssl/ec.h>

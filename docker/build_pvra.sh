@@ -3,6 +3,8 @@
 ccf_server=https://localhost:8546
 ccf_cert_dir=$PROJECT_ROOT/shared/ccf_sandbox
 only_status_code="-s -o /dev/null -w %{http_code}"
+sudo chown -R $USER $PROJECT_ROOT/shared/ccf_sandbox/user0*
+sudo chown -R $USER $PROJECT_ROOT/shared/ccf_sandbox/member0*
 
 if [ "$SGX_MODE" = "HW" ]; then
   echo "Building pvra in Hardware mode"
@@ -15,11 +17,10 @@ fi
 # Using the same way as https://github.com/microsoft/CCF/blob/1f26340dea89c06cf615cbd4ec1b32665840ef4e/tests/start_network.py#L94
 echo -e "Making sure the CCF app frontend is up and the certs are fresh"
 
-curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" 
 status="$(curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" $only_status_code)"
 echo $status
 if [ "200" != $status ]; then
-    curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" 
+    curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" | jq .
     echo -e "CCF app frontent end is not up...\ntry calling ./build_ccf.sh and ./deploy_ccf.sh"
     exit 1
 fi

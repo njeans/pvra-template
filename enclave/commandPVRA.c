@@ -1,27 +1,4 @@
-//#include <stdarg.h>
-//#include <stdio.h>
-//
-//#include "enclave.h"
-//#include <enclave_t.h>
-//
-//#include <sgx_quote.h>
-//#include <sgx_tcrypto.h>
-//#include <sgx_tseal.h>
-//#include <sgx_utils.h>
-#include <mbedtls/md.h>
-//#include <mbedtls/entropy.h>
-//#include <mbedtls/ctr_drbg.h>
-//#include <mbedtls/bignum.h>
-#include <mbedtls/pk.h>
-#include <mbedtls/rsa.h>
-
-// [TODO]: If possible remove mbedtls dependence, only used for sha256 hashes now
-
-//#include <secp256k1.h>
-//#include <secp256k1_ecdh.h>
-
 #include "enclave_state.h"
-//#include "appPVRA.h"
 #include "keccak256.h"
 #include "util.h"
 
@@ -32,7 +9,7 @@ sgx_status_t sign_cResponse(uint8_t seckey[32], struct cResponse * cResp, unsign
  * This function executes one PVRA command.
  *
  * @param [in] sealedstate: incoming previous enclave state seal.
- * @param [in] FT: freshness tag that was signed by CCF.
+ * @param [in] FT: freshness tag with evidence that was signed by CCF.
  * @param [in] FT_signature: the CCF signature.
  * @param [in] eCMD: encrypted private_command.
  * @param [out] enc_cResponse: outgoing response to user that is enclave-signed and encrypted.
@@ -44,8 +21,8 @@ sgx_status_t sign_cResponse(uint8_t seckey[32], struct cResponse * cResp, unsign
  */
 sgx_status_t ecall_commandPVRA(
     uint8_t *sealedstate, size_t sealedstate_size,
-    uint8_t FT[8],
-    uint8_t FT_signature[64],
+    uint8_t * FT, size_t FT_size,
+    uint8_t * FT_signature, size_t FT_signature_size,
     uint8_t *eCMD, size_t eCMD_size,
     uint8_t *enc_cResponse, size_t enc_cResponse_size,
     uint8_t cResponse_signature[64],
@@ -59,6 +36,9 @@ sgx_status_t ecall_commandPVRA(
   struct cResponse cResp;
   char resp[100];
   int err;
+  uint8_t *bigbuf = NULL;
+  struct ccf_proof scs_proof;
+  scs_proof.proof = NULL;
 
   // Control Timing Measurement of an OCALL Overhead.
   if(C_DEBUGRDTSC) ocall_rdtsc();
@@ -124,63 +104,46 @@ sgx_status_t ecall_commandPVRA(
   }
 
   /*    SCS Verification    */
-   
+  
+  if(DEBUGPRINT) printf("[ecPVRA] FT evidence: "); print_hexstring(FT, FT_size);
+
+  err = parse_ccf_proof(FT, FT_size, &scs_proof);
+  if (err != 0) {
+    ret = SGX_ERROR_INVALID_PARAMETER;
+    goto cleanup;
+  }
   //Computing expected newFT from sealedState + eCMD + ES.freshness_tag   */
   
-  uint32_t bigbuf_size = sealedstate_size + eCMD_size;//todo make sure this hash is calculated correctly because eCMD format changed
-  uint8_t *bigbuf = (uint8_t *)malloc(bigbuf_size);
+  uint32_t bigbuf_size = sealedstate_size + eCMD_size;
+  bigbuf = (uint8_t *)malloc(bigbuf_size);
   memcpy(bigbuf, sealedstate, sealedstate_size);
   memcpy(bigbuf+sealedstate_size, eCMD, eCMD_size);
   
   unsigned char sealcmd_hash[HASH_SIZE];
-  err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)bigbuf, sealedstate_size+eCMD_size, sealcmd_hash);
-  if(err != 0) {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
-    ret = SGX_ERROR_UNEXPECTED;
-    goto cleanup;
-  }
-//  if(DEBUGPRINT) printf("[ecPVRA] SCS sealcmd hash: \n"); print_hexstring(sealcmd_hash, HASH_SIZE);
+  sha256(bigbuf, sealedstate_size+eCMD_size, sealcmd_hash);
+  free(bigbuf);
+  bigbuf=NULL;
+  if(DEBUGPRINT) printf("[ecPVRA] SCS sealcmd hash: \n"); print_hexstring(sealcmd_hash, HASH_SIZE);
 
-//  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold hash: "); print_hexstring(enclave_state.counter.freshness_tag, HASH_SIZE);
+ if(DEBUGPRINT) printf("[ecPVRA] SCS ft old hash: "); print_hexstring(enclave_state.counter.freshness_tag, HASH_SIZE);
   
   unsigned char merge[HASH_SIZE*2];
   memcpy(merge, enclave_state.counter.freshness_tag, HASH_SIZE);
   memcpy(merge+HASH_SIZE, sealcmd_hash, HASH_SIZE);
-//  if(DEBUGPRINT) printf("[ecPVRA] SCS ftold||sealcmd: "); print_hexstring(merge, HASH_SIZE*2);
-
-  // TODO: change hash(hexstring[128]) to hash(bytes[32])
-  unsigned char merge_hexstring[129];
-  const char *hex = "0123456789abcdef";
-  for (int i = 0; i < 64; i++) {
-    merge_hexstring[2*i+1] = hex[merge[i] & 0xF];
-    merge_hexstring[2*i] = hex[(merge[i]>>4) & 0xF];
-  }
-  merge_hexstring[128] = 0;
-//  if(DEBUGPRINT) printf("[ecPVRA] SCS merge_hexstring: %s\n", merge_hexstring);
+ if(DEBUGPRINT) printf("[ecPVRA] SCS ftold||sealcmd: "); print_hexstring(merge, HASH_SIZE*2);
 
   unsigned char ft_hash[HASH_SIZE];
-  err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)merge_hexstring, 128, ft_hash);
-  if(err != 0)
-  {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
-    ret = SGX_ERROR_UNEXPECTED;
-    goto cleanup;
-  }
 
-  if(DEBUGPRINT) printf("[ecPVRA] SCS Received newFT = %.*s\n", sizeof(FT), FT);
-  if(DEBUGPRINT) printf("[ecPVRA] SCS Expected newFT = ");
+  sha256(merge, HASH_SIZE*2, ft_hash);
+
+  if(DEBUGPRINT) printf("[ecPVRA] SCS Received FT %lu = ", HASH_SIZE);
+  if(DEBUGPRINT) print_hexstring(FT, HASH_SIZE);
+  if(DEBUGPRINT) printf("[ecPVRA] SCS Expected FT %lu = ", HASH_SIZE);
   if(DEBUGPRINT) print_hexstring(ft_hash, HASH_SIZE);
 
-  unsigned char ex_hexstring[65];
-  for (int i = 0; i < 32; i++) {
-    ex_hexstring[2*i+1] = hex[ft_hash[i] & 0xF];
-    ex_hexstring[2*i] = hex[(ft_hash[i]>>4) & 0xF];
-  }
-  ex_hexstring[64] = 0;
-
   /*    Comparing expected newFT to FT returned from SCS    */
-  for(int i = 0; i < sizeof(FT); i++) { //todo this is weird and will break because FT is len 8
-    if(ex_hexstring[i] != FT[i]) {
+  for(int i = 0; i < HASH_SIZE; i++) {
+    if(ft_hash[i] != scs_proof.FT[i]) {
       printf("[ecPVRA] SCS FT Match: failure");
       if (CCF_ENABLE == 1){
         printf("\n");
@@ -194,47 +157,19 @@ sgx_status_t ecall_commandPVRA(
   }
 
   /*    Verifying SCS Signature    */
-  unsigned char msg_hash[32];
-  err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), (const unsigned char *)FT, 8, msg_hash);
+  err = check_ccf_proof(&scs_proof, FT_signature, FT_signature_size);
   if(err != 0) {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
-    ret = SGX_ERROR_UNEXPECTED;
-    goto cleanup;
-  }
-//  if(DEBUGPRINT) printf("[ecPVRA] SCS signature msg hash = "); print_hexstring(msg_hash, HASH_SIZE);
-
-  mbedtls_pk_context pk_pub_key;
-  mbedtls_pk_init(&pk_pub_key);
-  err = mbedtls_pk_parse_public_key(&pk_pub_key, (const unsigned char *)&enclave_state.counter.CCF_key, strlen(&enclave_state.counter.CCF_key)+1);
-  if(err != 0) {
-    printf("[ecPVRA] mbedtls_pk_parse_public_key failed, returned -0x%04x\n", -err);
-    ret = SGX_ERROR_UNEXPECTED;
-    goto cleanup;
-  }
-
-  mbedtls_rsa_context *rsapk_pub_key = mbedtls_pk_rsa(pk_pub_key);
-  err = mbedtls_rsa_check_pubkey(rsapk_pub_key);
-  if(err != 0) {
-    printf("[ecPVRA] mbedtls_rsa_check_pubkey failed, returned -0x%04x\n", -err);
-    err = SGX_ERROR_INVALID_PARAMETER;
-    goto cleanup;
-  }
-
-  err = mbedtls_rsa_pkcs1_verify(rsapk_pub_key, NULL, NULL, MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_SHA256, 64, msg_hash, FT_signature);
-  if(err != 0) {
-    printf("[ecPVRA] SCS Signature verification failed on mbedtls_rsa_pkcs1_verify, returned -0x%04x", -err);
+    printf("[ecPVRA] SCS Signature verification failed\n");
     if (CCF_ENABLE == 1) {
-        printf("\n");
         ret = SGX_ERROR_INVALID_PARAMETER;
         goto cleanup;
     } else {
-        printf(" CCF_ENABLE=0 ignoring..\n");
+        printf(" CCF_ENABLE=%d ignoring..\n", CCF_ENABLE);
     }
   } else {
     if(DEBUGPRINT) printf("[ecPVRA] SCS Signature verification success\n");
   }
-
-  if(C_DEBUGRDTSC) ocall_rdtsc();
+  free_ccf_proof(&scs_proof);
 
 
   /*    (4) Command Decryption    */
@@ -345,8 +280,6 @@ sgx_status_t ecall_commandPVRA(
   if(DEBUGPRINT) printf("[ecPVRA] SCS Local FT updated ");
   if(DEBUGPRINT) print_hexstring(enclave_state.counter.freshness_tag, 32);
 
-  if(C_DEBUGRDTSC) ocall_rdtsc();
-
   /*   (7) PROCESS COMMAND    */
 #ifdef NUM_ADMIN_COMMANDS
   struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*, uint32_t);
@@ -383,50 +316,10 @@ sgx_status_t ecall_commandPVRA(
     goto cleanup;
 
   cleanup:
-    if(rsapk_pub_key != NULL)
-      mbedtls_rsa_free(rsapk_pub_key);
     if (bigbuf != NULL)
         free(bigbuf);
+    free_ccf_proof(&scs_proof);
     free_enclave_state(&enclave_state, &dAD);
     if(C_DEBUGRDTSC) ocall_rdtsc();
     return ret;
-}
-
-sgx_status_t sign_cResponse(uint8_t seckey[32], struct cResponse * cResp, unsigned char *sig_ser){
-  unsigned char cR_hash[HASH_SIZE];
-  int err = mbedtls_md(
-    mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
-    cResp,
-    sizeof(struct cResponse),
-    cR_hash);
-  if(err != 0) {
-    printf("[ecPVRA] mbedtls_md failed, returned -0x%04x\n", -err);
-    return SGX_ERROR_UNEXPECTED;
-  }
-
-  secp256k1_ecdsa_signature sig;
-
-  sgx_status_t ret = sign_secp256k1(seckey, cR_hash, &sig, sig_ser);
-  if (ret == SGX_SUCCESS) {
-    if(DEBUGPRINT) printf("[eiPVRA] cResponse SIGNATURE serealized ");
-    if(DEBUGPRINT) print_hexstring(sig_ser, 64);
-  }
-  return ret;
-}
-
-sgx_status_t encrypt_cResponse(unsigned char AESKey[AESGCM_128_KEY_SIZE], struct cResponse * cResp, uint8_t * enc_cResponse, size_t enc_cResponse_size){
-  size_t expected_cResponse_size = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + sizeof(struct cResponse);
-  if (enc_cResponse_size != expected_cResponse_size) {
-      printf("[eiPVRA] enc_cResponse_size incorrect %lu != %lu\n", enc_cResponse_size, expected_cResponse_size);
-      return SGX_ERROR_UNEXPECTED;
-  }
-
-  sgx_status_t ret = encrypt_aesgcm128(AESKey, (uint8_t *)cResp, sizeof(struct cResponse), enc_cResponse);
-
-  if (ret == SGX_SUCCESS) {
-    if(DEBUGPRINT) printf("[eiPVRA] encrypted  cResponse ");
-    if(DEBUGPRINT) print_hexstring(enc_cResponse, enc_cResponse_size);
-  }
-
-  return ret;
 }

@@ -35,20 +35,25 @@ def commandPVRA(state_counter, full_cmd):
           " --enclave-path " + SIGNED_ENCLAVE_PATH + \
           " --sealedState " + SEAL_STATE_PATH + \
           " --signedFT " + FT_SIG_PATH + \
-          " --FT " + FT_PATH + \
+          " --FT " + FT_EVD_PATH + \
           " --eCMD " + cmd_path + \
           " --cResponse " + CRESPONSE_PATH + \
           " --cRsig " + CRESPONSE_SIG_PATH + \
           " --sealedOut " + SEAL_OUT_PATH(state_counter)
     print_vv(f'calling commandPVRA  state_counter {state_counter} with {cmd}', n=FILENAME)
-    # return "", ""
+    # exit(0)
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    try:
+        stdout = res.stdout.decode('utf-8')
+        stderr = res.stderr.decode('utf-8')
+    except UnicodeDecodeError:
+        stdout = res.stdout
+        stderr = res.stderr
     if res.returncode != 0:
-        print_(f"commandPVRA failed with code {res.returncode}\n{res.stdout.decode('utf-8')}{res.stderr.decode('utf-8')}", c=ERRORc, n=FILENAME)
+        print_(f"commandPVRA failed with code {res.returncode}\n{stdout}\n{stderr}", c=ERRORc, n=FILENAME)
         exit(res.returncode)
-    log = res.stdout.decode("utf-8")
-    print_v(log, n=FILENAME)
-    if "SeqNo failure" not in log: #todo find a better way
+    print_v(stdout, n=FILENAME)
+    if "SeqNo failure" not in stdout: #todo find a better way
         cp = subprocess.run(f"cp {SEAL_OUT_PATH(state_counter)} {SEAL_STATE_PATH}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         assert cp.returncode == 0
     with open(CRESPONSE_PATH, "rb") as f:

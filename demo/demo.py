@@ -6,6 +6,7 @@ import billboard
 import admin as admin_lib
 import user as user_lib
 import application as app
+import scs
 
 
 def test(num_users=NUM_USERS, test_case=None):
@@ -113,10 +114,9 @@ def eval(num_users=NUM_USERS):
 def setup(num_users=NUM_USERS):
     num_users = int(num_users)
     assert num_users > 0
-
+    scs.reset_scs()
     w3 = billboard.setup_w3()
     bb_info = billboard.gen_keys(num_users)
-
     admin = admin_lib.Admin(w3, bb_info[0], num_users)
     admin.start_server()
     contract = admin.contract

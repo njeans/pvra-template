@@ -34,6 +34,8 @@ else:
 CCF_SERVICE_CERT_PATH = os.path.join(CCF_CERTS_DIR, "service_cert.pem")
 CCF_USER_CERT_PATH = os.path.join(CCF_CERTS_DIR, "user0_cert.pem")
 CCF_USER_KEY_PATH = os.path.join(CCF_CERTS_DIR, "user0_privk.pem")
+CCF_MEMBER_CERT_PATH =  os.path.join(CCF_CERTS_DIR, "member0_cert.pem")
+CCF_MEMBER_KEY_PATH = os.path.join(CCF_CERTS_DIR, "member0_privk.pem")
 if CCF_ENABLE:
     with open(CCF_SERVICE_CERT_PATH) as f:
         CCF_SERVICE_CERT = f.read()
@@ -68,7 +70,8 @@ IAS_REPORT_PATH = os.path.join(HOST_PATH, "ias_report.json")
 
 CRESPONSE_PATH = os.path.join(HOST_PATH, "cResponse.txt")
 CRESPONSE_SIG_PATH = os.path.join(HOST_PATH, "cResponse.sig")
-FT_PATH = os.path.join(HOST_PATH, "FT.txt")
+FT_PATH = os.path.join(HOST_PATH, "FT.bin")
+FT_EVD_PATH = os.path.join(HOST_PATH, "evidenceFT.bin")
 FT_SIG_PATH = os.path.join(HOST_PATH, "signedFT.bin")
 
 CLIENT_PATH = os.path.join(TEST_PATH, "client")

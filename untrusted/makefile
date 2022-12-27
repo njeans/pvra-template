@@ -30,7 +30,7 @@ all: ../interface/libenclave_stub_u.a app
 
 ../interface/libenclave_stub_u.a: ../interface/enclave.edl
 
-app: untrusted_sgx_socket.o app.o globals.o ocall_print_string.o ocall_getaddrinfo.o decode_sgx_status.o enclave.o buffers.o enclave_state.o endianswap.o readfile.o ecall_buffer.o  open_file.o hexutil.o base64.o initPVRA.o commandPVRA.o auditlogPVRA.o
+app: untrusted_sgx_socket.o app.o globals.o ocall_print_string.o ocall_getaddrinfo.o decode_sgx_status.o enclave.o buffers.o enclave_state.o endianswap.o readfile.o ecall_buffer.o hexutil.o base64.o initPVRA.o commandPVRA.o auditlogPVRA.o
 
 
 clean:

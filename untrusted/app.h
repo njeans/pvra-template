@@ -60,6 +60,7 @@ extern void *enclave_pubkey_buffer;
 
 
 extern void *signedFT_buffer;
+extern size_t signedFT_buffer_size;
 extern void *eCMD_buffer;
 extern size_t eCMD_buffer_size;
 extern void *eAESkey_buffer;

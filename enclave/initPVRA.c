@@ -168,9 +168,7 @@ sgx_status_t ecall_initPVRA(
 
   // Parsing userpubkeys from pubkeys.list
   hexstr_to_bytes(userpubkeys, 128, enclave_state.publickeys.admin_pubkey);
-printf("initPVRA %p\n", enclave_state.publickeys.user_pubkeys);
   enclave_state.publickeys.user_pubkeys = (pubkey_t *) malloc(sizeof(pubkey_t)*num_users);
-printf("initPVRA b %p\n", enclave_state.publickeys.user_pubkeys);
   int uidx = 0;
   for(int i = 129; i< strlen(userpubkeys); i+=129) {
     hexstr_to_bytes(userpubkeys + i, 128, enclave_state.publickeys.user_pubkeys[uidx]);

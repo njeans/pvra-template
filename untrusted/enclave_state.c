@@ -48,10 +48,6 @@ bool load_seal(const char *const sealedstate_file) {
 
 bool load_sig(const char *const signedFT_file) {
   printf("[hcPVRA] Loading signedFT\n");
-  void *new_buffer;
-  size_t new_buffer_size;
-
-  bool ret_status = read_file_into_memory(signedFT_file, &new_buffer, &new_buffer_size);
 
   /* If we previously allocated a buffer, free it before putting new one in
    * its place */
@@ -60,22 +56,12 @@ bool load_sig(const char *const signedFT_file) {
     signedFT_buffer = NULL;
   }
 
-  if (new_buffer_size != 8) {
-    printf("[enclave_state.c] FT buffer size %lu != 8\n", new_buffer_size);
-    return false;
-  }
-  /* Put new buffer into context */
-  signedFT_buffer = new_buffer;
-
+  bool ret_status = read_file_into_memory(signedFT_file, &signedFT_buffer, &signedFT_buffer_size);
   return ret_status;
 }
 
 bool load_ft(const char *const FT_file) {
   //printf("[hcPVRA] Loading FT\n");
-  void *new_buffer;
-  size_t new_buffer_size;
-
-  bool ret_status = read_file_into_memory(FT_file, &new_buffer, &new_buffer_size);
 
   /* If we previously allocated a buffer, free it before putting new one in
    * its place */
@@ -83,10 +69,7 @@ bool load_ft(const char *const FT_file) {
     free(FT_buffer);
     FT_buffer = NULL;
   }
-
-  /* Put new buffer into context */
-  FT_buffer = new_buffer;
-  FT_buffer_size = new_buffer_size;
+  bool ret_status = read_file_into_memory(FT_file, &FT_buffer, &FT_buffer_size);
 
   return ret_status;
 }
@@ -119,7 +102,7 @@ bool save_signature(const char *const signature_file, unsigned char *signature_s
     goto cleanup;
   }
 
-  file = open_file(signature_file, "wb");
+  file = fopen(signature_file, "wb");
   if (file == NULL) {
     fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
@@ -145,7 +128,7 @@ cleanup:
 bool save_message(void) {
   bool ret_status = true;
   FILE *file = NULL;
-  file = open_file("enclave_enc_pubkey.bin", "wb");
+  file = fopen("enclave_enc_pubkey.bin", "wb");
   if (file == NULL) {
     fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
@@ -173,7 +156,7 @@ bool save_quote(const char *const quote_file) {
 
   printf("[GatewayApp]: Saving quote size: %lu\n", quote_buffer_size);
 
-  FILE *fquote = open_file(quote_file, "wb");
+  FILE *fquote = fopen(quote_file, "wb");
 
   if (fquote == NULL) {
     fprintf(stderr, "[GatewayApp]: save_quote() fopen failed %s\n",quote_file);
@@ -199,7 +182,7 @@ bool save_seal(const char *const sealedstate_file) {
   bool ret_status = true;
   //printf("[Gateway]: saving sealed enclave state.\n");
 
-  FILE *sk_file = open_file(sealedstate_file, "wb");
+  FILE *sk_file = fopen(sealedstate_file, "wb");
 
   if (sk_file == NULL) {
     fprintf(stderr, "[Gateway]: save_enclave_state() fopen failed.\n");
@@ -222,7 +205,7 @@ bool save_sealO(const char *const sealedout_file) {
   bool ret_status = true;
   //printf("[hcPVRA] Persisting enclave state.\n");
 
-  FILE *sk_file = open_file(sealedout_file, "wb");
+  FILE *sk_file = fopen(sealedout_file, "wb");
 
   if (sk_file == NULL) {
     fprintf(stderr, "[Gateway]: save_enclave_state() fopen failed.\n");
@@ -245,7 +228,7 @@ bool save_cResponse(const char *const cResponse_file) {
   bool ret_status = true;
   printf("[Gateway]: saving cResponse.\n");
 
-  FILE *sk_file = open_file(cResponse_file, "wb");
+  FILE *sk_file = fopen(cResponse_file, "wb");
 
   if (sk_file == NULL) {
     fprintf(stderr, "[Gateway]: save_cResponse()) fopen failed.\n");
@@ -268,7 +251,7 @@ bool save_auditlog(const char *const auditlog_file) {
   bool ret_status = true;
   printf("[Gateway]: saving auditlog.\n");
 
-  FILE *sk_file = open_file(auditlog_file, "wb");
+  FILE *sk_file = fopen(auditlog_file, "wb");
 
   if (sk_file == NULL) {
     fprintf(stderr, "[Gateway]: save_auditlog()) fopen failed.\n");
@@ -322,7 +305,7 @@ bool format_sig(const char *const sig_file) {
     goto cleanup;
   }
 
-  file = open_file(sig_file, "wb");
+  file = fopen(sig_file, "wb");
   if (file == NULL) {
     fprintf(stderr, "[GatewayApp]: save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;

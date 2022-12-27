@@ -29,8 +29,8 @@ bool commandPVRA(void) {
   sgx_lasterr = ecall_commandPVRA(
       enclave_id, &ecall_retval, 
       (uint8_t *)sealed_state_buffer, sealed_state_buffer_size,
-      (uint8_t *)FT_buffer,
-      (uint8_t *)signedFT_buffer,
+      (uint8_t *)FT_buffer, FT_buffer_size,
+      (uint8_t *)signedFT_buffer, signedFT_buffer_size,
       (uint8_t *)eCMD_buffer, eCMD_buffer_size,
       (uint8_t *)cResponse_buffer, cResponse_buffer_size,
       (uint8_t *)cRsig_buffer,

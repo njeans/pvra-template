@@ -132,6 +132,7 @@ class Admin:
         self.audit_num = 0
         self._init_enclave(num_users)
         self._init_contract()
+        scs.setup_scs()
         self.server_thread = threading.Thread(None, self.httpd.serve_forever)
         self.admin_user = user_lib.User(-1, bb_info, self.w3, self.contract)
         self.admin_user.print_ = print_

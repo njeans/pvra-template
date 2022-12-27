@@ -3,7 +3,6 @@ import hashlib
 import requests
 import base64
 import os
-import json
 import argparse
 
 from web3 import Web3
@@ -31,7 +30,7 @@ def gen_ca_bundle(ca_bundle_path=None,
         timeserver_ca_urls = args.timeserver_ca_url
     ccf_ca_def = ""
     if ccf_enable:
-        ccf_ca_buff = ""
+        ccf_ca_buffs = []
         if ccf_crt_files is None:
             if ccf_crt_dir is None:
                 from constants import CCF_CERTS_DIR
@@ -42,8 +41,11 @@ def gen_ca_bundle(ca_bundle_path=None,
             ccf_crt_files = [ccf_crt_files]
         for cert in ccf_crt_files:
             with open(cert) as f:
-                ccf_ca_buff += f.read()
-        ccf_ca_def = ccf_ca_buff.replace("\n", "\\r\\n\"\\\n\"")
+                buff = f.read().replace("\n", "\\r\\n\"\\\n\"")
+                buff = buff[:-4]
+                buff += "\\0\""
+                ccf_ca_buffs.append(buff)
+        ccf_ca_def = ",\\\n\"".join(ccf_ca_buffs)
         if ca_bundle_path is None:
             from constants import PROJECT_ROOT
             ca_bundle_path = os.path.join(PROJECT_ROOT, "enclave", "ca_bundle.h")
@@ -79,8 +81,9 @@ def gen_ca_bundle(ca_bundle_path=None,
 #define default_ca_bundle \\
 \"{timeserver_ca_def}\\0\"
 
-#define ccf_ca_bundle \\
-\"{ccf_ca_def}\\0\"
+const size_t num_ccf_certs = {len(ccf_ca_buffs)};
+const char * ccf_certs[{len(ccf_ca_buffs)}] = \\
+{{"{ccf_ca_def}}};
 
 #endif
 
@@ -192,8 +195,7 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(prog="gen_ca_bundle", 
         description="Generates ca_bundle.h file with hardocded certificates for time server and CCF network nodes.")
         parser.add_argument("gen_ca_bundle")
-        parser.add_argument("-p", "--ca-bundle-path", type=str, 
-                                default=os.path.join(os.environ.get("PROJECT_ROOT"), "enclave/ca_bundle.h"),
+        parser.add_argument("-p", "--ca-bundle-path", type=str,
                                 help="Path to generate file in")
         parser.add_argument("-tu", "--timeserver-ca-url", 
                                 type=str, action='append',

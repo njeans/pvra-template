@@ -1,3 +1,7 @@
+#include "app.h"
+
+/* Globals */
+uint64_t tsc_dump[50];
 int tsc_idx;
 
 sgx_enclave_id_t enclave_id;
@@ -21,6 +25,7 @@ void *enclave_pubkey_buffer;
 
 
 void *signedFT_buffer;
+size_t signedFT_buffer_size;
 void *eCMD_buffer;
 size_t eCMD_buffer_size;
 

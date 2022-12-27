@@ -24,20 +24,18 @@ enclave
 
         public sgx_status_t ecall_commandPVRA(
             [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
-            [in] uint8_t FT[8],
-            [in] uint8_t FT_signature[64],
+            [in, size=FT_size] uint8_t *FT, size_t FT_size,
+            [in, size=FT_signature_size] uint8_t *FT_signature, size_t FT_signature_size,
             [in, size=eCMD_size] uint8_t *eCMD, size_t eCMD_size,
             [out, size=enc_cResponse_size] uint8_t *enc_cResponse, size_t enc_cResponse_size,
             [out] uint8_t cResponse_signature[64],
-            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size
-            );
+            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size);
 
         public sgx_status_t ecall_auditlogPVRA(
             [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
             [out, size=auditlog_size] uint8_t *auditlog, size_t auditlog_size,
             [out] uint8_t auditlog_signature[65],
-            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size
-            );
+            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size);
 
 
         public sgx_status_t ecall_init_buffer_sizes(uint64_t num_users, [out] size_t* esealed_state_size);
@@ -56,17 +54,12 @@ enclave
     {
         void ocall_print_string([in, string] const char *str);
         void ocall_rdtsc(void);
-        void ocall_allocate_seal(size_t seal_size);
         void ocall_gai_print_strerror(int errcode);
         int ocall_getaddrinfo(
             [in, string] const char *node, 
             [in, string] const char *service, 
             [in] const struct addrinfo *hints, 
             [out] struct addrinfo *res);
-        
-        // int ocall_SSL_connect([in] ssl_crock_st *ssl);
-        // int ocall_SSL_write([in] ssl_crock_st *ssl, [in, size=num] const uint8_t *buf, int num);
-        // int ocall_SSL_read([in] ssl_crock_st *ssl, [out, size=num] uint8_t *buf, int num);
 
     };
 };

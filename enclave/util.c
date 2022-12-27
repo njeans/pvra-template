@@ -2,11 +2,142 @@
 //#include <secp256k1_recovery.h>
 #include <sgx_tcrypto.h>
 
+#include <openssl/sha.h>
+#include <openssl/x509.h>
+#include <openssl/bio.h>
+#include <openssl/pem.h>
 
 //#include "enclave_state.h"
 #include "keccak256.h"
+#include "ca_bundle.h"
 #include "util.h"
 
+int parse_ccf_proof(uint8_t * buff, size_t buff_size, struct ccf_proof* out) {
+  memcpy(out, buff, sizeof(struct ccf_proof));
+  size_t proof_size = sizeof(struct ccf_node) * out->proof_len;
+  size_t proof_start = sizeof(struct ccf_proof) - sizeof(struct ccf_node*);
+  size_t expected_buff_size = proof_start + proof_size;
+  if (buff_size != expected_buff_size) {
+    printf("ccf_proof buff expected size based on %u proof len %lu != %lu\n", out->proof_len, expected_buff_size, buff_size);
+    return -1;
+  }
+  out->proof = (struct ccf_node*) malloc(proof_size);
+  memcpy(out->proof, buff + proof_start, proof_size);
+  return 0;
+}
+
+void free_ccf_proof(struct ccf_proof* out) {
+  if (out->proof != NULL) {
+    free(out->proof);
+    out->proof = NULL;
+  }
+}
+
+int check_ccf_proof(struct ccf_proof* proof, uint8_t *sig, size_t sig_len){
+  uint8_t leaf[HASH_SIZE];
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256, proof->write_set_digest, HASH_SIZE);
+  SHA256_Update(&sha256, proof->commit_evidence_digest, HASH_SIZE);
+  SHA256_Update(&sha256, proof->FT, HASH_SIZE);
+  SHA256_Final(leaf, &sha256);
+  uint8_t root[HASH_SIZE];
+  memcpy(root, leaf, HASH_SIZE);
+  uint8_t next[HASH_SIZE];
+  for (uint64_t i = 0; i < proof->proof_len; i++) {
+    SHA256_Init(&sha256);
+    if (proof->proof[i].is_left) {
+        SHA256_Update(&sha256, proof->proof[i].data, HASH_SIZE);
+        SHA256_Update(&sha256, root, HASH_SIZE);
+    } else {
+        SHA256_Update(&sha256, root, HASH_SIZE);      
+        SHA256_Update(&sha256, proof->proof[i].data, HASH_SIZE);
+    }
+    SHA256_Final(next, &sha256);
+    memcpy(root, next, HASH_SIZE);
+  }
+  if(DEBUGPRINT) printf("ccf root: ");
+  if(DEBUGPRINT) print_hexstring(root, HASH_SIZE);
+  if(DEBUGPRINT) printf("ccf signature: ");
+  if(DEBUGPRINT) print_hexstring(sig, sig_len);
+  X509 * cert = NULL;
+  EVP_PKEY * evp_pubkey = NULL;
+  BIO *bio = NULL;
+  EC_KEY * ec_pubkey = NULL;
+  int res;
+  for (size_t i = 0; i < num_ccf_certs; i++){
+    bio = BIO_new(BIO_s_mem());
+    if(DEBUGPRINT) printf("ccf_cert[%lu]:\n%s\n",i,ccf_certs[i]);
+    int err = BIO_write(bio, ccf_certs[i], strlen(ccf_certs[i]));
+    if (err != strlen(ccf_certs[i])) {
+      printf("check_ccf_proof() BIO_write err %d\n", err);
+      goto cleanup;
+    }
+    cert = PEM_read_bio_X509(bio, NULL, 0, NULL);
+    if(cert == NULL) {
+      printf("check_ccf_proof() d2i_X509_bio err\n");
+      goto cleanup;
+    }
+    evp_pubkey = X509_get_pubkey(cert);
+    if(evp_pubkey == NULL) {
+      printf("check_ccf_proof() X509_get_pubkey err\n");
+      goto cleanup;
+    }    
+    ec_pubkey = EVP_PKEY_get1_EC_KEY(evp_pubkey);
+    if(ec_pubkey == NULL) {
+      printf("check_ccf_proof() EVP_PKEY_get1_EC_KEY err\n");
+      goto cleanup;
+    } 
+    res = ECDSA_verify(0, root, HASH_SIZE, sig, sig_len, ec_pubkey);
+    free(evp_pubkey);
+    evp_pubkey=NULL;
+    free(ec_pubkey);
+    ec_pubkey = NULL;
+    BIO_free(bio);
+    bio = NULL;
+    if (res == 1) {
+      return 0;
+    }
+  }
+  cleanup:
+    if (evp_pubkey != NULL) free(evp_pubkey); evp_pubkey = NULL;
+    if (ec_pubkey != NULL) free(ec_pubkey); ec_pubkey = NULL;
+    if (bio != NULL) BIO_free(bio); bio = NULL;
+    return -1;
+}
+
+
+sgx_status_t sign_cResponse(uint8_t seckey[32], struct cResponse * cResp, unsigned char *sig_ser){
+  unsigned char cR_hash[HASH_SIZE];
+
+  sha256(cResp, sizeof(struct cResponse), cR_hash);
+
+  secp256k1_ecdsa_signature sig;
+
+  sgx_status_t ret = sign_secp256k1(seckey, cR_hash, &sig, sig_ser);
+  if (ret == SGX_SUCCESS) {
+    if(DEBUGPRINT) printf("[eiPVRA] cResponse SIGNATURE serealized ");
+    if(DEBUGPRINT) print_hexstring(sig_ser, 64);
+  }
+  return ret;
+}
+
+sgx_status_t encrypt_cResponse(unsigned char AESKey[AESGCM_128_KEY_SIZE], struct cResponse * cResp, uint8_t * enc_cResponse, size_t enc_cResponse_size){
+  size_t expected_cResponse_size = AESGCM_128_MAC_SIZE + AESGCM_128_IV_SIZE + sizeof(struct cResponse);
+  if (enc_cResponse_size != expected_cResponse_size) {
+      printf("[eiPVRA] enc_cResponse_size incorrect %lu != %lu\n", enc_cResponse_size, expected_cResponse_size);
+      return SGX_ERROR_UNEXPECTED;
+  }
+
+  sgx_status_t ret = encrypt_aesgcm128(AESKey, (uint8_t *)cResp, sizeof(struct cResponse), enc_cResponse);
+
+  if (ret == SGX_SUCCESS) {
+    if(DEBUGPRINT) printf("[eiPVRA] encrypted  cResponse ");
+    if(DEBUGPRINT) print_hexstring(enc_cResponse, enc_cResponse_size);
+  }
+
+  return ret;
+}
 
 void get_address(pubkey_t * pubkey, address_t* out) {
     struct SHA3_CTX ctx;
@@ -36,6 +167,10 @@ void keccak256(uint8_t *buff, size_t buff_size, uint8_t * hash_out_32) {
   keccak_update(&ctx, eth_prefix, len_prefix-1);
   keccak_update(&ctx, buff, buff_size);
   keccak_final(&ctx, hash_out_32);
+}
+
+void sha256(uint8_t *buff, size_t buff_size, uint8_t * hash_out_32){
+    SHA256((const unsigned char *) buff, buff_size, (unsigned char *) hash_out_32);
 }
 
 void hash_address_list(pubkey_t * admin_pubkey, pubkey_t * user_pubkeys_list, uint64_t num_pubkeys, uint8_t * hash_out_32) {

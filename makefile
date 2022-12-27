@@ -17,3 +17,4 @@ clean:
 	$(MAKE) $(MFLAGS) -C enclave SGX_MODE=$(SGX_MODE) $(MAKECMDGOALS)
 	$(MAKE) $(MFLAGS) -C untrusted SGX_MODE=$(SGX_MODE) $(MAKECMDGOALS)
 	rm -rf bin
+	rm -rf enclave/ca_bundle.h

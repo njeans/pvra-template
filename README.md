@@ -8,13 +8,13 @@ PVRA (Publically Verifiable Remote Attestation) aims to provide a framework for 
 The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SecureDataTransfer. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 229 LoC and HeatMap at 205 LoC.
 
 ## Quick Start
-Run an existing application in docker without CCF in SGX simulation mode
+Run an existing application in docker with CCF in SGX simulation mode
 
 * set Environment variables
 
 ```bash
 export PROJECT_ROOT=$(pwd)
-export CCF_ENABLE=0
+export CCF_ENABLE=1
 export SGX_SPID=None
 export IAS_PRIMARY_KEY=None
 export APP_NAME=<sdt or heatmap or vsc>
@@ -25,14 +25,13 @@ export SGX_MODE=SW
     * heatmap expects 4 users ```export NUM_USERS=4```
     * vsc expects 8 users: ```export NUM_USERS=8```
 
-* build and run docker image
+* build and deploy ccf, bulletin board, and pvra docker images
 
 ```bash
 cd $PROJECT_ROOT
 ./setup.sh -a $APP_NAME
 cd $PROJECT_ROOT/docker
-./build.sh
-./run.sh
+./build_deploy.sh
 ```
 
 ## Getting Started
@@ -81,7 +80,7 @@ export APP_NAME=<APP_NAME>
 export SGX_MODE=<HW or SW>
 ```
 
-* CCF public key is hardcoded in the enclave image as a root of trust and must be updated in `enclave/ca_bundle.sh` In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
+* CCF node certificates are hardcoded in the enclave image as a root of trust and must be updated in `enclave/ca_bundle.sh` In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
 
 * In order to run an existing application pass the APP_NAME to ```./setup.sh``` script.
   
@@ -95,19 +94,19 @@ export SGX_MODE=<HW or SW>
 
 ##### Use Docker & Docker-Compose
 
-* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L23)
+* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L26)
 * Hardware mode
 ```bash
 export SGX_MODE=HW
 cd $PROJECT_ROOT/docker
-./build_pvra.sh
+./build.sh
 ```
 
 * Simulation mode
 ```bash
 export SGX_MODE=SW
 cd $PROJECT_ROOT/docker
-./run_pvra.sh
+./deploy.sh
 ```
 
 ##### Build Locally

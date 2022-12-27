@@ -10,15 +10,15 @@ then
 fi
 cd $PROJECT_ROOT/scripts
 ./copy.sh
+cd $PROJECT_ROOT
+make clean
 file=$PROJECT_ROOT/enclave/ca_bundle.sh
-if [ ! -e "$file" ]
+if [ -d "$file" ]
 then
   if [[ ${CCF_ENABLE} == "1" ]];
   then
     echo "Generating enclave/ca_bundle.sh file"
-    python $PROJECT_ROOT/utils.py gen_ca_bundle
+    python $PROJECT_ROOT/demo/utils.py gen_ca_bundle
   fi
 fi
-cd $PROJECT_ROOT
-make clean
 make $1
