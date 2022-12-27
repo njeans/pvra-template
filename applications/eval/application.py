@@ -8,7 +8,7 @@ assert os.environ.get("APP_NAME") == "eval"
 USER_CMD0 = 0
 ADMIN_CMD1 = 1
 
-constants.MERKLE(False)  # todo remove no MERKLE
+constants.MERKLE(False)
 
 def get_test_data(admin, users, test_case=None):
     assert test_case == "eval"
@@ -19,17 +19,9 @@ def get_test_data(admin, users, test_case=None):
     base_admin_data = [
         [None for i in range(num_users)]
     ]
-    base_expected_audit = [
-        [format_leaf(0), format_leaf(0)],  # todo remove no MERKLE
-        [format_leaf(1), format_leaf(1)],  # todo remove no MERKLE
-    ]
-    test_data = base_test_data#[base_test_data[i % 2] for i in range(num_users)]
-    admin_data = base_admin_data#[base_admin_data[i % 2] for i in range(num_users)]
-    expected_audit = [# todo remove no MERKLE
-        # base_expected_audit[i % 2] for i in range(num_users)
-    ]
-    # return test_data, admin_data, expected_audit  # todo remove no MERKLE
-    return test_data, admin_data  # todo *uncomment* MERKLE
+    test_data = base_test_data 
+    admin_data = base_admin_data 
+    return test_data, admin_data
 
 
 def get_test_data_omission(admin, users):
@@ -53,15 +45,15 @@ def print_cResponse(buff):
     return str(ret)
 
 
-def format_leaf(uidx):  # todo remove no MERKLE
+def format_leaf(uidx):
     return bytes(userLeaf(uidx))
 
 
-def leaf_dic(uidx):  # todo remove no MERKLE
+def leaf_dic(uidx):
     return {"uidx": uidx}
 
 
-def leaf_eq(leaf1, leaf2):  # todo remove no MERKLE
+def leaf_eq(leaf1, leaf2):
     for k in leaf1:
         if k not in leaf2:
             return False
@@ -70,12 +62,12 @@ def leaf_eq(leaf1, leaf2):  # todo remove no MERKLE
     return True
 
 
-def get_leaf(buff):  # todo remove no MERKLE
+def get_leaf(buff):
     leaf = userLeaf.from_buffer_copy(buff)
     return {"uidx": leaf.uidx}
 
 
-def print_leaf(buff):  # todo remove no MERKLE
+def print_leaf(buff):
     return str(get_leaf(buff))
 
 

@@ -77,7 +77,6 @@ SGX_HOST_CXXFLAGS := $(SGX_COMMON_CXXFLAGS)
 SGX_HOST_CPPFLAGS := -I$(SGX_SDK)/include
 SGX_HOST_LDFLAGS := -L$(SGXSSL_PKG_PATH)/lib64
 SGX_HOST_LDLIBS := -L$(SGX_LIBRARY_PATH) -l$(SGX_URTS_LIB) -l$(SGX_UAE_SERVICE_LIB) -lpthread  -l$(SGXSSL_U_Library_Name) -l$(U_TLS_Library_Name)
-# SGX_HOST_LDLIBS := -L$(SGX_LIBRARY_PATH) -l$(SGX_URTS_LIB) -l$(SGX_UAE_SERVICE_LIB) -lpthread
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.

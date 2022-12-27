@@ -35,6 +35,18 @@ size_t get_user_leaf(struct ES *enclave_state, char ** out) {
     }
     return block_size;
 }
+
+void free_user_leaf(struct ES *enclave_state, uint8_t **data) {
+    if (data != NULL){
+        for(int i = 0; i < enclave_state->num_users; i++){
+            if (data[i] != NULL){
+                free(data[i]);
+                data[i] = NULL;
+            }
+        }
+    }
+}
+
 #endif
 
 

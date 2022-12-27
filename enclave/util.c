@@ -378,7 +378,7 @@ sgx_status_t genkey_aesgcm128(uint8_t other_pubkey[64], uint8_t my_privkey[32], 
   //todo validate keys in initPVRA
   err = secp256k1_ec_pubkey_parse(ctx, &user_pubkey, &user_pubkey_buff, 65); //todo use flags in secp.h
   if(err == 0) {
-    printf_stderr("genkey_aesgcm128() secp256k1_ecdh() failed\n");
+    printf_stderr("genkey_aesgcm128() secp256k1_ec_pubkey_parse() failed\n");
     return SGX_ERROR_UNEXPECTED;
   }
 

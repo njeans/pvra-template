@@ -10,6 +10,7 @@ from utils import sha256
 from crypto import verify_x509_data
 
 FILENAME="scs.py"
+
 def setup_scs():
     seal_state_hash = bytes([0 for _ in range(32)])
     headers = {"Content-Type": "application/json"}

@@ -8,20 +8,12 @@
 
 #define NUM_COMMANDS 1
 #define NUM_ADMIN_COMMANDS 1
-//#define MERKLE_TREE  // todo remove no MERKLE
 
 struct userInfo
 {
 	uint32_t uidx;
 };
 
-#ifdef MERKLE_TREE
-struct userLeaf  // todo remove no MERKLE
-{
-	uint32_t uidx;
-//	uint8_t buff[100];
-};
-#endif
 
 struct cInputs
 {

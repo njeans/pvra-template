@@ -64,7 +64,7 @@ def compile_source_file(base_path, contract_source_path, allowed):
     return contract_id, abis, bins
 
 
-def deploy_contract(w3=lambda : setup_w3(), admin_addr=""):
+def deploy_contract(w3=setup_w3(), admin_addr=""):
     if admin_addr == "":
         admin_addr, _, _ = get_account(0)
     base_path, contract_source_path, allowed = SOLIDITY_PATHS

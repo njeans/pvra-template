@@ -1,6 +1,6 @@
 import os
 
-verbose = 2
+verbose = 1
 
 ERRORc = '\033[0;31m'
 ADMINc = '\033[0;35m'
