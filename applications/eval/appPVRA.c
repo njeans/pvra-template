@@ -15,7 +15,6 @@ struct cResponse userCMD0(struct ES *enclave_state, struct cInputs *CI, uint32_t
 /* Initializes the Function Pointers to Function Names Above */
 int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct ES*, struct cInputs*)){
     (functions[0]) = &userCMD0;
-//    (functions[1]) = &adminCMD1; //admin
 
 //  if(DEBUGPRINT) printf("Initialized Application Kernels\n");
     return 0;
@@ -33,9 +32,6 @@ int initES(struct ES* enclave_state, struct dAppData *dAD)
 
 int initAD(struct ES* enclave_state, struct dAppData *dAD)
 {
-//    enclave_state->appdata.user_info = dAD->dDS[0]->buffer;
-//    enclave_state->appdata.retrieve_list = dAD->dDS[1]->buffer;
-//
     return 0;
 }
 

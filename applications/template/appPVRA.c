@@ -5,7 +5,7 @@
 /* COMMAND0 Kernel Definition */
 struct cResponse userCMD0(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    if(DEBUGPRINT) printf("[template] userCMD0 %d\n", uidx);
+    if(DEBUGPRINT) printf("[template] userCMD0 %u\n", uidx);
     struct cResponse ret;
     memset(ret.message, 0, 100);
     ret.error = 0;
@@ -31,7 +31,8 @@ size_t get_user_leaf(struct ES *enclave_state, char ** out) {
     for (int i=0; i< enclave_state->num_users; i++) {
         out[i] = (char *) malloc(block_size);
         struct userInfo info = enclave_state->appdata.user_info[i];
-        memcpy_big_uint32(out[i], info.uidx);
+        struct userLeaf leaf= {info.uidx};
+        memcpy(out[i], &leaf, block_size);
     }
     return block_size;
 }

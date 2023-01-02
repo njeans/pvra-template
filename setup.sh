@@ -7,21 +7,11 @@ then
   exit
 fi
 
-mbedtls_dir=$PROJECT_ROOT/trustedLib/mbedtls-SGX
 scs_dir=$PROJECT_ROOT/counter-service
-if [[ -z "$(ls -A $mbedtls_dir)" || -z "$(ls -A $scs_dir)" ]]; then
+if [[ -z "$(ls -A $scs_dir)" ]]; then
   echo "Setting up submodules"
   git submodule update --init
 fi
-
-if [[ -d $mbedtls_dir && -z "$(ls -A $mbedtls_dir/build)" ]];
-then
-  cd $mbedtls_dir
-  mkdir build && cd build
-  cmake ..
-  make -j && make install
-fi
-
 
 
 POSITIONAL_ARGS=()

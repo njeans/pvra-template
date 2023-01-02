@@ -29,7 +29,6 @@ bool allocate_buffers(void) {
 
   cRsig_buffer = malloc(64);
 
-
   if (signature_buffer == NULL ||
       auditlog_buffer == NULL ||
       auditlog_signature_buffer == NULL ||
@@ -125,4 +124,8 @@ void cleanup_buffers(void) {
     user_addr_signature_buffer = NULL;
   }
 
+  if (quote_buffer != NULL) {
+    free(quote_buffer);
+    quote_buffer = NULL;
+  }
 }

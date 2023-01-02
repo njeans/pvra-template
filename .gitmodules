@@ -1,9 +1,9 @@
 [submodule "counter-service"]
 	path = counter-service
 	url = https://github.com/njeans/counter-service.git
-[submodule "trustedLib/mbedtls-SGX"]
-	path = trustedLib/mbedtls-SGX
-	url = https://github.com/bl4ck5un/mbedtls-SGX.git
 [submodule "trustedLib/intel-sgx-ssl"]
 	path = trustedLib/intel-sgx-ssl
 	url = https://github.com/intel/intel-sgx-ssl.git
+[submodule "trustedLib/wolfssl"]
+	path = trustedLib/wolfssl
+	url = https://github.com/wolfSSL/wolfssl.git

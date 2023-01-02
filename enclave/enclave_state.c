@@ -192,18 +192,20 @@ void init_enclave_state(struct ES *enclave_state,  struct dAppData * dAD){
 sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool CMD, struct ES * enclave_state, struct dAppData * dAD)
 {
     sgx_status_t ret = SGX_SUCCESS;
+    uint8_t * unsealed_data = NULL;
 
     uint32_t unsealed_data_size = sgx_get_encrypt_txt_len(sealedstate);
-    uint8_t * unsealed_data = (uint8_t *)malloc(unsealed_data_size);
+    unsealed_data = (uint8_t *)malloc(unsealed_data_size);
     if (unsealed_data == NULL) {
         printf_stderr("unsealES() malloc(unsealed_data_size) failed!\n");
-        return SGX_ERROR_OUT_OF_MEMORY; //todo change to unexpected?
+        ret = SGX_ERROR_OUT_OF_MEMORY;
+        goto cleanup;
     }
 
     ret = sgx_unseal_data(sealedstate, NULL, NULL, (const uint8_t *) unsealed_data, &unsealed_data_size);
     if (ret != SGX_SUCCESS) {
         printf_stderr("unsealES() sgx_unseal_data() failed!f\n");
-        return ret;
+        goto cleanup;
     }
 
     memcpy(enclave_state, unsealed_data, sizeof(struct ES));
@@ -251,8 +253,13 @@ sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool CM
     if (ret != SGX_SUCCESS) {
       printf_stderr("unsealES() initAD() failed!\n");
     }
-    free(unsealed_data);
-    unsealed_data = NULL;
+    goto cleanup;
+
+cleanup:
+    if (unsealed_data != NULL) {
+      free(unsealed_data);
+      unsealed_data = NULL;
+    }
     return ret;
 }
 
@@ -266,16 +273,18 @@ sgx_status_t unseal_enclave_state(const sgx_sealed_data_t * sealedstate, bool CM
  * some other appropriate sgx_status_t value upon failure.
  */
 sgx_status_t seal_enclave_state(struct ES * enclave_state, struct dAppData * dAD, size_t sealedstate_size, const sgx_sealed_data_t * sealedstate) {
+    uint8_t * unsealed_data = NULL;
+    sgx_status_t ret = SGX_SUCCESS;
     uint32_t unsealed_data_size = calc_enclave_state_size(enclave_state) +
                                     calc_appdata_size(dAD) +
                                     calc_auditlog_size(enclave_state->auditlog.num_entries);
-
     uint32_t seal_size = sgx_calc_sealed_data_size(0U, unsealed_data_size);
     if(sealedstate_size < seal_size) {
       printf_stderr("sealES() Size allocated for seal is insufficient. %lu < %lu\n", sealedstate_size, seal_size);
-      return SGX_ERROR_INVALID_PARAMETER;
+      ret = SGX_ERROR_INVALID_PARAMETER;
+      goto cleanup;
     }
-    uint8_t * unsealed_data = (uint8_t *)malloc(unsealed_data_size);
+    unsealed_data = (uint8_t *)malloc(unsealed_data_size);
 
     int unsealed_offset = 0;
     memcpy(unsealed_data + unsealed_offset, enclave_state, sizeof(struct ES));
@@ -308,15 +317,21 @@ sgx_status_t seal_enclave_state(struct ES * enclave_state, struct dAppData * dAD
 
     if(unsealed_offset != unsealed_data_size) {
       printf_stderr("sealES() creating unsealed_data blob error. %u != %u\n", unsealed_offset, unsealed_data_size);
-      return SGX_ERROR_UNEXPECTED;
+      ret = SGX_ERROR_UNEXPECTED;
+      goto cleanup;
     }
 
-    sgx_status_t ret = sgx_seal_data(0U, NULL, unsealed_data_size, (const uint8_t *) unsealed_data, seal_size, sealedstate);
+    ret = sgx_seal_data(0U, NULL, unsealed_data_size, (const uint8_t *) unsealed_data, seal_size, sealedstate);
     if(ret != SGX_SUCCESS) {
       printf_stderr("sealES() sgx_seal_data() failed. %d\n", ret);
     }
-    free(unsealed_data);
-    unsealed_data = NULL;
+    goto cleanup;
+  
+  cleanup:
+    if (unsealed_data != NULL){
+      free(unsealed_data);
+      unsealed_data = NULL;
+    }
     return ret;
 }
 

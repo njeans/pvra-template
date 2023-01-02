@@ -1,4 +1,3 @@
-// #include <mbedtls/md.h>
 #include "enclave_state.h"
 #include "appPVRA.h"
 #include "util.h"

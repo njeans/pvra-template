@@ -15,7 +15,6 @@ size_t quote_buffer_size;
 
 void *signature_buffer = NULL;
 size_t signature_buffer_size;
-size_t signature_rec_buffer_size;
 
 void *sealed_state_buffer = NULL;
 size_t sealed_state_buffer_size;

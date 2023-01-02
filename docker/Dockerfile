@@ -246,8 +246,7 @@ RUN mkdir -p $PROJECT_ROOT/bin
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxsdk /opt/intel/sgxsdk/
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxssl /opt/intel/sgxssl/
 RUN sudo apt-get install -y unzip
-WORKDIR /opt/intel/sgxsdk/SampleCode/SampleAttestedTLS/
-RUN ./prepare_sgxssl.sh
+
 WORKDIR /home/photon/$APP_NAME
 
 COPY --chown=photon:photon makefile makefile

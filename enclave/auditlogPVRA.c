@@ -36,9 +36,6 @@ sgx_status_t ecall_auditlogPVRA(
   // Control Timing Measurement of an OCALL Overhead.
   if(A_DEBUGRDTSC) ocall_rdtsc();
 
-  /*    (2) Enclave State Initializaiton    */
-
-
   /*    Unseal Enclave State    */
   ret = unseal_enclave_state(sealedstate, false, &enclave_state, &dAD);
   if (ret != SGX_SUCCESS) {

@@ -51,24 +51,18 @@ bool initPVRA(uint64_t num_users) {
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
   }
 
-
-  // calculate quote size
-  sgx_quote_t *quote;
-  uint32_t quote_size = 0;
-
-  status = sgx_calc_quote_size(NULL, 0, &quote_size);
+  status = sgx_calc_quote_size(NULL, 0, &quote_buffer_size);
   if (status != SGX_SUCCESS) {
     fprintf(stderr, "SGX error while getting quote size: %08x\n", status);
     return 1;
   }
 
-  quote = (sgx_quote_t *)malloc(quote_size);
-  if (quote == NULL) {
-    fprintf(stderr, "out of memory\n");
+  quote_buffer = (sgx_quote_t *)malloc(quote_buffer_size);
+  if (quote_buffer == NULL) {
+    fprintf(stderr, "quote_buffer = malloc() error\n");
     return 1;
   }
-  memset(quote, 0, quote_size);
-
+  memset(quote_buffer, 0, quote_buffer_size);
   // get quote
   sgx_quote_sign_type_t unlinkable = SGX_UNLINKABLE_SIGNATURE;
 
@@ -86,8 +80,8 @@ bool initPVRA(uint64_t num_users) {
     }
   }
 
-  status = sgx_get_quote(&report, unlinkable, &spid, NULL, NULL, 0, NULL, quote,
-                         quote_size);
+  status = sgx_get_quote(&report, unlinkable, &spid, NULL, NULL, 0, NULL, (sgx_quote_t *) quote_buffer,
+                         quote_buffer_size);
 
 
   if (status != SGX_SUCCESS) {
@@ -95,11 +89,7 @@ bool initPVRA(uint64_t num_users) {
     return 1;
   }
 
-  quote_buffer_size = quote_size;
-  quote_buffer = calloc(quote_buffer_size, sizeof(char));
-  // copy quote and quote_size into globals
-  memcpy(quote_buffer, quote, quote_size);
-  memcpy(&quote_buffer_size, &quote_size, sizeof(quote_size));
+  sgx_quote_t quote = (sgx_quote_t) *quote_buffer;
 
   printf("[hiPVRA] MRENCLAVE: \t");
   print_hexstring(stdout, &quote->report_body.mr_enclave,
@@ -112,12 +102,12 @@ bool initPVRA(uint64_t num_users) {
                   sizeof(sgx_report_data_t));
   printf("\n");
 
-  char *b64quote = NULL;
-  b64quote = base64_encode((char *)quote, quote_size);
-  if (b64quote == NULL) {
-    printf("Could not base64 encode quote\n");
-    return 1;
-  }
+  // char *b64quote = NULL;
+  // b64quote = base64_encode((char *)quote, quote_size);
+  // if (b64quote == NULL) {
+  //   printf("Could not base64 encode quote\n");
+  //   return 1;
+  // }
 /*
   printf("Quote, ready to be sent to IAS (POST /attestation/v4/report):\n");
   printf("{\n");

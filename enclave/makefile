@@ -11,7 +11,6 @@ Enclave_Include_Paths := -I$(SGX_SDK)/include \
        -I$(SGX_SDK)/include/tlibc \
        -I../trustedLib/secp256k1/include \
        -I$(SGXSSL_PKG_PATH)/include \
-	   -I../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/include \
        -I../interface #\
 	   -I$(SGX_SDK)/SampleCode/SampleAttestedTLS/sgx_socket/include \
 
@@ -22,8 +21,8 @@ SGX_EDGER8R_FLAGS += --trusted-dir ../interface \
 CFLAGS += $(Enclave_Include_Paths) $(SGX_ENCLAVE_CFLAGS) -std=c99 -Wno-unused-parameter
 CXXFLAGS += $(SGX_ENCLAVE_CXXFLAGS)
 CPPFLAGS += $(Enclave_Include_Paths) $(SGX_ENCLAVE_CPPFLAGS)
-LDFLAGS += -L../interface -L../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/lib -L../trustedLib/secp256k1/lib $(SGX_ENCLAVE_LDFLAGS) -L$(SGXSSL_PKG_PATH)/lib64
-LDLIBS += -lenclave_stub_t -lsecp256k1 -lmbedtls_SGX_t $(SGX_ENCLAVE_LDLIBS)
+LDFLAGS += -L../trustedLib/secp256k1/lib $(SGX_ENCLAVE_LDFLAGS) -L$(SGXSSL_PKG_PATH)/lib64
+LDLIBS += -lenclave_stub_t -lsecp256k1 $(SGX_ENCLAVE_LDLIBS)
 
 CFLAGS+=-w
 CFLAGS+=-fcompare-debug-second
@@ -35,9 +34,9 @@ all: ../interface/libenclave_stub_t.a enclave.signed.so
 	@mv enclave.signed.so  enclave.unsigned.so enclave.key.pem ../bin
 	@mv *.o ../bin
 
-../interface/libenclave_stub_t.a: ../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/lib/mbedtls_SGX.edl ../interface/enclave.edl
+../interface/libenclave_stub_t.a: ../interface/enclave.edl
 
-enclave.unsigned.so: getaddrinfo.o htonl.o  htons.o  ../trustedLib/secp256k1/lib/libsecp256k1.a ../trustedLib/mbedtls-SGX/build/mbedtls_SGX-2.6.0/lib/libmbedtls_SGX_t.a print.o enclave_state.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o util.o merkletree.o
+enclave.unsigned.so: getaddrinfo.o htonl.o htons.o ../trustedLib/secp256k1/lib/libsecp256k1.a print.o enclave_state.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o util.o merkletree.o
 #decode_sgx_status.o  trusted_sgx_socket.o
 
 enclave.signed.so: enclave.key.pem

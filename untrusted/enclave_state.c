@@ -11,10 +11,6 @@
 
 bool load_keys(const char *const keys_file) {
   //printf("[hcPVRA] Loading sealed state\n");
-  void *new_buffer;
-  size_t new_buffer_size;
-
-  bool ret_status = read_file_into_memory(keys_file, &new_buffer, &new_buffer_size);
 
   /* If we previously allocated a buffer, free it before putting new one in
    * its place */
@@ -23,11 +19,9 @@ bool load_keys(const char *const keys_file) {
     pubkeys_buffer = NULL;
   }
 
-  /* Put new buffer into context */
-  pubkeys_buffer = new_buffer;
-  pubkeys_buffer_size = new_buffer_size;
+  bool ret = read_file_into_memory(keys_file, &pubkeys_buffer, &pubkeys_buffer_size);
 
-  return ret_status;
+  return ret;
 }
 
 bool load_seal(const char *const sealedstate_file) {
@@ -40,7 +34,6 @@ bool load_seal(const char *const sealedstate_file) {
     sealed_state_buffer = NULL;
   }
 
-  /* Put new buffer into context */
   bool ret = read_file_into_memory(sealedstate_file, &sealed_state_buffer, &sealed_state_buffer_size);
   return ret;
 }
@@ -55,8 +48,8 @@ bool load_sig(const char *const signedFT_file) {
     signedFT_buffer = NULL;
   }
 
-  bool ret_status = read_file_into_memory(signedFT_file, &signedFT_buffer, &signedFT_buffer_size);
-  return ret_status;
+  bool ret = read_file_into_memory(signedFT_file, &signedFT_buffer, &signedFT_buffer_size);
+  return ret;
 }
 
 bool load_ft(const char *const FT_file) {
@@ -68,9 +61,9 @@ bool load_ft(const char *const FT_file) {
     free(FT_buffer);
     FT_buffer = NULL;
   }
-  bool ret_status = read_file_into_memory(FT_file, &FT_buffer, &FT_buffer_size);
+  bool ret = read_file_into_memory(FT_file, &FT_buffer, &FT_buffer_size);
 
-  return ret_status;
+  return ret;
 }
 
 bool load_cmd(const char *const eCMD_file) {
@@ -83,20 +76,19 @@ bool load_cmd(const char *const eCMD_file) {
     eCMD_buffer = NULL;
   }
 
-  /* Put new buffer into context */
-  bool ret_status = read_file_into_memory(eCMD_file, &eCMD_buffer, &eCMD_buffer_size);
+  bool ret = read_file_into_memory(eCMD_file, &eCMD_buffer, &eCMD_buffer_size);
 
-  return ret_status;
+  return ret;
 }
 
 bool save_signature(const char *const signature_file, unsigned char *signature_src_buffer, size_t signature_src_buffer_size) {
-  bool ret_status = true;
+  bool ret = true;
   FILE *file = NULL;
 
   if (signature_src_buffer_size != 64 && signature_src_buffer_size != 65) {
     fprintf(stderr,
             "assertion failed: signature_src_buffer_size != 64 or 65\n");
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
@@ -104,40 +96,40 @@ bool save_signature(const char *const signature_file, unsigned char *signature_s
   if (file == NULL) {
     fprintf(stderr, "save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
   if (fwrite(signature_src_buffer, signature_src_buffer_size, 1, file) != 1) {
     fprintf(stderr, "GatewayApp]: ERROR: Could not write signature\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
-    goto cleanup;
+    ret = false;
   }
+  goto cleanup;
 
 cleanup:
   if (file != NULL) {
     fclose(file);
   }
 
-  return ret_status;
+  return ret;
 }
 
 bool save_enclave_key(void) {
-  bool ret_status = true;
+  bool ret = true;
   FILE *file = NULL;
   file = fopen("enclave_enc_pubkey.bin", "wb");
   if (file == NULL) {
     fprintf(stderr, "save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
   if (fwrite(enclave_pubkey_buffer, 64, 1, file) != 1) {
     fprintf(stderr, "GatewayApp]: ERROR: Could not write signature\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
@@ -146,13 +138,13 @@ cleanup:
     fclose(file);
   }
 
-  return ret_status;
+  return ret;
 }
 
 bool save_quote(const char *const quote_file) {
-  bool ret_status = true;
+  bool ret = true;
 
-  printf("Saving quote size: %lu\n", quote_buffer_size);
+  printf("Saving quote: size %lu\n", quote_buffer_size);
 
   FILE *fquote = fopen(quote_file, "wb");
 
@@ -162,22 +154,21 @@ bool save_quote(const char *const quote_file) {
     return false;
   }
 
-  //printf("\nMRENCLAVE: \n");
   if (fwrite((char *)quote_buffer, quote_buffer_size, 1, fquote) != 1) {
     fprintf(stderr, "Quote only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
   }
 
   fclose(fquote);
 
-  return ret_status;
+  return ret;
 }
 
 
 bool save_seal(const char *const sealedstate_file) {
 
-  bool ret_status = true;
+  bool ret = true;
   //printf("[Gateway]: saving sealed enclave state.\n");
 
   FILE *sk_file = fopen(sealedstate_file, "wb");
@@ -191,16 +182,16 @@ bool save_seal(const char *const sealedstate_file) {
   if (fwrite(sealed_state_buffer, sealed_state_buffer_size, 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: enclave state only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
   }
 
   fclose(sk_file);
-  return ret_status;
+  return ret;
 }
 
 bool save_sealO(const char *const sealedout_file) {
 
-  bool ret_status = true;
+  bool ret = true;
   //printf("[hcPVRA] Persisting enclave state.\n");
 
   FILE *sk_file = fopen(sealedout_file, "wb");
@@ -214,16 +205,16 @@ bool save_sealO(const char *const sealedout_file) {
   if (fwrite(sealed_out_buffer, sealed_out_buffer_size, 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: enclave state only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
   }
 
   fclose(sk_file);
-  return ret_status;
+  return ret;
 }
 
 bool save_cResponse(const char *const cResponse_file) {
 
-  bool ret_status = true;
+  bool ret = true;
   printf("[Gateway]: saving cResponse.\n");
 
   FILE *sk_file = fopen(cResponse_file, "wb");
@@ -237,16 +228,16 @@ bool save_cResponse(const char *const cResponse_file) {
   if (fwrite(cResponse_buffer, cResponse_buffer_size, 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: cResponse only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
   }
 
   fclose(sk_file);
-  return ret_status;
+  return ret;
 }
 
 bool save_auditlog(const char *const auditlog_file) {
 
-  bool ret_status = true;
+  bool ret = true;
   printf("[Gateway]: saving auditlog.\n");
 
   FILE *sk_file = fopen(auditlog_file, "wb");
@@ -260,15 +251,15 @@ bool save_auditlog(const char *const auditlog_file) {
   if (fwrite(auditlog_buffer, auditlog_buffer_size, 1, sk_file) != 1) {
     fprintf(stderr, "[Gateway]: auditLog only partially written.\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
   }
 
   fclose(sk_file);
-  return ret_status;
+  return ret;
 }
 
 bool format_sig(const char *const sig_file) {
-  bool ret_status = true;
+  bool ret = true;
   ECDSA_SIG *ecdsa_sig = NULL;
   BIGNUM *r = NULL, *s = NULL;
   FILE *file = NULL;
@@ -279,7 +270,7 @@ bool format_sig(const char *const sig_file) {
   ecdsa_sig = ECDSA_SIG_new();
   if (ecdsa_sig == NULL) {
     fprintf(stderr, "memory alloction failure ecdsa_sig\n");
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
@@ -287,19 +278,19 @@ bool format_sig(const char *const sig_file) {
   s = bignum_from_little_endian_bytes_32((unsigned char *)cRsig_buffer +
                                          32);
   if (!ECDSA_SIG_set0(ecdsa_sig, r, s)) {
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
   sig_len = i2d_ECDSA_SIG(ecdsa_sig, NULL);
   if (sig_len <= 0) {
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
   sig_len2 = i2d_ECDSA_SIG(ecdsa_sig, &sig_buffer);
   if (sig_len != sig_len2) {
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
@@ -307,14 +298,14 @@ bool format_sig(const char *const sig_file) {
   if (file == NULL) {
     fprintf(stderr, "save_signature() fopen failed\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
   if (fwrite(sig_buffer, (size_t)sig_len, 1, file) != 1) {
     fprintf(stderr, "GatewayApp]: ERROR: Could not write signature\n");
     sgx_lasterr = SGX_ERROR_UNEXPECTED;
-    ret_status = false;
+    ret = false;
     goto cleanup;
   }
 
@@ -329,5 +320,5 @@ cleanup:
     free(sig_buffer);
   }
 
-  return ret_status;
+  return ret;
 }
