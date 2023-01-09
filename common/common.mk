@@ -108,7 +108,7 @@ else
 endif
 
 SGX_ENCLAVE_CXXFLAGS := $(SGX_COMMON_CXXFLAGS) -nostdinc++
-SGX_ENCLAVE_CPPFLAGS := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGXSSL_PKG_PATH)/include -I ../interface/include
+SGX_ENCLAVE_CPPFLAGS := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGXSSL_PKG_PATH)/include -I ../common/include
 SGX_ENCLAVE_LDFLAGS := \
     -nostdlib \
 	-nodefaultlibs \

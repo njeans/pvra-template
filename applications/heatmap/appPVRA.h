@@ -11,7 +11,7 @@
 #define PUBLIC_KEY_SIZE 64
 #define HEATMAP_GRANULARITY 10
 #define MAX_DATA HEATMAP_GRANULARITY*HEATMAP_GRANULARITY
-
+#define RESET_TIME 120 //seconds
 
 
 struct cInputs
@@ -34,6 +34,7 @@ struct cResponse
 
 struct AD
 {
+	time_t last_hm_time;
 	uint64_t num_data;
 	locationData *user_data;
 };

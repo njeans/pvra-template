@@ -1,5 +1,6 @@
 import os
 import ctypes
+import time 
 
 import constants
 from utils import sha256
@@ -14,6 +15,8 @@ GET_DATA = 2
 START_RET = 3
 COMPLETE_RET = 4
 CANCEL_RET = 1
+WAIT_TIME = 30
+RESET_TIME = 120
 
 constants.MERKLE(True)
 
@@ -28,25 +31,25 @@ def get_test_data(admin, users, test_case=None):
          None,
          None,
          None,
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(0))),
+        ],
+        [({"tid": ADD_DATA, "input_data": secret_data(1), "seq": 1}, "success addPersonalData"),
+         None,
+         None,
+         None,
          None,
          ],
         [None,
          None,
          None,
          None,
-         ({"tid": GET_DATA, "seq": 2}, str(secret_data(0))),
-         ],
-        [({"tid": ADD_DATA, "input_data": secret_data(1), "seq": 1}, "success addPersonalData"),
+         ({"tid": GET_DATA, "seq": 2}, str(secret_data(1))),
+        ],
+        [({"tid": ADD_DATA, "input_data": secret_data(2), "seq": 1}, "success addPersonalData"),
          None,
          ({"tid": CANCEL_RET, "seq": 2}, "success cancelRetrieve"),
          None,
-         ({"tid": GET_DATA, "seq": 3}, str(secret_data(1))),
-         ],
-        [({"tid": ADD_DATA, "input_data": secret_data(2), "seq": 1}, "success addPersonalData"),
-         None,
-         None,
-         None,
-         ({"tid": GET_DATA, "seq": 2}, str(secret_data(2))),
+         ({"tid": GET_DATA, "seq": 3}, str(secret_data(2))),
          ],
         [({"tid": ADD_DATA, "input_data": secret_data(3), "seq": 1}, "success addPersonalData"),
          None,
@@ -62,51 +65,67 @@ def get_test_data(admin, users, test_case=None):
          ]
     ]
     #user 0 data stolen by user 1
-    #user 2 cancel in time
-    #user 3 limit reached
-    #user 4 admin didn't wait
+    #user 2 admin didn't wait
+    #user 3 canceled in time
+    #user 4 recover key changed
+    #user 5 limit reached and then started after reset time
     get_pubkey = lambda i: users[i].public_key
     get_pubkey_hash = lambda i: sha256(users[i].public_key)
     base_admin_data = [
         [None,
-         ({"tid": START_RET, "user_pubkey": 0, "recover_key_hash": 1}, "success startRetrieve"),
+         ({"tid": START_RET, "user_pubkey": 0, "recover_key_hash": 2}, "success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "user_pubkey": 0, "recover_key": 1}, "success completeRetrieve"),
+         ({"tid": COMPLETE_RET, "user_pubkey": 0, "recover_key": 2}, "retrieval wait period not over"),#todo change to retrieval not started
          None
-         ],
+        ],
+        [None,
+         ({"tid": START_RET, "user_pubkey": 1, "recover_key_hash": 2}, "success startRetrieve"),
+         None,
+         ({"tid": COMPLETE_RET, "user_pubkey": 1, "recover_key": 2}, "success completeRetrieve"),
+         None
+        ],
         [None, None, None, None, None],
         [None,
-         ({"tid": START_RET, "user_pubkey": 2, "recover_key_hash": 1}, "success startRetrieve"),
+         ({"tid": START_RET, "user_pubkey": 3, "recover_key_hash": 2}, "success startRetrieve"),
          None,
-         ({"tid": COMPLETE_RET, "user_pubkey": 2, "recover_key": 1}, "retrieval not started"),
+         ({"tid": COMPLETE_RET, "user_pubkey": 3, "recover_key": 2}, "retrieval not started"),
+         None
+        ],
+        [None,
+         ({"tid": START_RET, "user_pubkey": 4, "recover_key_hash": 3}, "success startRetrieve"),
+         None,
+         ({"tid": COMPLETE_RET, "user_pubkey": 4, "recover_key": 2}, "recover key does not match recover_key_hash"),
          None
          ],
         [None,
-         ({"tid": START_RET, "user_pubkey": 3, "recover_key_hash": 3}, "success startRetrieve"),
-         None,
-         ({"tid": COMPLETE_RET, "user_pubkey": 3, "recover_key": 1}, "recover key does not match recover_key_hash"),
-         None
-         ],
-        [None,
-         ({"tid": START_RET, "user_pubkey": 4, "recover_key_hash": 1}, "success startRetrieve"),
-         None,
-         ({"tid": COMPLETE_RET, "user_pubkey": 4, "recover_key_hash": 1}, "retrieval wait period not over"),#todo change to retrieval not started
-         None
-         ],
-        [None,
-         ({"tid": START_RET, "user_pubkey": 5, "recover_key_hash": 1}, "retrieve_count limit reached"),
+         ({"tid": START_RET, "user_pubkey": 5, "recover_key_hash": 2}, "retrieve_count limit reached"),
          None,
          None,
-         None
-         ]
+         ({"tid": START_RET, "user_pubkey": 5, "recover_key_hash": 2}, "success startRetrieve")
+        ]
     ]
     base_expected_audit = [
-        [leaf_dic(0, 0, False, 0), leaf_dic(1, 70, True, 0), leaf_dic(1, 70, True, 0), None, None],
+        [leaf_dic(0, 0, False, 0), leaf_dic(1, 100, True, 0), leaf_dic(1, 100, True, 0), leaf_dic(1, 100, True, 0), leaf_dic(1, 100, True, 0)],
+        [leaf_dic(0, 0, False, 1), leaf_dic(1, 100, True, 1), leaf_dic(1, 100, True, 1), None, None],
         [None, None, None, None, None],
-        [leaf_dic(0, 0, False, 2), leaf_dic(1, 72, True, 2), leaf_dic(1, 0, False, 2), leaf_dic(1, 0, False, 2), leaf_dic(1, 0, False, 2)],
-        [leaf_dic(0, 0, False, 3), leaf_dic(1, 73, True, 3), leaf_dic(1, 73, True, 3), leaf_dic(1, 73, True, 3), leaf_dic(1, 73, True, 3)],
-        [leaf_dic(0, 0, False, 4), leaf_dic(1, 74, True, 4), leaf_dic(1, 74, True, 4), leaf_dic(1, 74, True, 4), leaf_dic(1, 74, True, 4)],
-        [leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5)]
+        [leaf_dic(0, 0, False, 3), leaf_dic(1, 100, True, 3), leaf_dic(1, 0, False, 3), leaf_dic(1, 0, False, 3), leaf_dic(1, 0, False, 3)],
+        [leaf_dic(0, 0, False, 4), leaf_dic(1, 100, True, 4), leaf_dic(1, 100, True, 4), leaf_dic(1, 100, True, 4), leaf_dic(1, 100, True, 4)],
+        [leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(0, 0, False, 5), leaf_dic(1, 100, True, 5)]
+    ]
+    def wait_period():
+        print(f"sleep for {WAIT_TIME} seconds to ensure wait time complete")
+        time.sleep(WAIT_TIME)
+    def reset_period():
+        print(f"sleep for {RESET_TIME} seconds to ensure reset time complete")
+        time.sleep(RESET_TIME)
+
+    base_other_functions = [
+        [None, None, None, None, None],
+        [None, None, None, wait_period, None],
+        [None, None, None, None, None],
+        [None, None, None, None,  None],
+        [None, None, None, None, None],
+        [None, None, None, None, reset_period],
     ]
     test_data = [base_test_data[i] for i in range(num_users)]
     admin_data = [base_admin_data[i] for i in range(num_users)]
@@ -124,7 +143,8 @@ def get_test_data(admin, users, test_case=None):
             if "recover_key_hash" in cmd:
                 admin_data[i][j][0]["recover_key_hash"] = get_pubkey_hash(cmd["recover_key_hash"])
     expected_audit = [base_expected_audit[i] for i in range(num_users)]
-    return test_data, admin_data, expected_audit
+    other_functions = [base_other_functions[i] for i in range(num_users)]
+    return test_data, admin_data, expected_audit, other_functions
 
 
 def get_test_data_omission(admin, users):
@@ -177,7 +197,10 @@ def leaf_eq(leaf1, leaf2):
     for k in leaf1:
         if k not in leaf2:
             return False
-        if leaf1[k] != leaf2[k]:
+        if k == "retrieve_time":
+            if (str(leaf1[k]) == "0" or str(leaf2[k]) == "0") and str(leaf1[k]) != str(leaf2[k]):
+                return False
+        elif leaf1[k] != leaf2[k]:
             return False
     return True
 

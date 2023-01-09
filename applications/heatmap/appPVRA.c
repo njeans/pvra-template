@@ -66,6 +66,22 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI, uint32
     memset(ret.heatmap_data, 0, sizeof(ret.heatmap_data));
     memset(ret.message, 0, 100);
 
+    time_t curr_time;
+    int err = get_timestamp(&curr_time);
+    if (err != 0) {
+        sprintf(ret.message, "get_timestamp failed");
+        printf("[hm] %s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
+    time_t diff = curr_time - enclave_state->appdata.last_hm_time;
+    if (enclave_state->appdata.last_hm_time != 0 && diff < RESET_TIME) {
+        sprintf(ret.message, "must wait %ld seconds before creating heatmap", RESET_TIME - diff);
+        printf("[hm] %s\n", ret.message);
+        ret.error = 2;
+        return ret;
+    }
+
     for (int i = 0; i < enclave_state->appdata.num_data; i++) {
         struct cInputs data = enclave_state->appdata.user_data[i];
         if (data.result) {
@@ -82,6 +98,7 @@ struct cResponse getHeatMap(struct ES *enclave_state, struct cInputs *CI, uint32
         }
     }
     enclave_state->appdata.num_data = 0;
+    enclave_state->appdata.last_hm_time = curr_time;
     sprintf(ret.message, "success getHeatMap");
     if(DEBUGPRINT) printf("[apPVRA] %s\n", ret.message);
     return ret;
@@ -107,6 +124,7 @@ int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users, b
     if(enclave_state->appdata.user_data == NULL) return -1;
 
     enclave_state->appdata.num_data = 0;
+    enclave_state->appdata.last_hm_time = 0;
     /* Initialize metadata regarding dynamic data-structures for sealing purposes */
 
     // Number of dynamic data structures

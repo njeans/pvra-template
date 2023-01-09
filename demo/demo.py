@@ -19,37 +19,36 @@ def demo(num_users=NUM_USERS, test_=False, test_case=None):
     admin, users = setup(num_users)
     test_data = app.get_test_data(admin, users, test_case=test_case)
     if MERKLE():
-        user_data_cmds, admin_cmds, expected_audit = test_data
-        num_commands = check_data(user_data_cmds, admin_cmds, expected_audit=expected_audit)
+        user_data_cmds, admin_cmds, expected_audit, other_functions = test_data
+        num_commands = check_data(user_data_cmds, admin_cmds, other_functions=other_functions, expected_audit=expected_audit)
     else:
-        user_data_cmds, admin_cmds = test_data
-        num_commands = check_data(user_data_cmds, admin_cmds)
+        user_data_cmds, admin_cmds, other_functions = test_data
+        num_commands = check_data(user_data_cmds, admin_cmds, other_functions=other_functions)
     admin_seq = 0
     for cmd_num in range(num_commands):
         for user_num in range(len(user_data_cmds)):
-            user = users[user_num]
-            if user_data_cmds[user_num][cmd_num] is None:
-                continue
-            cmd, expected_resp = user_data_cmds[user_num][cmd_num]
-            eCMD = user.encrypt_data(cmd)
-            resp = app.print_cResponse(user.send_data(eCMD, seq=cmd["seq"]))
-            if test_:
-                print(f"cResponse user {user_num} cmd {cmd_num}: {resp}")
-                if expected_resp not in resp:
-                    print("\texpected", expected_resp)
-                assert expected_resp in resp
-        for user_num in range(len(user_data_cmds)):
-            if admin_cmds[user_num][cmd_num] is None:
-                continue
-            cmd, expected_resp = admin_cmds[user_num][cmd_num]
-            admin_seq += 1
-            eCMD = admin.admin_user.encrypt_data(cmd)
-            resp = app.print_cResponse(admin.admin_user.send_data(eCMD, seq=admin_seq))
-            if test_:
-                print(f"cResponse admin user {user_num} cmd {cmd_num} {resp}")
-                if expected_resp not in resp:
-                    print("\texpected", expected_resp)
-                assert expected_resp in resp
+            if other_functions is not None and other_functions[user_num][cmd_num] is not None:
+                other_functions[user_num][cmd_num]()
+            if user_data_cmds[user_num][cmd_num] is not None:
+                cmd, expected_resp = user_data_cmds[user_num][cmd_num]
+                user = users[user_num]
+                eCMD = user.encrypt_data(cmd)
+                resp = app.print_cResponse(user.send_data(eCMD, seq=cmd["seq"]))
+                if test_:
+                    print(f"cResponse user {user_num} cmd {cmd_num}: {resp}")
+                    if expected_resp not in resp:
+                        print("\texpected", expected_resp)
+                    assert expected_resp in resp
+            if admin_cmds[user_num][cmd_num] is not None:
+                cmd, expected_resp = admin_cmds[user_num][cmd_num]
+                admin_seq += 1
+                eCMD = admin.admin_user.encrypt_data(cmd)
+                resp = app.print_cResponse(admin.admin_user.send_data(eCMD, seq=admin_seq))
+                if test_:
+                    print(f"cResponse admin user {user_num} cmd {cmd_num} {resp}")
+                    if expected_resp not in resp:
+                        print("\texpected", expected_resp)
+                    assert expected_resp in resp
         admin.audit()
         if MERKLE() and test_:
             audit_num = admin.audit_num
@@ -128,7 +127,7 @@ def setup(num_users=NUM_USERS):
     return admin, users
 
 
-def check_data(user_data_cmds, admin_cmds, expected_audit=None, omit_index=None):
+def check_data(user_data_cmds, admin_cmds, other_functions=None, expected_audit=None, omit_index=None):
     num_users = len(user_data_cmds)
     assert len(admin_cmds) == len(user_data_cmds)
     num_commands = len(user_data_cmds[0])
@@ -136,6 +135,10 @@ def check_data(user_data_cmds, admin_cmds, expected_audit=None, omit_index=None)
     for i in range(num_users):
         assert len(admin_cmds[i]) == len(user_data_cmds[i])
         assert num_commands == len(user_data_cmds[i])
+    if other_functions is not None:
+        assert len(other_functions) == len(user_data_cmds)
+        for i in range(num_users):
+            assert num_commands == len(other_functions[i])
     if expected_audit is not None:
         assert len(expected_audit) == len(user_data_cmds)
         for i in range(num_users):

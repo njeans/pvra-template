@@ -92,6 +92,6 @@ demo/application.py
 *.bin
 
 # application specific
-application/heatmap/data
+applications/heatmap/data
 
 *tmp*

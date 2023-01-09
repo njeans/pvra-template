@@ -32,13 +32,18 @@ def get_test_data(admin, users, test_case=None):
         [format_leaf(0), format_leaf(0)],  # todo remove no MERKLE
         [format_leaf(1), format_leaf(1)],  # todo remove no MERKLE
     ]
+    base_other_functions = lambda i: [lambda : print(f"Ran function before user {i} command 0"), 
+        lambda : print(f"Ran function before user {i} command 1")]
+    
     test_data = [base_test_data[i % 2] for i in range(num_users)]
     admin_data = [base_admin_data[i % 2] for i in range(num_users)]
     expected_audit = [# todo remove no MERKLE
         base_expected_audit[i % 2] for i in range(num_users)
     ]
-    return test_data, admin_data, expected_audit  # todo remove no MERKLE
-    # return test_data, admin_data  # todo *uncomment* MERKLE
+    other_functions = [base_other_functions(i % 2) for i in range(num_users)]
+
+    return test_data, admin_data, expected_audit, other_functions  # todo remove no MERKLE
+    # return test_data, admin_data, other_functions  # todo *uncomment* MERKLE
 
 
 def get_test_data_omission(admin, users):

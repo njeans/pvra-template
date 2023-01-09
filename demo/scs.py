@@ -70,8 +70,8 @@ def get_ft_sig(tx_id):
     max_retry = 10
     retry_count = 0
     while req.status_code == 202 and retry_count < max_retry:  # must wait for transaction to be committed
-        if retry_count == 0:
-            print_vv(f"Retrying {cmd_url} status_code: {req.status_code} content: {req.text}", c=ERRORc, n=FILENAME)
+        if retry_count > 0: #first call usually fails
+            print_vv(f"Retrying {retry_count} {cmd_url} status_code: {req.status_code} content: {req.text}", c=ERRORc, n=FILENAME)
         time.sleep(1)
         req = requests.get(cmd_url, params=params, headers=headers, verify=CCF_SERVICE_CERT_PATH, cert=(CCF_USER_CERT_PATH, CCF_USER_KEY_PATH))
         retry_count+=1

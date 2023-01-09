@@ -21,7 +21,7 @@ def get_test_data(admin, users, test_case=None):
     ]
     test_data = base_test_data 
     admin_data = base_admin_data 
-    return test_data, admin_data
+    return test_data, admin_data, None
 
 
 def get_test_data_omission(admin, users):
