@@ -151,7 +151,7 @@ sgx_status_t ecall_init_buffer_sizes(uint64_t num_users, size_t *sealed_state_si
   init_enclave_state(&enclave_state, &dAD);
   enclave_state.num_users = num_users;
 
-  ret = initES(&enclave_state, &dAD, num_users);
+  ret = initES(&enclave_state, &dAD, num_users, true);
   if (ret != SGX_SUCCESS) {
     return ret;
   }

@@ -62,7 +62,7 @@ struct cResponse
 
 struct AD
 {
-	int last_reset_time;
+	time_t last_reset_time;
 	int retrieve_count;
 	struct userInfo *user_info;
 };

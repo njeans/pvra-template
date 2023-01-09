@@ -10,7 +10,9 @@ ccf_cert_dir=$PROJECT_ROOT/shared/ccf_sandbox
 only_status_code="-s -o /dev/null -w %{http_code}"
 sudo chown -R $USER $ccf_cert_dir/user0*
 sudo chown -R $USER $ccf_cert_dir/member0*
+set +e
 status="$(curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" $only_status_code)"
+set -e
 if [ "200" != $status ]; then
     curl -s "$ccf_server/app/commit" --cacert "${ccf_cert_dir}/service_cert.pem" | jq .
     echo -e "CCF app frontent end is not up...\ntry calling ./build_ccf.sh and ./deploy_ccf.sh"

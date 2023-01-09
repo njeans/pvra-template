@@ -8,11 +8,18 @@ then
 fi
 
 scs_dir=$PROJECT_ROOT/counter-service
-if [[ -z "$(ls -A $scs_dir)" ]]; then
+wolfssl_dir=$PROJECT_ROOT/trustedLib/wolfssl
+if [[ -z "$(ls -A $scs_dir)" ||  -z "$(ls -A $wolfssl_dir)" ]]; then
   echo "Setting up submodules"
   git submodule update --init
 fi
 
+if [ ! -f "$wolfssl_dir/IDE/LINUX-SGX/libwolfssl.sgx.static.lib.a" ]; then
+  cd $wolfssl_dir/IDE/LINUX-SGX
+  SGX_MODE=SIM SGX_PRERELEASE=0 SGX_DEBUG=1 make -f $PROJECT_ROOT/trustedLib/wolfssl_sgx_t_static.mk HAVE_WOLFSSL_SP=1
+  cp libwolfssl.sgx.static.lib.a libwolfssl.sgx.static.lib_sim.a
+  SGX_MODE=HW SGX_PRERELEASE=1 SGX_DEBUG=0 make -f $PROJECT_ROOT/trustedLib/wolfssl_sgx_t_static.mk HAVE_WOLFSSL_SP=1
+fi
 
 POSITIONAL_ARGS=()
 

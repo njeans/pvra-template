@@ -100,7 +100,7 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct
 
 //todo add validation on users
 /* Initializes the Application Data as per expectation */
-int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
+int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users, bool dry_run)
 {
     size_t user_data_size = num_users*MAX_DATA*sizeof(locationData);
     enclave_state->appdata.user_data = (locationData *) malloc(user_data_size);

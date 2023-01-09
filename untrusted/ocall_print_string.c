@@ -17,7 +17,7 @@ void ocall_print_stderr(const char *str) {
   /* Proxy/Bridge will check the length and null-terminate
    * the input string to prevent buffer overflow.
    */
-  fprintf(stderr ,"%s", str);
+  fprintf(stderr, "%s", str);
 }
 
 unsigned cycles_low, cycles_high;

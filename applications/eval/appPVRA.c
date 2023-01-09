@@ -22,9 +22,9 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct
 
 
 /* Initializes the Application Data as per expectation */
-int initES(struct ES* enclave_state, struct dAppData *dAD)
+int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users, bool dry_run)
 {
-    for (int i = 0; i < enclave_state->num_users; i++) {
+    for (int i = 0; i < num_users; i++) {
         enclave_state->appdata.user_info[i].uidx = i;
     }
     return 0;

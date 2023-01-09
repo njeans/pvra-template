@@ -7,14 +7,11 @@
 include ../common/common.mk
 include ../common/rules.mk
 
-App_Include_Paths := -I$(SGX_SDK)/include \
-       -I../interface
-
 SGX_EDGER8R_FLAGS += --untrusted-dir ../interface \
-	--search-path $(SGXSSL_PKG_PATH)/include  \
-    --search-path $(SGX_SDK)/SampleCode/SampleAttestedTLS/sgx_socket/include
+	--search-path $(SGXSSL_PKG_PATH)/include #\
+	--search-path /opt/intel/sgxsdk/SampleCode/SampleAttestedTLS/sgx_socket/
 
-CFLAGS += $(SGX_HOST_CFLAGS) -std=c99
+CFLAGS += $(SGX_HOST_CFLAGS) -DM_TLS_CLIENT -std=c99
 CXXFLAGS += $(SGX_HOST_CXXFLAGS)
 CPPFLAGS += $(SGX_HOST_CPPFLAGS) -I../interface
 LDFLAGS += $(SGX_HOST_LDFLAGS)
@@ -30,8 +27,7 @@ all: ../interface/libenclave_stub_u.a app
 
 ../interface/libenclave_stub_u.a: ../interface/enclave.edl
 
-app: untrusted_sgx_socket.o app.o globals.o ocall_print_string.o ocall_getaddrinfo.o decode_sgx_status.o enclave.o buffers.o enclave_state.o endianswap.o readfile.o ecall_buffer.o hexutil.o base64.o initPVRA.o commandPVRA.o auditlogPVRA.o
-
+app: app.o globals.o ocall_print_string.o ocall_getaddrinfo.o ocall_sgx_socket.o decode_sgx_status.o enclave.o buffers.o enclave_state.o endianswap.o readfile.o ecall_buffer.o hexutil.o base64.o initPVRA.o commandPVRA.o auditlogPVRA.o
 
 clean:
 	rm -f ../interface/*_u.* app *.o  ../bin/app ../bin/*.o

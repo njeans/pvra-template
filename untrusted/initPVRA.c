@@ -89,16 +89,16 @@ bool initPVRA(uint64_t num_users) {
     return 1;
   }
 
-  sgx_quote_t quote = (sgx_quote_t) *quote_buffer;
+  sgx_quote_t quote = * (sgx_quote_t *)quote_buffer;
 
   printf("[hiPVRA] MRENCLAVE: \t");
-  print_hexstring(stdout, &quote->report_body.mr_enclave,
+  print_hexstring(stdout, &quote.report_body.mr_enclave,
                   sizeof(sgx_measurement_t));
   printf("\n[hiPVRA] MRSIGNER: \t");
-  print_hexstring(stdout, &quote->report_body.mr_signer,
+  print_hexstring(stdout, &quote.report_body.mr_signer,
                   sizeof(sgx_measurement_t));
   printf("\n[hiPVRA] Report Data: \t");
-  print_hexstring(stdout, &quote->report_body.report_data,
+  print_hexstring(stdout, &quote.report_body.report_data,
                   sizeof(sgx_report_data_t));
   printf("\n");
 

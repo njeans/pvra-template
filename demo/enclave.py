@@ -6,7 +6,7 @@ from constants import *
 
 FILENAME="enclave.py"
 
-def initPvra(num_users):
+def initPvra(num_users=NUM_USERS):
     num_users = str(num_users)
     init_cmd = APP_PATH + " --initPVRA" + \
                 " --enclave-path " + SIGNED_ENCLAVE_PATH + \

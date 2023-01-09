@@ -99,7 +99,7 @@ sgx_status_t ecall_initPVRA(
 
 
   //    Initialize Application Data    //
-  err = initES(&enclave_state, &dAD, num_users);
+  err = initES(&enclave_state, &dAD, num_users, false);
 
   if(err != 0) {
     printf_stderr("[eiPVRA] initES() memory allocation failure.\n");
@@ -112,12 +112,12 @@ sgx_status_t ecall_initPVRA(
 
   //    Initialize USER pubkeys    //
 
-
+  //todo check size of userpubkeys first
   // Parsing userpubkeys from pubkeys.list
   hexstr_to_bytes(userpubkeys, 128, enclave_state.publickeys.admin_pubkey);
   enclave_state.publickeys.user_pubkeys = (pubkey_t *) malloc(sizeof(pubkey_t)*num_users);
   int uidx = 0;
-  for(int i = 129; i< strlen(userpubkeys); i+=129) {
+  for(int i = 129; i < strlen(userpubkeys); i+=129) {
     hexstr_to_bytes(userpubkeys + i, 128, enclave_state.publickeys.user_pubkeys[uidx]);
     uidx++;
     if (uidx > num_users) {

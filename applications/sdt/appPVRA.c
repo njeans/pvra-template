@@ -230,7 +230,7 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct
 
 
 /* Initializes the Application Data as per expectation */
-int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
+int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users, bool dry_run)
 {
     size_t user_info_size = sizeof(struct userInfo) * num_users;
     enclave_state->appdata.user_info = (struct userInfo *) malloc(user_info_size);
@@ -241,8 +241,14 @@ int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
         memset(enclave_state->appdata.user_info[i].secret_data, 0, DATA_SIZE);
     }
     enclave_state->appdata.retrieve_count = 0;
-    enclave_state->appdata.last_reset_time = 0;
-
+    time_t curr_time;
+    if (!dry_run) {
+        int res = get_timestamp(&curr_time);
+        if (res != 0) {
+            return res;
+        }
+    }
+    enclave_state->appdata.last_reset_time = curr_time;
     /* Initialize metadata regarding dynamic data-structures for sealing purposes */
 
     // Number of dynamic data structures

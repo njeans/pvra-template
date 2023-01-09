@@ -32,7 +32,7 @@ extern void * enclave_pubkey_signature_buffer;
 extern void * user_addr_signature_buffer;
 
 extern void *quote_buffer;
-extern size_t quote_buffer_size;
+extern uint32_t quote_buffer_size;
 
 extern void *sealed_state_buffer;
 extern size_t sealed_state_buffer_size;

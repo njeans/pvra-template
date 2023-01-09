@@ -11,7 +11,7 @@ sgx_status_t sgx_lasterr;
 
 
 void *quote_buffer = NULL;
-size_t quote_buffer_size;
+uint32_t quote_buffer_size;
 
 void *signature_buffer = NULL;
 size_t signature_buffer_size;

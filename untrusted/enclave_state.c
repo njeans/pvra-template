@@ -144,7 +144,7 @@ cleanup:
 bool save_quote(const char *const quote_file) {
   bool ret = true;
 
-  printf("Saving quote: size %lu\n", quote_buffer_size);
+  printf("Saving quote: size %u\n", quote_buffer_size);
 
   FILE *fquote = fopen(quote_file, "wb");
 

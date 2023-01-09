@@ -43,7 +43,7 @@ services:
       NODE_NUM: "0"
       platform: virtual
     volumes:
-      - ../shared/ccf_sandbox:/ccf_sandbox
+      - ../shared/ccf_sandbox:/sandbox_common
       - ccf_workspace:/workspace/workspace0
       # - ccf_sandbox:/ccf_sandbox
 

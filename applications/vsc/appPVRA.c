@@ -78,7 +78,7 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS])(struct ES*, struct cInput
 
 
 /* Initializes the Application Data in initPVRA*/
-int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
+int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users, bool dry_run)
 {
     size_t user_data_size = num_users*sizeof(struct userTests);
     enclave_state->appdata.user_tests = (struct userTests *) malloc(user_data_size);
