@@ -2,3 +2,10 @@ venv
 ccf-2.0.1
 debug
 .git
+shared/ccf_sandbox/*
+!shared/ccf_sandbox/nodecert*.pem
+!shared/ccf_sandbox/member0_privk.pem
+!shared/ccf_sandbox/member0_cert.pem
+!shared/ccf_sandbox/user0_privk.pem
+!shared/ccf_sandbox/user0_cert.pem
+!shared/ccf_sandbox/service_cert.pem

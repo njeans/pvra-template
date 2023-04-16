@@ -1,13 +1,14 @@
-/*
- * Copyright (C) 2019 Intel Corporation
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 
 enclave
 {
+    from "sgx_tstdc.edl" import *;
+    from "sgx_pthread.edl" import *;
+
 	include "sgx_quote.h"
+    include "sys/socket.h"
+    include "sys/select.h"
+    include "netdb.h"
+    include "poll.h"
 
     trusted
     {
@@ -23,20 +24,18 @@ enclave
 
         public sgx_status_t ecall_commandPVRA(
             [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
-            [in] uint8_t FT[8],
-            [in] uint8_t FT_signature[64],
+            [in, size=FT_size] uint8_t *FT, size_t FT_size,
+            [in, size=FT_signature_size] uint8_t *FT_signature, size_t FT_signature_size,
             [in, size=eCMD_size] uint8_t *eCMD, size_t eCMD_size,
             [out, size=enc_cResponse_size] uint8_t *enc_cResponse, size_t enc_cResponse_size,
             [out] uint8_t cResponse_signature[64],
-            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size
-            );
+            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size);
 
         public sgx_status_t ecall_auditlogPVRA(
             [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
             [out, size=auditlog_size] uint8_t *auditlog, size_t auditlog_size,
             [out] uint8_t auditlog_signature[65],
-            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size
-            );
+            [out, size=newsealedstate_size] uint8_t *newsealedstate, size_t newsealedstate_size);
 
 
         public sgx_status_t ecall_init_buffer_sizes(uint64_t num_users, [out] size_t* esealed_state_size);
@@ -49,18 +48,25 @@ enclave
             [in, size=sealedstate_size] uint8_t *sealedstate, size_t sealedstate_size,
             [out] size_t *newsealedstate_size,
             [out] size_t *newauditlog_buffer_size);
-
-        #undef BUFLEN
-        #undef MBED_TLS_KEY_SIZE
-        #undef MBEDTLS_MPI_MAX_SIZE
     };
 
     untrusted
     {
         void ocall_print_string([in, string] const char *str);
+        void ocall_print_stderr([in, string] const char *str);
         void ocall_rdtsc(void);
-        //void ocallbuf(int size);
-        void ocall_allocate_seal(size_t seal_size);
-        //void ocall_print_int([in, int] const int num);
+        void ocall_gai_print_strerror(int errcode);
+        int ocall_getaddrinfo(
+            [in, string] const char *node, 
+            [in, string] const char *service, 
+            [in] const struct addrinfo *hints, 
+            [out, size=max_size] uint8_t *addr_data,
+            size_t max_size,
+            [out] int * num_ret);
+        int ocall_socket(int domain, int type, int protocol) propagate_errno;
+        int ocall_connect (int fd, [in, size=len] const struct sockaddr *addr, socklen_t len) propagate_errno;
+        int ocall_close(int fd) propagate_errno;
+        ssize_t ocall_recv(int sockfd, [out, size=len] void *buf, size_t len, int flags) propagate_errno;
+        ssize_t ocall_send(int sockfd, [in, size=len] const void *buf, size_t len, int flags) propagate_errno;
     };
 };

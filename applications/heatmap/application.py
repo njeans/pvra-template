@@ -2,6 +2,7 @@ import os
 import random
 import ctypes
 import datetime
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ assert os.environ.get("APP_NAME") == "heatmap"
 
 ADD_DATA = 0
 GET_HM = 1
+RESET_TIME = 120
 
 constants.MERKLE(False)
 max_lat = 40.25
@@ -34,6 +36,7 @@ hm_granularity = 10
 
 def get_test_data(admin, users, test_case=None):
     num_users = len(users)
+    assert num_users > 0
     num_data = 2
     data = gen_test_data(num_users, num_data)
     test_data = []
@@ -44,17 +47,31 @@ def get_test_data(admin, users, test_case=None):
         user_data = []
         for j in range(num_data):
             user_data.append(({"tid": ADD_DATA, "input_data": data_for_user[j], "seq": j+1}, "success addPersonalData"))
-        user_data.append(None)
+        user_data += [None, None, None]
         test_data.append(user_data)
-        admin_data.append([None for _ in range(num_data+1)])
+        admin_data.append([None for _ in range(num_data+3)])
     admin_data[num_users-1][num_data] = ({"tid": GET_HM}, "heatmap_")
-
-    return test_data, admin_data
+    admin_data[num_users-1][num_data+1] = ({"tid": GET_HM}, "must wait")
+    admin_data[num_users-1][num_data+2] = ({"tid": GET_HM}, "heatmap_")
+    other_functions = [[None for _ in range(num_data+3)] for _ in range(num_users)]
+    def reset_period():
+        print(f"sleep for {RESET_TIME} seconds to ensure reset time complete")
+        time.sleep(RESET_TIME)
+    other_functions[num_users-1][num_data+2] = reset_period
+    return test_data, admin_data, other_functions
 
 
 def get_test_data_omission(admin, users):
-    test_data, admin_data = get_test_data(admin, users)
-    test_data = [list(unzip_none(t))[0] for t in test_data]
+    test_data, admin_data, _ = get_test_data(admin, users)
+    def cleanup(ls):
+        for i in range(len(ls)):
+            if ls[i] is None:
+                ls[i] = [None, None]
+            else:
+                del ls[i][0]["seq"]
+            print(i, ls[i])
+        return list(zip(*ls))[0]
+    test_data = [cleanup(t) for t in test_data]
     return test_data, [0], admin_data
 
 
@@ -122,7 +139,10 @@ def save_heatmap(hm):
     im2 = plt.imshow(heatmap_vals_round.transpose(), origin='lower', cmap='Reds', aspect='equal', extent=(0.0, width, 0.0, height))
     bmap = plt.imread(hm_info["map_file"])
     im = plt.imshow(bmap, extent=(0, width, 0, height), alpha=.3)
-    fname = f"heatmap_{hm_granularity}_{datetime.datetime.now()}.png"
+    data_dir = os.path.join(constants.APP_SRC_PATH, "data")
+    if not os.path.exists(data_dir):
+        os.mkdir(data_dir)
+    fname = os.path.join(data_dir, f"heatmap_{hm_granularity}_{datetime.datetime.now()}.png")
     plt.savefig(fname)
     return fname
 
@@ -168,7 +188,7 @@ def gen_test_data(num_users, num_data):
 
 
 class cResponse(ctypes.Structure):
-    _fields_ = [('error', ctypes.c_uint32),
+    _fields_ = [('error', ctypes.c_int),
                 ('message', ctypes.c_char * 100),
                 ('heatmap_data', ctypes.c_uint32 * (hm_granularity*hm_granularity))]
 
@@ -184,11 +204,4 @@ class cInputs(ctypes.Structure):
 class private_command(ctypes.Structure):
     _fields_ = [('tid', ctypes.c_uint32),
                 ('cInputs', cInputs)]
-
-
-def unzip_none(ls):
-    for i in range(len(ls)):
-        if ls[i] is None:
-            ls[i] = [None, None]
-    return zip(*ls)
 

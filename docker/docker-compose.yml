@@ -3,7 +3,7 @@ version: '3.9'
 
 services:
   aesm:
-    image: initc3/linux-sgx:2.13-ubuntu20.04
+    image: initc3/linux-sgx:2.17.1
     devices:
       - /dev/isgx
     volumes:
@@ -19,11 +19,138 @@ services:
     ports:
       - 8545:8545
     volumes:
-      - accounts:/accounts/
+      # - accounts:/accounts/
+      - ../shared/accounts:/accounts
     environment:
       ANVIL_IP_ADDR: 0.0.0.0
     entrypoint: ""
     command: ["anvil", "--config-out=/accounts/accounts.json", "--accounts", "10"]
+
+  ccf0-virtual:
+    image: scs-virtual
+    build:
+      context: ../counter-service
+      dockerfile: docker/Dockerfile
+      args:
+        platform: virtual
+    hostname: ccf0
+    domainname: ccf0
+    ports:
+      - 8546:8080
+    command: ["--members", "3", "--users", "2", "--nodes", "3"]
+    environment:
+      deployment_location: DOCKER
+      NODE_NUM: "0"
+      platform: virtual
+    volumes:
+      - ../shared/ccf_sandbox:/sandbox_common
+      - ccf_workspace:/workspace/workspace0
+      # - ccf_sandbox:/ccf_sandbox
+
+  ccf1-virtual:
+    image: scs-virtual
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        platform: virtual
+    hostname: ccf1
+    domainname: ccf1
+    environment:
+      deployment_location: DOCKER
+      NODE_NUM: "1"
+      platform: virtual
+    depends_on:
+      ccf0-virtual:
+        condition: service_healthy
+    volumes:
+      - ../shared/ccf_sandbox:/sandbox_common
+      - ccf_workspace:/workspace/workspace1
+      # - ccf_sandbox:/ccf_sandbox
+
+  ccf2-virtual:
+    image: scs-virtual
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        platform: virtual
+    hostname: ccf2
+    domainname: ccf2
+    depends_on:
+      ccf0-virtual:
+        condition: service_healthy
+    environment:
+      deployment_location: DOCKER
+      NODE_NUM: "2"
+      platform: virtual
+    volumes:
+      - ../shared/ccf_sandbox:/sandbox_common
+      - ccf_workspace:/workspace/workspace2
+      # - ccf_sandbox:/ccf_sandbox
+
+  ccf0-sgx:
+    image: scs-sgx
+    build:
+      context: ../counter-service
+      dockerfile: docker/Dockerfile
+      args:
+        platform: sgx
+    hostname: ccf0
+    domainname: ccf0
+    ports:
+      - 8546:8080
+    command: ["--members", "3", "--users", "2", "--nodes", "3"]
+    environment:
+      deployment_location: DOCKER
+      NODE_NUM: "0"
+      platform: sgx
+    volumes:
+      # - ccf_sandbox:/sandbox_common
+      - ../shared/ccf_sandbox:/sandbox_common
+      - ccf_workspace:/workspace/workspace0
+
+  ccf1-sgx:
+    image: scs-sgx
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        platform: sgx
+    hostname: ccf1
+    domainname: ccf1
+    environment:
+      deployment_location: DOCKER
+      NODE_NUM: "1"
+      platform: sgx
+    depends_on:
+      ccf0-sgx:
+        condition: service_healthy
+    volumes:
+      # - ccf_sandbox:/sandbox_common
+      - ../shared/ccf_sandbox:/sandbox_common
+      - ccf_workspace:/workspace/workspace1
+
+  ccf2-sgx:
+    image: scs-sgx
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        platform: sgx
+    hostname: ccf2
+    domainname: ccf2
+    depends_on:
+      ccf0-sgx:
+        condition: service_healthy
+    environment:
+      deployment_location: DOCKER
+      NODE_NUM: "2"
+      platform: sgx
+    volumes:
+      # - ccf_sandbox:/sandbox_common
+      - ../shared/ccf_sandbox:/sandbox_common
+      - ccf_workspace_sgx:/workspace/workspace2
 
   enclave-sim:
     image: ${APP_NAME}-enclave-sim
@@ -34,27 +161,41 @@ services:
         SGX_MODE: SW
         SGX_DEBUG: 1
         APP_NAME: ${APP_NAME}
+        CCF_ENABLE: ${CCF_ENABLE}
+    stdin_open: true
+    tty: true
     depends_on:
       - billboard
+      - ccf0-virtual
+      - ccf1-virtual
+      - ccf2-virtual
+    working_dir: /home/photon/${APP_NAME}/demo
     environment:
       deployment_location: DOCKER
       SGX_MODE: SW
       PYTHONBREAKPOINT: ipdb.set_trace
       SGX_DEBUG: 1
-      CCF_ENABLE: 0
+      CCF_ENABLE: ${CCF_ENABLE}
       SGX_SPID: ${SGX_SPID}
       IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
       NUM_USERS: ${NUM_USERS}
       PROJECT_ROOT: /home/photon/${APP_NAME}
     volumes:
-      - accounts:/home/photon/${APP_NAME}/accounts/
-      - ../solidity:/home/photon/${APP_NAME}/solidity/
-      - ../enclave:/home/photon/${APP_NAME}/enclave/
-      - ../app:/home/photon/${APP_NAME}/app/
-      - ../interface:/home/photon/${APP_NAME}/interface/
-      - ../scripts:/home/photon/${APP_NAME}/scripts/
+      - ../untrusted:/home/photon/${APP_NAME}/untrusted
       - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../common:/home/photon/${APP_NAME}/common
+      - ../enclave:/home/photon/${APP_NAME}/enclave
+      - ../interface:/home/photon/${APP_NAME}/interface
+      - ../scripts:/home/photon/${APP_NAME}/scripts
+      - ../demo:/home/photon/${APP_NAME}/demo
+      - ../solidity:/home/photon/${APP_NAME}/solidity
+      - ../trustedLib:/home/photon/${APP_NAME}/trustedLib
+      # - accounts:/home/photon/${APP_NAME}/accounts/
+      - ../shared/accounts:/home/photon/${APP_NAME}/shared/accounts
+      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf
+      # - ccf_sandbox:/home/photon/${APP_NAME}/ccf
       - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
+      # - ../../linux-sgx/SampleCode/SampleAttestedTLS/:/SampleAttestedTLS
     command: python demo.py
 
   enclave:
@@ -64,15 +205,17 @@ services:
       dockerfile: docker/Dockerfile
       args:
         SGX_MODE: HW
-        SGX_DEBUG: 1
+        SGX_DEBUG: 0
         APP_NAME: ${APP_NAME}
+        CCF_ENABLE: 1
     environment:
       deployment_location: DOCKER
-      CCF_ENABLE: ${CCF_ENABLE}
+      CCF_ENABLE: 1
       SGX_SPID: ${SGX_SPID}
       IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
       PYTHONBREAKPOINT: ipdb.set_trace
-      SGX_DEBUG: 1
+      SGX_MODE: HW
+      SGX_DEBUG: 0
       NUM_USERS: ${NUM_USERS}
       PROJECT_ROOT: /home/photon/${APP_NAME}
       http_proxy: ${http_proxy}
@@ -80,24 +223,37 @@ services:
     devices:
       - /dev/isgx
     volumes:
-      - aesmd-socket:/var/run/aesmd
-      - accounts:/home/photon/${APP_NAME}/accounts/
-      - ../solidity:/home/photon/${APP_NAME}/solidity/
-      - ../enclave:/home/photon/${APP_NAME}/enclave/
-      - ../app:/home/photon/${APP_NAME}/app/
-      - ../interface:/home/photon/${APP_NAME}/interface/
-      - ../scripts:/home/photon/${APP_NAME}/scripts/
+      - ../untrusted:/home/photon/${APP_NAME}/untrusted
       - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../common:/home/photon/${APP_NAME}/common
+      - ../enclave:/home/photon/${APP_NAME}/enclave
+      - ../interface:/home/photon/${APP_NAME}/interface
+      - ../scripts:/home/photon/${APP_NAME}/scripts
+      - ../demo:/home/photon/${APP_NAME}/demo
+      - ../solidity:/home/photon/${APP_NAME}/solidity
+      - ../trustedLib:/home/photon/${APP_NAME}/trustedLib
+      - aesmd-socket:/var/run/aesmd
+      - ../shared/accounts:/home/photon/${APP_NAME}/accounts
+      # - accounts:/home/photon/${APP_NAME}/accounts
+      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf
+      # - ccf_sandbox:/home/photon/${APP_NAME}/ccf
+      - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
     stdin_open: true
     tty: true
     depends_on:
-      - billboard
       - aesm
-    working_dir: /home/photon/${APP_NAME}/scripts
+      - ccf0-sgx
+      - ccf1-sgx
+      - ccf2-sgx
+      - billboard
+    working_dir: /home/photon/${APP_NAME}/demo
     command: python demo.py
 
 volumes:
-  accounts:
+  # accounts:
+  # ccf_sandbox:
+  ccf_workspace:
+  ccf_workspace_sgx:
   aesmd-socket:
     driver: local
     driver_opts:

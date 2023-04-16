@@ -1,17 +1,37 @@
-#include <mbedtls/md.h>
 #include "enclave_state.h"
 #include "appPVRA.h"
+#include "util.h"
+
+time_t reset_data(struct ES *enclave_state) {
+    time_t curr_time;
+    int err = get_timestamp(&curr_time);
+    if (err != 0) {
+        return 0;
+    }
+    if (curr_time - enclave_state->appdata.last_reset_time >= RESET_TIME) {
+        if(DEBUGPRINT) printf("[sdt] reseting retrieve counts\n");
+        while(enclave_state->appdata.last_reset_time + RESET_TIME <= curr_time)
+            enclave_state->appdata.last_reset_time += RESET_TIME;
+        enclave_state->appdata.retrieve_count = 0;
+    }
+    return curr_time;
+}
 
 /* COMMAND0 Kernel Definition */
 struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] addPersonalData uidx %d\n", uidx);
     struct cResponse ret;
     memset(ret.output_data, 0, DATA_SIZE);
     memset(ret.message, 0, 100);
     ret.error = 0;
-
+    time_t curr_time = reset_data(enclave_state);
+    if (curr_time == 0) {
+        sprintf(ret.message, "reset_data failed");
+        printf("[sdt] %s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
     memcpy(enclave_state->appdata.user_info[uidx].secret_data, CI->input_data, DATA_SIZE);
     sprintf(ret.message, "success addPersonalData");
     if(DEBUGPRINT) printf("[sdt] %s\n", ret.message);
@@ -20,13 +40,18 @@ struct cResponse addPersonalData(struct ES *enclave_state, struct cInputs *CI, u
 
 struct cResponse getPersonalData(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] getPersonalData uidx  %d\n", uidx);
     struct cResponse ret;
     ret.error = 0;
     memset(ret.output_data, 0, DATA_SIZE);
     memset(ret.message, 0, 100);
-
+    time_t curr_time = reset_data(enclave_state);
+    if (curr_time == 0) {
+        sprintf(ret.message, "reset_data failed");
+        printf("[sdt] %s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
     memcpy(ret.output_data, enclave_state->appdata.user_info[uidx].secret_data, sizeof(enclave_state->appdata.user_info[uidx].secret_data));
     sprintf(ret.message, "success getPersonalData");
     if(DEBUGPRINT) printf("[sdt] %s\n", ret.message);
@@ -36,12 +61,18 @@ struct cResponse getPersonalData(struct ES *enclave_state, struct cInputs *CI, u
 /* COMMAND1 Kernel Definition */
 struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] startRetrieve\n");
     struct cResponse ret;
     ret.error = 0;
     memset(ret.output_data, 0, DATA_SIZE);
     memset(ret.message, 0, 100);
+    time_t curr_time = reset_data(enclave_state);
+    if (curr_time == 0) {
+        sprintf(ret.message, "reset_data failed");
+        printf("[sdt] %s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
 
     int user_idx = -1;
     for(int i = 0; i < enclave_state->num_users; i++) {
@@ -54,7 +85,7 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
     if (user_idx == -1) {
          sprintf(ret.message, "[sdt] invalid user public key");
          printf("%s\n", ret.message);
-         ret.error = 1;
+         ret.error = 2;
          return ret;
     }
 
@@ -75,7 +106,8 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
         return ret;
     }
     enclave_state->appdata.user_info[user_idx].retrieve_count++; // todo delete?
-    enclave_state->appdata.user_info[user_idx].retrieve_time = WAIT_TIME + 10 + user_idx;//get_timestamp();
+
+    enclave_state->appdata.user_info[user_idx].retrieve_time = curr_time + WAIT_TIME;
     enclave_state->appdata.user_info[user_idx].started_retrieve = true;
     memcpy(enclave_state->appdata.user_info[user_idx].recover_key_hash, CI->recover_key_hash, HASH_SIZE);
 
@@ -88,12 +120,19 @@ struct cResponse startRetrieve(struct ES *enclave_state, struct cInputs *CI, uin
 /* COMMAND2 Kernel Definition */
 struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] completeRetrieve\n");
     struct cResponse ret;
     ret.error = 0;
     memset(ret.output_data, 0, DATA_SIZE);
     memset(ret.message, 0, 100);
+    time_t curr_time = reset_data(enclave_state);
+    if (curr_time == 0) {
+        sprintf(ret.message, "reset_data failed");
+        printf("[sdt] %s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
+
     if(DEBUGPRINT) {
         printf("[sdt] new user_pubkey ");
         print_hexstring(CI->user_pubkey, 64);
@@ -109,7 +148,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
     if (user_idx == -1) {
          sprintf(ret.message, "invalid user public key");
          printf("[sdt] %s\n", ret.message);
-         ret.error = 1;
+         ret.error = 2;
          return ret;
     }
     if(DEBUGPRINT) printf("[sdt] completeRetrieve uidx %d\n", user_idx);
@@ -117,27 +156,20 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
     if (!ui.started_retrieve) {
         sprintf(ret.message, "retrieval not started");
         printf("[sdt] %s\n", ret.message);
-        ret.error = 4;
+        ret.error = 3;
         return ret;
     }
 
-    uint32_t curr = 73;//get_timestamp() TODO
-    if (curr < ui.retrieve_time) {
-        sprintf(ret.message, "retrieval wait period not over %u < %u", curr, ui.retrieve_time);
+    if (curr_time < ui.retrieve_time) {
+        sprintf(ret.message, "retrieval wait period not over %lu < %lu", curr_time, ui.retrieve_time);
         printf("[sdt] %s\n", ret.message);
-        ret.error = 5;
+        ret.error = 4;
         return ret;
     }
 
 
     char key_hash[HASH_SIZE];
-    int err = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), CI->recover_key, KEY_SIZE, key_hash);
-    if(err != 0) {
-        sprintf(ret.message, "mbedtls_md sha256 calculation failed -0x%04x", -err);
-        printf("[sdt] %s\n", ret.message);
-        ret.error = 6;
-        return ret;
-    }
+    sha256(CI->recover_key, KEY_SIZE, key_hash);
 
     if(strncmp(enclave_state->appdata.user_info[user_idx].recover_key_hash, key_hash, HASH_SIZE) != 0) {
         sprintf(ret.message, "recover key does not match recover_key_hash");
@@ -149,7 +181,7 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
             print_hexstring_n(key_hash, HASH_SIZE);
         }
         printf("\n");
-        ret.error = 7;
+        ret.error = 5;
         return ret;
     }
 
@@ -166,18 +198,24 @@ struct cResponse completeRetrieve(struct ES *enclave_state, struct cInputs *CI, 
 /* COMMAND3 Kernel Definition */
 struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, uint32_t uidx)
 {
-    //reset_data(); todo
     if(DEBUGPRINT) printf("[sdt] cancelRetrieve uidx %d\n", uidx);
 
     struct cResponse ret;
     memset(ret.output_data, 0, DATA_SIZE);
     memset(ret.message, 0, 100);
     ret.error = 0;
+    time_t curr_time = reset_data(enclave_state);
+    if (curr_time == 0) {
+        sprintf(ret.message, "reset_data failed");
+        printf("[sdt] %s\n", ret.message);
+        ret.error = 1;
+        return ret;
+    }
 
     if (!enclave_state->appdata.user_info[uidx].started_retrieve) {
         sprintf(ret.message, "retrieval not started");
         printf("[sdt] %s\n", ret.message);
-        ret.error = 7;
+        ret.error = 2;
         return ret;
     }
     ret.error = 0;
@@ -189,8 +227,7 @@ struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, ui
 }
 
 #ifdef MERKLE_TREE
-size_t calc_user_leaf_size(struct ES *enclave_state)
-{
+size_t calc_user_leaf_size(struct ES *enclave_state) {
     return sizeof(struct userLeaf);
 }
 
@@ -236,7 +273,7 @@ int initFP(struct cResponse (*functions[NUM_COMMANDS+NUM_ADMIN_COMMANDS])(struct
 
 
 /* Initializes the Application Data as per expectation */
-int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
+int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users, bool dry_run)
 {
     size_t user_info_size = sizeof(struct userInfo) * num_users;
     enclave_state->appdata.user_info = (struct userInfo *) malloc(user_info_size);
@@ -247,8 +284,14 @@ int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users)
         memset(enclave_state->appdata.user_info[i].secret_data, 0, DATA_SIZE);
     }
     enclave_state->appdata.retrieve_count = 0;
-    enclave_state->appdata.last_reset_time = 0;
-
+    time_t curr_time;
+    if (!dry_run) {
+        int res = get_timestamp(&curr_time);
+        if (res != 0) {
+            return res;
+        }
+    }
+    enclave_state->appdata.last_reset_time = curr_time;
     /* Initialize metadata regarding dynamic data-structures for sealing purposes */
 
     // Number of dynamic data structures

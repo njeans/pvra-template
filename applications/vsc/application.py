@@ -21,8 +21,11 @@ def get_test_data(admin, users, test_case=None):
 
 
 def get_test_data_omission(admin, users):
-    test_data, admin_data = get_test_data(admin, users)
+    test_data, admin_data, _ = get_test_data(admin, users)
     test_data = [list(zip(*test_data[i]))[0] for i in range(len(test_data))]
+    for t in test_data:
+        for x in t:
+            del x["seq"]
     return test_data, [3], admin_data
 
 
@@ -49,7 +52,7 @@ def print_cResponse(buff):
 
 
 class cResponse(ctypes.Structure):
-    _fields_ = [('error', ctypes.c_uint32),
+    _fields_ = [('error', ctypes.c_int),
                 ('message', ctypes.c_char * 100),
                 ('access', ctypes.c_bool)]
 
@@ -87,11 +90,11 @@ def functionality_test(admin, users):
                      ({"tid": STATUS_QUERY, "seq": 5}, test_cases[i % len(test_cases)][3])]
         test_data.append(user_data)
         admin_data.append([None for _ in range(len(user_data))])
-    return test_data, admin_data
+    return test_data, admin_data, None
 
 
 def large_test(admin, users, num_tests=12):
-    assert 12 % 3 == 0, "num_tests for large_test should be a multiple of 3 to get accurate test cases"
+    assert num_tests % 3 == 0, "num_tests for large_test should be a multiple of 3 to get accurate test cases"
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LARGE_TESTS: {num_tests}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -108,11 +111,11 @@ def large_test(admin, users, num_tests=12):
                   [False, False, False, results[0]],
                   [False, False, True, results[1]]]
     for i in range(num_users):
-        user_data = [({"tid": STATUS_UPDATE, "test_result": test_cases[i % len(test_cases)][j%3], "seq": j+1}, "success statusUpdate"), for j in range(num_tests)]
+        user_data = [({"tid": STATUS_UPDATE, "test_result": test_cases[i % len(test_cases)][j%3], "seq": j+1}, "success statusUpdate") for j in range(num_tests)]
         user_data.append(({"tid": STATUS_QUERY, "seq": num_tests+2}, test_cases[i % len(test_cases)][3]))
         test_data.append(user_data)
         admin_data.append([None for _ in range(len(user_data))])
-    return test_data, admin_data
+    return test_data, admin_data, None
 
 def seqno_test(admin, users):
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -135,4 +138,4 @@ def seqno_test(admin, users):
                      ({"tid": STATUS_QUERY, "seq": 3}, "SeqNo failure received [3] != [2] NOT logging")]
         test_data.append(user_data)
         admin_data.append([None for _ in range(len(user_data))])
-    return test_data, admin_data
+    return test_data, admin_data, None

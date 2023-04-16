@@ -1,0 +1,127 @@
+version: '3.9'
+
+
+services:
+  aesm:
+    image: initc3/linux-sgx:2.17.1
+    devices:
+      - /dev/isgx
+    volumes:
+      - aesmd-socket:/var/run/aesmd
+    user: aesmd
+    working_dir: /opt/intel/sgx-aesm-service/aesm
+    environment:
+      LD_LIBRARY_PATH: /opt/intel/sgx-aesm-service/aesm
+    command: ./aesm_service --no-daemon
+
+  billboard:
+    image: ghcr.io/foundry-rs/foundry:latest
+    ports:
+      - 8545:8545
+    volumes:
+      # - accounts:/accounts/
+      - ../shared/accounts:/accounts
+    environment:
+      ANVIL_IP_ADDR: 0.0.0.0
+    entrypoint: ""
+    command: ["anvil", "--config-out=/accounts/accounts.json", "--accounts", "10"]
+
+  enclave-sim:
+    image: ${APP_NAME}-enclave-sim
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        SGX_MODE: SW
+        SGX_DEBUG: 1
+        APP_NAME: ${APP_NAME}
+        CCF_ENABLE: ${CCF_ENABLE}
+    stdin_open: true
+    tty: true
+    depends_on:
+      - billboard
+    working_dir: /home/photon/${APP_NAME}/demo
+    environment:
+      deployment_location: DOCKER
+      SGX_MODE: SW
+      PYTHONBREAKPOINT: ipdb.set_trace
+      SGX_DEBUG: 1
+      CCF_ENABLE: ${CCF_ENABLE}
+      SGX_SPID: ${SGX_SPID}
+      IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
+      NUM_USERS: ${NUM_USERS}
+      PROJECT_ROOT: /home/photon/${APP_NAME}
+    volumes:
+      - ../untrusted:/home/photon/${APP_NAME}/untrusted
+      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../common:/home/photon/${APP_NAME}/common
+      - ../enclave:/home/photon/${APP_NAME}/enclave
+      - ../interface:/home/photon/${APP_NAME}/interface
+      - ../scripts:/home/photon/${APP_NAME}/scripts
+      - ../demo:/home/photon/${APP_NAME}/demo
+      - ../solidity:/home/photon/${APP_NAME}/solidity
+      - ../trustedLib:/home/photon/${APP_NAME}/trustedLib
+      # - accounts:/home/photon/${APP_NAME}/accounts/
+      - ../shared/accounts:/home/photon/${APP_NAME}/shared/accounts
+      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf
+      # - ccf_sandbox:/home/photon/${APP_NAME}/ccf
+      - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
+      # - ../../linux-sgx/SampleCode/SampleAttestedTLS/:/SampleAttestedTLS
+    command: python demo.py
+
+  enclave:
+    image: ${APP_NAME}-enclave
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        SGX_MODE: HW
+        SGX_DEBUG: 0
+        APP_NAME: ${APP_NAME}
+        CCF_ENABLE: 1
+    environment:
+      deployment_location: DOCKER
+      CCF_ENABLE: 1
+      SGX_SPID: ${SGX_SPID}
+      IAS_PRIMARY_KEY: ${IAS_PRIMARY_KEY}
+      PYTHONBREAKPOINT: ipdb.set_trace
+      SGX_MODE: HW
+      SGX_DEBUG: 0
+      NUM_USERS: ${NUM_USERS}
+      PROJECT_ROOT: /home/photon/${APP_NAME}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+    devices:
+      - /dev/isgx
+    volumes:
+      - ../untrusted:/home/photon/${APP_NAME}/untrusted
+      - ../applications/${APP_NAME}:/home/photon/${APP_NAME}/src
+      - ../common:/home/photon/${APP_NAME}/common
+      - ../enclave:/home/photon/${APP_NAME}/enclave
+      - ../interface:/home/photon/${APP_NAME}/interface
+      - ../scripts:/home/photon/${APP_NAME}/scripts
+      - ../demo:/home/photon/${APP_NAME}/demo
+      - ../solidity:/home/photon/${APP_NAME}/solidity
+      - ../trustedLib:/home/photon/${APP_NAME}/trustedLib
+      - aesmd-socket:/var/run/aesmd
+      - ../shared/accounts:/home/photon/${APP_NAME}/accounts
+      # - accounts:/home/photon/${APP_NAME}/accounts
+      - ../shared/ccf_sandbox:/home/photon/${APP_NAME}/ccf
+      # - ccf_sandbox:/home/photon/${APP_NAME}/ccf
+      - ../test_sgx:/home/photon/${APP_NAME}/test_sgx
+    stdin_open: true
+    tty: true
+    depends_on:
+      - aesm
+      - billboard
+    working_dir: /home/photon/${APP_NAME}/demo
+    command: python demo.py
+
+volumes:
+  # accounts:
+  aesmd-socket:
+    driver: local
+    driver_opts:
+      type: "tmpfs"
+      device: "tmpfs"
+      o: "rw"

@@ -1,34 +1,6 @@
-/*
- * Copyright (C) 2019 Intel Corporation
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
-//#include <stdarg.h>
-//#include <stdio.h>
-//
-//#include "enclave.h"
-//#include <enclave_t.h>
-//
-//#include <sgx_quote.h>
-//#include <sgx_tcrypto.h>
-//#include <sgx_tseal.h>
-//#include <sgx_utils.h>
-//
-//#include <mbedtls/entropy.h>
-//#include <mbedtls/ctr_drbg.h>
-//#include <mbedtls/bignum.h>
-//#include <mbedtls/pk.h>
-//#include <mbedtls/rsa.h>
-//
-//// [TODO]: If possible remove mbedtls dependence, only used for sha256 hashes now
-//
-//#include <secp256k1.h>
-//#include <secp256k1_ecdh.h>
 #include <secp256k1_recovery.h>
 
 #include "enclave_state.h"
-
 #ifdef MERKLE_TREE
 #include "merkletree.h"
 #endif
@@ -44,9 +16,6 @@
  * @return SGX_SUCCESS (Error code = 0x0000) on success,
  * some sgx_status_t value upon failure.
  */
-
-
-
 sgx_status_t ecall_auditlogPVRA(
     uint8_t *sealedstate, size_t sealedstate_size,
     uint8_t *auditlog, size_t auditlog_size,
@@ -66,9 +35,6 @@ sgx_status_t ecall_auditlogPVRA(
 
   // Control Timing Measurement of an OCALL Overhead.
   if(A_DEBUGRDTSC) ocall_rdtsc();
-
-  /*    (2) Enclave State Initializaiton    */
-
 
   /*    Unseal Enclave State    */
   ret = unseal_enclave_state(sealedstate, false, &enclave_state, &dAD);
@@ -97,7 +63,6 @@ sgx_status_t ecall_auditlogPVRA(
 
 #ifdef MERKLE_TREE
     leaf_data = (uint8_t **) calloc(enclave_state.num_users, sizeof(uint8_t *));
-    printf("leaf_data b %p\n", leaf_data);
     size_t leaf_size = get_user_leaf(&enclave_state, leaf_data);
   if(DEBUGPRINT) {
       printf("[eaPVRA] PRINTING User Leaf Nodes leaf_size: %lu\n", leaf_size);
@@ -119,6 +84,7 @@ sgx_status_t ecall_auditlogPVRA(
     enc_leaf_data[i] = (uint8_t *) malloc(enc_leaf_size);
     ret = encrypt_aesgcm128(AESKey, leaf_data[i], leaf_size, enc_leaf_data[i]);
     if (ret != SGX_SUCCESS) {
+        printf_stderr("[eaPVRA] encrypt_aesgcm128 failed %d\n", SGX_SUCCESS);
         goto cleanup;
     }
   }
@@ -138,8 +104,8 @@ sgx_status_t ecall_auditlogPVRA(
   }
   serialize_tree(auditlog, &mt);
   cleanup_tree(&mt);
-  free_user_leaf(leaf_data);
-  free_user_leaf(enc_leaf_data);
+  free_user_leaf(&enclave_state, leaf_data);
+  free_user_leaf(&enclave_state, enc_leaf_data);
   free(leaf_data);
   leaf_data = NULL;
   free(enc_leaf_data);
@@ -152,7 +118,7 @@ sgx_status_t ecall_auditlogPVRA(
   size_t calc_auditlog_size = calc_auditlog_out_buffer_size(&enclave_state.auditlog);
 #endif
   if (auditlog_size != calc_auditlog_size) {
-    printf("[eaPVRA] auditlog_size incorrect %lu != %lu\n", calc_auditlog_size, auditlog_size);
+    printf_stderr("[eaPVRA] auditlog_size incorrect %lu != %lu\n", calc_auditlog_size, auditlog_size);
     ret = SGX_ERROR_INVALID_PARAMETER;
     goto cleanup;
   }
@@ -215,12 +181,12 @@ sgx_status_t ecall_auditlogPVRA(
     if(A_DEBUGRDTSC) ocall_rdtsc();
 #ifdef MERKLE_TREE
     if (leaf_data != NULL) {
-      free_user_leaf(leaf_data);
+      free_user_leaf(&enclave_state, leaf_data);
       free(leaf_data);
       leaf_data=NULL;
     }
     if (enc_leaf_data != NULL) {
-      free_user_leaf(enc_leaf_data);
+      free_user_leaf(&enclave_state, enc_leaf_data);
       free(enc_leaf_data);
       enc_leaf_data=NULL;
     }

@@ -24,14 +24,14 @@
 #define COMPLETE_RET 4
 
 #define MAX_RETRIEVE 4
-#define WAIT_TIME 60 //seconds
-#define RESET_TIME 60 //seconds
+#define WAIT_TIME 30 //seconds
+#define RESET_TIME 120 //seconds
 
 
 struct userInfo
 {
     uint32_t retrieve_count;
-    uint64_t retrieve_time; //time when retrieve can be completed
+    time_t retrieve_time; //time when retrieve can be completed
     uint8_t secret_data[DATA_SIZE];
     bool started_retrieve;
 	uint8_t recover_key_hash[HASH_SIZE];
@@ -40,7 +40,7 @@ struct userInfo
 struct userLeaf
 {
     uint32_t retrieve_count;
-    uint64_t retrieve_time; //time when retrieve can be completed
+    time_t retrieve_time; //time when retrieve can be completed
     bool started_retrieve;
 	uint32_t uidx;
 };
@@ -55,14 +55,14 @@ struct cInputs
 
 struct cResponse
 {
-	uint32_t error;
+	int error;
 	char message[100];
 	uint8_t output_data[DATA_SIZE];
 };
 
 struct AD
 {
-	int last_reset_time;
+	time_t last_reset_time;
 	int retrieve_count;
 	struct userInfo *user_info;
 };

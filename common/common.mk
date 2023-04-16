@@ -1,12 +1,7 @@
-#
-# Copyright (C) 2011-2019 Intel Corporation
-#
-# SPDX-License-Identifier: BSD-3-Clause
-#
-
 ######## SGX SDK Settings ########
 
 SGX_SDK ?= /opt/intel/sgxsdk
+SGXSSL_SDK ?= /opt/intel/sgxssl
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 0
@@ -25,6 +20,7 @@ else
     SGX_COMMON_FLAGS := -m64
     SGX_LIBRARY_PATH := $(SGX_SDK)/lib64
 endif
+
 SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/$(SGX_ARCH)/sgx_sign
 SGX_EDGER8R := $(SGX_SDK)/bin/$(SGX_ARCH)/sgx_edger8r
 
@@ -35,7 +31,7 @@ endif
 endif
 
 ifeq ($(SGX_DEBUG), 1)
-    SGX_COMMON_FLAGS += -O0 -g
+    SGX_COMMON_FLAGS += -O0 -g -DSGX_DEBUG -DDEBUG_WOLFSSL
 else
     SGX_COMMON_FLAGS += -O2
 endif
@@ -47,6 +43,10 @@ SGX_COMMON_FLAGS += -Wall -Wextra -Winit-self -Wpointer-arith -Wreturn-type \
 SGX_COMMON_FLAGS += -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -fstack-protector-all
 SGX_COMMON_CFLAGS := $(SGX_COMMON_FLAGS) -Wjump-misses-init -Wstrict-prototypes -Wunsuffixed-float-constants
 SGX_COMMON_CXXFLAGS := -Wnon-virtual-dtor -std=c++11
+
+
+SGXSSL_PKG_PATH := $(SGXSSL_SDK)/Linux/package
+
 
 ifeq ($(SGX_MODE), HW)
     SGX_SIM_LIB :=
@@ -62,13 +62,25 @@ SGX_UAE_SERVICE_LIB := sgx_uae_service$(SGX_SIM_LIB)
 SGX_TRTS_LIB := sgx_trts$(SGX_SIM_LIB)
 SGX_TSERVICE_LIB := sgx_tservice$(SGX_SIM_LIB)
 
+SGXSSL_U_Library_Name := sgx_usgxssl
+SGXSSL_Library_Name := sgx_tsgxssl
+OpenSSL_Crypto_Library_Name := sgx_tsgxssl_crypto
+U_TLS_Library_Name := sgx_utls
+SGX_TLS_Library_Name := sgx_ttls
+
+SGX_WOLFSSL_LIBRARY_PATH := ../trustedLib/wolfssl/IDE/LINUX-SGX
+SGX_WOLFSSL_LIB := wolfssl.sgx.static.lib$(SGX_SIM_LIB)
+Wolfssl_C_Extra_Flags += -DWOLFSSL_SGX -DWOLFSSL_HAVE_SP_RSA -DWOLFSSL_HAVE_SP_DH -DWOLFSSL_HAVE_SP_ECC -DDEBUG_WOLFSSL -DWOLFSSL_SHA3 -DHAVE_FFDHE_4096 -DFP_MAX_BITS=8192 -DWOLFSSL_TLS13 -DHAVE_TLS_EXTENSIONS -DHAVE_SUPPORTED_CURVES -D_POSIX_THREADS -DHAVE_HKDF -DWC_RSA_PSS -DWOLFSSL_SHA384
+#todo test  -DDEBUG_WOLFSSL with hw mode
+Wolfssl_Include_Paths := -I../trustedLib/wolfssl/ -I../trustedLib/wolfssl/wolfcrypt/
+
 ### BEGIN Host (untrusted) application settings ###
 
-SGX_HOST_CFLAGS := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes
+SGX_HOST_CFLAGS := $(SGX_COMMON_CFLAGS) $(Wolfssl_C_Extra_Flags) -fPIC -Wno-attributes -D_GNU_SOURCE
 SGX_HOST_CXXFLAGS := $(SGX_COMMON_CXXFLAGS)
-SGX_HOST_CPPFLAGS := -I$(SGX_SDK)/include
-SGX_HOST_LDFLAGS :=
-SGX_HOST_LDLIBS := -L$(SGX_LIBRARY_PATH) -l$(SGX_URTS_LIB) -l$(SGX_UAE_SERVICE_LIB) -lpthread
+SGX_HOST_CPPFLAGS := -I$(SGX_SDK)/include $(Wolfssl_Include_Paths)
+SGX_HOST_LDFLAGS := -L$(SGXSSL_PKG_PATH)/lib64
+SGX_HOST_LDLIBS := -L$(SGX_LIBRARY_PATH) -l$(SGX_URTS_LIB) -l$(SGX_UAE_SERVICE_LIB) -lpthread  -l$(SGXSSL_U_Library_Name) -l$(U_TLS_Library_Name)
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
@@ -86,7 +98,7 @@ endif
 
 ### BEGIN Enclave (trusted app) settings ###
 
-SGX_ENCLAVE_CFLAGS := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections -fno-builtin
+SGX_ENCLAVE_CFLAGS := $(SGX_COMMON_CFLAGS) $(Wolfssl_C_Extra_Flags) -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections -fno-builtin -fno-builtin-printf
 
 CC_BELOW_4_9 := $(shell expr "`$(CC) -dumpversion`" \< "4.9")
 ifeq ($(CC_BELOW_4_9), 1)
@@ -96,7 +108,7 @@ else
 endif
 
 SGX_ENCLAVE_CXXFLAGS := $(SGX_COMMON_CXXFLAGS) -nostdinc++
-SGX_ENCLAVE_CPPFLAGS := -I/home/azureuser/dking32/sgx-iot/trustedLib/mbedtls_SGX-2.6.0/include -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc
+SGX_ENCLAVE_CPPFLAGS := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGXSSL_PKG_PATH)/include -I ../common/include
 SGX_ENCLAVE_LDFLAGS := \
     -nostdlib \
 	-nodefaultlibs \
@@ -118,9 +130,13 @@ SGX_ENCLAVE_LDFLAGS := \
 # Do NOT move the libraries linked with `--start-group' and `--end-group' within `--whole-archive' and `--no-whole-archive' options.
 # Otherwise, you may get some undesirable errors.
 
-SGX_ENCLAVE_LDLIBS := -L$(SGX_LIBRARY_PATH) \
-	-Wl,--whole-archive -l$(SGX_TRTS_LIB) -Wl,--no-whole-archive \
-	-Wl,--start-group -lmbedtls_sgx_t -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l$(SGX_TSERVICE_LIB) -Wl,--end-group
+SGX_ENCLAVE_LDLIBS := -L$(SGX_LIBRARY_PATH) -L$(SGXSSL_PKG_PATH)/lib64 -L$(SGX_WOLFSSL_LIBRARY_PATH) \
+	-Wl,--whole-archive -l$(SGX_TRTS_LIB) -l$(SGXSSL_Library_Name) -Wl,--no-whole-archive \
+	 -l$(OpenSSL_Crypto_Library_Name) -l$(SGX_WOLFSSL_LIB) \
+	-Wl,--start-group  -lsgx_pthread -lsgx_tstdc -lsgx_tcxx -lsgx_tcrypto -l$(SGX_TSERVICE_LIB) -l$(SGX_TLS_Library_Name) -Wl,--end-group \
+    -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
+	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
+	-Wl,--defsym,__ImageBase=0 
  
 
 ### END Enclave (trusted app) settings ###

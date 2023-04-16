@@ -57,24 +57,24 @@ RUN set -ex; \
 RUN add-apt-repository -y ppa:ethereum/ethereum
 RUN apt-get install -y solc
 
-# docker cli
-RUN set -ex; \
-    \
-    apt-get update; \
-    apt-get install -y \
-        apt-transport-https \
-        ca-certificates \
-        curl \
-        gnupg \
-        lsb-release;
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-        gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+# # docker cli
+# RUN set -ex; \
+#     \
+#     apt-get update; \
+#     apt-get install -y \
+#         apt-transport-https \
+#         ca-certificates \
+#         curl \
+#         gnupg \
+#         lsb-release;
+# RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+#         gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-RUN echo \
-    "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+# RUN echo \
+#     "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+#   $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-RUN apt-get update && apt-get install -y docker-ce-cli
+# RUN apt-get update && apt-get install -y docker-ce-cli
 
 # SGX PSW
 ENV INTEL_SGX_URL "https://download.01.org/intel-sgx"
@@ -114,23 +114,32 @@ USER photon
 
 WORKDIR /home/photon
 
+# TODO does nix have to be installed in this image?
 #COPY --chown=photon:photon ./nix.conf /home/photon/.config/nix/nix.conf
 
-RUN curl -L https://nixos.org/nix/install | sh
+# RUN curl -L https://nixos.org/nix/install | sh
+# RUN . /home/photon/.nix-profile/etc/profile.d/nix.sh && \
+#   nix-channel --add https://nixos.org/channels/nixos-21.11 nixpkgs && \
+#   nix-channel --update
 
-RUN . /home/photon/.nix-profile/etc/profile.d/nix.sh && \
-  nix-channel --add https://nixos.org/channels/nixos-21.11 nixpkgs && \
-  nix-channel --update
-
-ENV NIX_PROFILES "/nix/var/nix/profiles/default /home/photon/.nix-profile"
-ENV NIX_PATH /home/photon/.nix-defexpr/channels
-ENV NIX_SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
-ENV PATH /home/photon/.nix-profile/bin:$PATH
+# ENV NIX_PROFILES "/nix/var/nix/profiles/default /home/photon/.nix-profile"
+# ENV NIX_PATH /home/photon/.nix-defexpr/channels
+# ENV NIX_SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
+# ENV PATH /home/photon/.nix-profile/bin:$PATH
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 ENV PATH="/home/photon/.local/bin:${PATH}"
+
+# gen_ca_bundle
+ARG CCF_ENABLE=1
+ENV CCF_ENABLE $CCF_ENABLE
+COPY --chown=photon:photon demo/utils.py utils.py
+COPY --chown=photon:photon shared/ccf_sandbox/nodecert*.pem certs/
+RUN python utils.py gen_ca_bundle -p ca_bundle.h -ccf-enable $CCF_ENABLE -cd certs
+RUN rm utils.py
+RUN rm -rf certs
 
 ##############################################################################
 #                                                                            #
@@ -154,6 +163,7 @@ COPY makefile /usr/src/makefile
 COPY trustedLib /usr/src/trustedLib
 COPY applications/$APP_NAME/*.c enclave/
 COPY applications/$APP_NAME/*.h enclave/
+# COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
 
 COPY nix /usr/src/nix
 COPY nix/$SGX_MODE.nix /usr/src/default.nix
@@ -162,10 +172,10 @@ RUN nix-build
 
 ##############################################################################
 #                                                                            #
-#                            Build app (untrusted)                           #
+#                            Build untrusted                                 #
 #                                                                            #
 ##############################################################################
-FROM initc3/linux-sgx:2.14-ubuntu20.04 AS build-app
+FROM initc3/linux-sgx:2.17.1 AS build-untrusted
 
 RUN apt-get update && apt-get install -y \
                 autotools-dev \
@@ -182,22 +192,24 @@ ENV APP_NAME $APP_NAME
 
 WORKDIR /usr/src/$APP_NAME
 
-ENV SGX_SDK /opt/sgxsdk
+ENV SGX_SDK /opt/intel/sgxsdk
+ENV SGXSSL_SDK /opt/intel/sgxssl
 ENV PATH $PATH:$SGX_SDK/bin:$SGX_SDK/bin/x64
 ENV PKG_CONFIG_PATH $SGX_SDK/pkgconfig
 ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
-COPY app/ app/
+COPY untrusted/ untrusted/
 COPY enclave/ enclave/
 COPY applications/$APP_NAME/*.c enclave/
 COPY applications/$APP_NAME/*.h enclave/
-COPY applications/$APP_NAME/*.h app/
+COPY applications/$APP_NAME/*.h untrusted/
 COPY common/ common/
 COPY interface/ interface/
 COPY nix/ nix/
 COPY makefile makefile
 #COPY auditee/* .
 COPY trustedLib/ trustedLib/
+COPY --from=demo-base /home/photon/ca_bundle.h enclave/ca_bundle.h
 
 ARG SGX_MODE=HW
 ENV SGX_MODE $SGX_MODE
@@ -205,7 +217,7 @@ ENV SGX_MODE $SGX_MODE
 ARG SGX_DEBUG=0
 ENV SGX_DEBUG $SGX_DEBUG
 
-RUN make untrusted
+# RUN make untrusted
 
 ##############################################################################
 #                                                                            #
@@ -216,38 +228,51 @@ FROM demo-base
 
 ARG APP_NAME=heatmap
 ENV APP_NAME $APP_NAME
+ENV PROJECT_ROOT="/home/photon/${APP_NAME}"
 
 ARG NUM_USERS=4
 ENV NUM_USERS $NUM_USERS
-ENV PROJECT_ROOT="/home/photon/${APP_NAME}"
 ENV deployment_location=DOCKER
 ARG CCF_ENABLE=1
 ENV CCF_ENABLE $CCF_ENABLE
 
-ENV SGX_SDK /opt/sgxsdk
+ENV SGX_SDK /opt/intel/sgxsdk
 ENV LD_LIBRARY_PATH $SGX_SDK/sdk_libs
 
 RUN mkdir -p $PROJECT_ROOT/test_sgx/client
 RUN mkdir -p $PROJECT_ROOT/test_sgx/host
 RUN mkdir -p $PROJECT_ROOT/bin
 
+COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxsdk /opt/intel/sgxsdk/
+COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxssl /opt/intel/sgxssl/
+
 WORKDIR /home/photon/$APP_NAME
 
-COPY --chown=photon:photon common common
-COPY --chown=photon:photon app app
-COPY --chown=photon:photon enclave enclave
-COPY --chown=photon:photon interface interface
-COPY --chown=photon:photon solidity solidity
-COPY --chown=photon:photon trustedLib trustedLib
-COPY --chown=photon:photon scripts scripts
-COPY --chown=photon:photon applications/$APP_NAME/*.py enclave/scripts
-
 COPY --chown=photon:photon makefile makefile
+COPY --chown=photon:photon trustedLib trustedLib
+COPY --chown=photon:photon solidity solidity
+COPY --chown=photon:photon common common
+COPY --chown=photon:photon interface interface
+COPY --chown=photon:photon untrusted untrusted
+COPY --chown=photon:photon enclave enclave
+COPY --chown=photon:photon demo demo
+COPY --chown=photon:photon scripts scripts
+COPY --chown=photon:photon applications/$APP_NAME/*.h untrusted/
+COPY --chown=photon:photon applications/$APP_NAME/*.h enclave/
+COPY --chown=photon:photon applications/$APP_NAME/*.c enclave/
+COPY --chown=photon:photon applications/$APP_NAME/*.py demo
 
-COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
-COPY --from=build-app --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
-COPY --from=initc3/linux-sgx:2.14-ubuntu20.04 --chown=photon:photon /opt/sgxsdk /opt/sgxsdk
+# COPY --from=demo-base --chown=photon:photon /home/photon/ca_bundle.h enclave/ca_bundle.h
+ 
+# COPY --chown=photon:photon ./shared/ccf_sandbox/nodecert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf_sandbox/service_cert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf_sandbox/user0_cert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf_sandbox/user0_privk.pem ccf/
 
-WORKDIR /home/photon/$APP_NAME/scripts
+# COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
+# COPY --from=build-untrusted --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app
+# RUN make clean && make
+
+WORKDIR /home/photon/$APP_NAME/demo
 
 CMD python demo.py

@@ -8,13 +8,13 @@ PVRA (Publically Verifiable Remote Attestation) aims to provide a framework for 
 The goal of this template is to provide a clean interface with PVRA framework components and an intuitive means of writing these applications. We have four example applications to showcase: VirtualStatusCard, HeatMap, EVoting, and SecureDataTransfer. To browse the trace of a PVRA application refer to ```./applications/```. VSC is currently at 229 LoC and HeatMap at 205 LoC.
 
 ## Quick Start
-Run an existing application in docker without CCF in SGX simulation mode
+Run an existing application in docker with CCF in SGX simulation mode
 
 * set Environment variables
 
 ```bash
 export PROJECT_ROOT=$(pwd)
-export CCF_ENABLE=0
+export CCF_ENABLE=1
 export SGX_SPID=None
 export IAS_PRIMARY_KEY=None
 export APP_NAME=<sdt or heatmap or vsc>
@@ -25,14 +25,13 @@ export SGX_MODE=SW
     * heatmap expects 4 users ```export NUM_USERS=4```
     * vsc expects 8 users: ```export NUM_USERS=8```
 
-* build and run docker image
+* build and deploy ccf, bulletin board, and pvra docker images
 
 ```bash
 cd $PROJECT_ROOT
 ./setup.sh -a $APP_NAME
 cd $PROJECT_ROOT/docker
-./build.sh
-./run.sh
+./build_deploy.sh
 ```
 
 ## Getting Started
@@ -79,52 +78,47 @@ export IAS_PRIMARY_KEY=<IAS_PRIMARY_KEY>
 export NUM_USERS=<NUM_USERS>
 export APP_NAME=<APP_NAME>
 export SGX_MODE=<HW or SW>
-export CCF_PATH=<optional> #todo how to run CCF
 ```
 
-* CCF public key is hardcoded in the enclave image as a root of trust and must be updated in enclave/initPVRA.c. In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
+* CCF node certificates are hardcoded in the enclave image as a root of trust and must be updated in `enclave/ca_bundle.sh` In order to run the demo without SCS protection, one can ```export CCF_ENABLE=0```._
 
 * In order to run an existing application pass the APP_NAME to ```./setup.sh``` script.
   
-    * ```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the directory in `$PROJECT_ROOT/application` and ```-c <CCF_PATH>``` the directory that contains the credentials for communicating with the running CCF network. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
+    * ```setup.sh``` takes as arguments ```-a <APP_NAME>``` the name of the directory in `$PROJECT_ROOT/application`. If no arguments are passed it uses the VSC application. ```--clean``` undoes the effects of the script._
 
 ```bash
-./setup.sh -a $APP_NAME -c $CCF_PATH
+./setup.sh -a $APP_NAME
 ```
 
 #### Running
 
 ##### Use Docker & Docker-Compose
 
-* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L26)
+* For more than 9 users change value after ```"--accounts"``` to desired number of users + 1 (extra account is admin) in [docker/docker-compose.yml](docker/docker-compose.yml#L27)
 * Hardware mode
 ```bash
 export SGX_MODE=HW
 cd $PROJECT_ROOT/docker
-docker-compose build enclave
-docker-compose run --rm enclave bash
+./build.sh
 ```
 
 * Simulation mode
 ```bash
 export SGX_MODE=SW
 cd $PROJECT_ROOT/docker
-docker-compose build enclave-sim
-docker-compose run --rm enclave-sim bash
+./deploy.sh
 ```
 
-##### Build Locally
-* python 3, sgxsdk, and docker required
+##### Locally
+* python3.8 or 3.9, sgxsdk, and docker, solidity compiler required
 
 ```bash
-pip install -r requirements.txt
-export SGX_SDK=/opt/sgxsdk #or your local sgx sdk path
+pip3 install -r requirements.txt
+export SGX_SDK=/opt/intel/sgxsdk #or your local sgx sdk path
 export LD_LIBRARY_PATH=$SGX_SDK/sdk_libs:$LD_LIBRARY_PATH
 export SGX_MODE=<HW or SW>
 cd $PROJECT_ROOT/scripts
-./build.sh
-./run_BB.sh
-export BILLBOARD_URL="http://$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' billboard):8545"
+./build_deploy_local.sh
 ```
 
 #### Run python scripts
@@ -152,34 +146,37 @@ make clean
 
 #### Stop docker containers
 
-* Docker deployment
+* Docker/Local deployment
 
 ```bash
 cd $PROJECT_ROOT/docker
 docker-compose down
 ```
 
-* Local deployment
-```bash
-cd $PROJECT_ROOT/scripts
-./stop_BB.sh
-```
-
 ### Useful scripts
 * `setup.sh` : setup application specific files
 
 
-* `scripts/build.sh` copy relevant application files and build the enclave and untrusted host (works for building locally and in docker container)
+* `scripts/build.sh` copy relevant application files and build the enclave and untrusted host (works when building locally and in docker container)
 * `scripts/copy.sh` copy relevant application files
-* `scripts/run_BB.sh` start a truffle/ganache bulletin board instance for local (non docker-compose) deployments
-* `scripts/stop_BB.sh` stop a truffle/ganache bulletin board instance for local (non docker-compose) deployments
+* `scripts/build_deploy_local.sh` build CCF image, setup a docker containers for bulletin board and CCF nodes, build pvra binaries and run demo locally
+* `scripts/deploy_local.sh` setup a docker containers for bulletin board and CCF nodes, build pvra binaries and run demo locally
 
-
-* `docker/build.sh` : build docker images
-    * build a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
-* `docker/run.sh` : run docker containers
-    * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is HW)
-    * `docker/run.sh <cmd>` runs <cmd> with the docker container
-      * ex: `./run.sh bash` opens bash terminal in enclave docker container
-      * ex: `./run.sh "python demo.py test"` runs test in enclave docker container
+* `docker/build_ccf.sh` : builds state continuity CCF images
+* `docker/build_pvra.sh` : builds pvra image
+* `docker/deploy_ccf.sh` : deploy 3 node state continuity CCF network
+    * runs a virtual/sgx enclave based on `SGX_MODE` environment variable (default is SW)
+* `docker/deploy_pvra.sh` : deploy pvra image and runs default demo `python demo.py`
+    * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is SW)
+* `docker/run_pvra.sh` : run pvra docker container
+    * runs a simulation/hardware enclave based on `SGX_MODE` environment variable (default is SW)
+    * `docker/run_pvra.sh <cmd>` runs <cmd> with the docker container
+      * ex: `./run_pvra.sh bash` opens bash terminal in pvra docker container
+      * ex: `./run_pvra.sh "python demo.py test 2"` runs demo in test mode with 2 users in pvra docker container
+  
+* `docker/build.sh` : combines `build_ccf.sh` and `build_pvra.sh`
+* `docker/build_deploy.sh` : combines `build.sh` and `deploy_pvra.sh`
+* `docker/build_run.sh` : combines `build.sh` and `run_pvra.sh`
+* `docker/deploy.sh` : combines `deploy_ccf.sh` and `deploy_pvra.sh`
+* `docker/run.sh` : combines `deploy_ccf.sh` and `run_pvra.sh`
 ### Sample VSC Run: TODO update

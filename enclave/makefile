@@ -7,15 +7,23 @@
 include ../common/common.mk
 include ../common/rules.mk
 
-Enclave_Include_Paths := -L ../trustedLib/mbedtls_SGX-2.6.0/ -L ../trustedLib/secp256k1/
 
-SGX_EDGER8R_FLAGS += --trusted-dir ../interface
-CFLAGS += $(SGX_ENCLAVE_CFLAGS) -std=c99 -Wno-unused-parameter
+Enclave_Include_Paths := -I$(SGX_SDK)/include \
+       -I$(SGX_SDK)/include/tlibc \
+       -I../trustedLib/secp256k1/include \
+       -I$(SGXSSL_PKG_PATH)/include \
+       $(Wolfssl_Include_Paths) \
+       -I../interface
+
+SGX_EDGER8R_FLAGS += --trusted-dir ../interface \
+	--search-path $(SGXSSL_PKG_PATH)/include #\
+	--search-path /opt/intel/sgxsdk/SampleCode/SampleAttestedTLS/sgx_socket/
+
+CFLAGS += $(Enclave_Include_Paths) $(SGX_ENCLAVE_CFLAGS) $(Wolfssl_C_Extra_Flags) -std=c99 -Wno-unused-parameter
 CXXFLAGS += $(SGX_ENCLAVE_CXXFLAGS)
-CPPFLAGS += -I ../trustedLib/mbedtls_SGX-2.6.0/include -I ../trustedLib/secp256k1/include $(SGX_ENCLAVE_CPPFLAGS) -I../interface
-LDFLAGS += -L ../trustedLib/mbedtls_SGX-2.6.0/lib -lmbedtls_sgx_t -L ../trustedLib/secp256k1/lib -lsecp256k1 $(SGX_ENCLAVE_LDFLAGS)
-LDLIBS += -L ../interface -lenclave_stub_t -lsecp256k1 $(SGX_ENCLAVE_LDLIBS) 
-
+CPPFLAGS += $(Enclave_Include_Paths) $(SGX_ENCLAVE_CPPFLAGS)
+LDFLAGS +=  -L../interface -L../trustedLib/secp256k1/lib $(SGX_ENCLAVE_LDFLAGS) -L$(SGXSSL_PKG_PATH)/lib64
+LDLIBS += -lenclave_stub_t -lsecp256k1 $(SGX_ENCLAVE_LDLIBS)
 
 CFLAGS+=-w
 CFLAGS+=-fcompare-debug-second
@@ -27,9 +35,9 @@ all: ../interface/libenclave_stub_t.a enclave.signed.so
 	@mv enclave.signed.so  enclave.unsigned.so enclave.key.pem ../bin
 	@mv *.o ../bin
 
-../interface/libenclave_stub_t.a: ../trustedLib/mbedtls_SGX-2.6.0/lib/mbedtls_SGX.edl ../interface/enclave.edl
+../interface/libenclave_stub_t.a: ../interface/enclave.edl
 
-enclave.unsigned.so: ../trustedLib/secp256k1/lib/libsecp256k1.a ../trustedLib/mbedtls_SGX-2.6.0/lib/libmbedtls_sgx_t.a print.o enclave_state.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o util.o merkletree.o
+enclave.unsigned.so: sgx_socket.o time.o getaddrinfo.o htonl.o htons.o ../trustedLib/secp256k1/lib/libsecp256k1.a print.o enclave_state.o initPVRA.o commandPVRA.o appPVRA.o auditlogPVRA.o keccak256.o util.o merkletree.o
 
 enclave.signed.so: enclave.key.pem
 

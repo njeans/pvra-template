@@ -1,20 +1,5 @@
 #!/bin/bash
-#                                               -*- Makefile -*-
-#
-# Copyright (C) 2011-2019 Intel Corporation
-#
-# SPDX-License-Identifier: BSD-3-Clause
-#
-
-
-# This script is run before make to prepare application files and CCF credentials
-
-if [[ -z "${CCF_ENABLE}" ]]; 
-then
-  echo "Error: environment variable CCF_ENABLE not set."
-  exit
-fi
-
+# This script is run before make to prepare application files
 
 if [[ -z "${PROJECT_ROOT}" ]];
 then
@@ -22,47 +7,47 @@ then
   exit
 fi
 
+scs_dir=$PROJECT_ROOT/counter-service
+wolfssl_dir=$PROJECT_ROOT/trustedLib/wolfssl
+if [[ -z "$(ls -A $scs_dir)" ||  -z "$(ls -A $wolfssl_dir)" ]]; then
+  echo "Setting up submodules"
+  git submodule update --init
+fi
+
+if [ ! -f "$wolfssl_dir/IDE/LINUX-SGX/libwolfssl.sgx.static.lib.a" ]; then
+  echo "Building wolfssl"
+  cd $wolfssl_dir/IDE/LINUX-SGX
+  SGX_MODE=SIM SGX_PRERELEASE=0 SGX_DEBUG=1 make -f $PROJECT_ROOT/trustedLib/wolfssl_sgx_t_static.mk HAVE_WOLFSSL_SP=1
+  cp libwolfssl.sgx.static.lib.a libwolfssl.sgx.static.lib_sim.a
+  SGX_MODE=HW SGX_PRERELEASE=1 SGX_DEBUG=0 make -f $PROJECT_ROOT/trustedLib/wolfssl_sgx_t_static.mk HAVE_WOLFSSL_SP=1
+fi
+
 POSITIONAL_ARGS=()
 
 DEFAULT_APP_NAME=vsc
-DEFAULT_CCF_PATH=$PROJECT_ROOT/ccf-2.0.1/build/workspace/sandbox_common/
-
-APP_NAME=""
-CCF_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     -a|--app)
       if [ "$2" == "" ]
       then
-          echo "Error Usage: ./setup.sh -a|--app <APP_NAME> -c|--ccf <CCF_PATH>"
+          echo "Error Usage: ./setup.sh -a|--app <APP_NAME> "
           exit 1
       fi
       APP_NAME="$2"
       shift # past argument
       shift # past value
-      ;;
-    -c|--ccf)
-      if [ "$2" == "" ]
-      then
-          echo "Error Usage: ./setup.sh -a|--app <APP_NAME> -c|--ccf <CCF_PATH>"
-          exit 1
-      fi
-      CCF_PATH="$2"
-      shift # past argument
-      shift # past value
-      ;;      
+      ;;     
     --default)
       echo "Defaulting to APP_NAME = $DEFAULT_APP_NAME"
       APP_NAME=$DEFAULT_APP_NAME
-      echo "Defaulting to CCF_PATH = $DEFAULT_CCF_PATH"
-      CCF_PATH=$DEFAULT_CCF_PATH
       shift # past argument
       ;;
     --clean)
-      echo "Removing ALL setup.sh application-specific and CCF-specific files"
+      echo "Cleanup known application-specific files"
       rm $PROJECT_ROOT/enclave/appPVRA.*
       rm $PROJECT_ROOT/scripts/application.py
+      make clean
       exit 0
       ;;
     -*|--*)
@@ -70,44 +55,25 @@ while [[ $# -gt 0 ]]; do
       exit 1
       ;;
     *)
-      echo "Error Usage: ./setup.sh -a|--app <APP_NAME> -c|--ccf <CCF_PATH>"
+      echo "Error Usage: ./setup.sh -a|--app <APP_NAME>"
       exit 1
       ;;
   esac
 done
 
-make clean
 if [ "$APP_NAME" == "" ]
 then
   echo "Defaulting to APP_NAME = $DEFAULT_APP_NAME"
   APP_NAME=$DEFAULT_APP_NAME
+else 
+  echo "Setup $APP_NAME"
 fi
-
-if [[ ${CCF_ENABLE} == "1" ]];
-then
-  if [ "$CCF_PATH" == "" ]
-  then
-    echo "Defaulting to CCF_PATH = $DEFAULT_CCF_PATH"
-    CCF_PATH=$DEFAULT_CCF_PATH
-  fi
-fi
-
 if [ -d "$PROJECT_ROOT/applications/$APP_NAME/"  ]
 then
-  cp $PROJECT_ROOT/applications/$APP_NAME/appPVRA.* $PROJECT_ROOT/enclave/
-  cp $PROJECT_ROOT/applications/$APP_NAME/application.py $PROJECT_ROOT/scripts/
+  cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/enclave/
+  cp $PROJECT_ROOT/applications/$APP_NAME/*.c $PROJECT_ROOT/enclave/
+  cp $PROJECT_ROOT/applications/$APP_NAME/*.h $PROJECT_ROOT/untrusted/
+  cp $PROJECT_ROOT/applications/$APP_NAME/*.py $PROJECT_ROOT/demo/
 else
   echo "Error: Application Directory $PROJECT_ROOT/applications/$APP_NAME/ does not exist."
-fi
-
-if [[ ${CCF_ENABLE} == "1" ]];
-then
-  if [ -d "$CCF_PATH"  ]
-  then
-    cp $CCF_PATH/service_cert.pem .
-    cp $CCF_PATH/user0_cert.pem .
-    cp $CCF_PATH/user0_privk.pem .
-  else
-    echo "Error: CCF Credentials Directory $CCF_PATH does not exist."
-  fi
 fi
