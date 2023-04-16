@@ -227,8 +227,7 @@ struct cResponse cancelRetrieve(struct ES *enclave_state, struct cInputs *CI, ui
 }
 
 #ifdef MERKLE_TREE
-size_t calc_user_leaf_size(struct ES *enclave_state)
-{
+size_t calc_user_leaf_size(struct ES *enclave_state) {
     return sizeof(struct userLeaf);
 }
 

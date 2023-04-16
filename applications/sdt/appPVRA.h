@@ -55,7 +55,7 @@ struct cInputs
 
 struct cResponse
 {
-	uint32_t error;
+	int error;
 	char message[100];
 	uint8_t output_data[DATA_SIZE];
 };

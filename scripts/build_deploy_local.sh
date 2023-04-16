@@ -33,10 +33,11 @@ then
     make clean sgxssl_no_mitigation
 fi
 
-export SGXSSL_SDK=$PROJECT_ROOT/trustedLib/intel-sgx-ssl
 cd $PROJECT_ROOT/docker
-./build_ccf.sh
-./deploy_ccf.sh
+if [ "$CCF_ENABLE" = "1" ]; then
+    ./build_ccf.sh
+    ./deploy_ccf.sh
+fi
 docker-compose up -d billboard
 sudo chown -R $USER $PROJECT_ROOT/shared/ccf_sandbox/user0*
 sudo chown -R $USER $PROJECT_ROOT/shared/ccf_sandbox/member0*

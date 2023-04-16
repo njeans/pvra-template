@@ -26,6 +26,15 @@ def get_test_data(admin, users, test_case=None):
 
 def get_test_data_omission(admin, users):
     test_data, admin_data, _ = get_test_data(admin, users)
+    def cleanup(ls):
+        for i in range(len(ls)):
+            if ls[i] is None:
+                ls[i] = [None, None]
+            else:
+                del ls[i][0]["seq"]
+            print(i, ls[i])
+        return list(zip(*ls))[0]
+    test_data = [cleanup(t) for t in test_data]
     return test_data, [2], admin_data
 
 

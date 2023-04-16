@@ -306,7 +306,7 @@ int parse_time(char * datetime, time_t * curr_time) {
     return 0;
 }
 
-int worldtimeapi(time_t * curr_time) {
+int worldtimeapi(char * datetime) {
     int ret;
     char buff[1024] = { 0 };
     char* server_name = "www.worldtimeapi.org";
@@ -314,18 +314,19 @@ int worldtimeapi(time_t * curr_time) {
     char* send_buff = "GET api/timezone/Etc/UTC HTTP/1.1\r\nHost: www.worldtimeapi.org\n\n\r\n\0";
     ret = communicate_with_server(server_name, server_port, send_buff, buff, sizeof(buff)-1);
     if (ret == 0) {
-        if(DEBUGPRINT) printf("worldtimeapi() communicate_with_server() success\n%s\n", buff);
+        if(DEBUGPRINT) printf("worldtimeapi() communicate_with_server() success\n");
     } else {
         return -1;
     }
-    char * datetime = strstr(buff, "dateTime") + 11;
+    datetime = strstr(buff, "dateTime") + 11;
     if (datetime == NULL) {
+        printf_stderr("worldtimeapi() dateTime not in response:\n%s\n", buff);
         return -1;
     }
-    return parse_time(datetime, curr_time);
+    return 0;
 }
 
-uint64_t timeapiio(time_t * curr_time) {
+uint64_t timeapiio(char * datetime) {
     int ret;
     char buff[1024] = { 0 };
     char* server_name = "www.timeapi.io\0";
@@ -333,22 +334,37 @@ uint64_t timeapiio(time_t * curr_time) {
     char* send_buff = "GET /api/Time/current/zone?timeZone=UTC HTTP/1.1\r\nHost: www.timeapi.io\n\n\r\n\0";
     ret = communicate_with_server(server_name, server_port, send_buff, buff, sizeof(buff)-1);
     if (ret == 0){
-        if(DEBUGPRINT) printf("timeapiio() communicate_with_server() success\n%s\n", buff);
+        if(DEBUGPRINT) printf("timeapiio() communicate_with_server() success\n");
     } else {
         return -1;
     }
-    char * datetime = strstr(buff, "dateTime") + 11;
+    datetime = strstr(buff, "dateTime") + 11;
     if (datetime == NULL) {
+        printf_stderr("timeapiio() dateTime not in response:\n%s\n", buff);
         return -1;
     }
-    return parse_time(datetime, curr_time);
+    return 0;
 }
 
 
 int get_timestamp(time_t *curr_time) {
-    int res = worldtimeapi(curr_time);
+    char * datetime = NULL;
+    int res = worldtimeapi(datetime);
     if (res == -1){
-        res = timeapiio(curr_time);
+        res = timeapiio(datetime);
+        if (res == -1) {
+            return -1;
+        }
+    }
+    
+
+    return parse_time(datetime, curr_time);
+}
+
+int get_timestamp_str(char *datetime) {
+    int res = worldtimeapi(datetime);
+    if (res == -1){
+        res = timeapiio(datetime);
     }
     return res;
 }

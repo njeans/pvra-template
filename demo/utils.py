@@ -82,12 +82,17 @@ def gen_ca_bundle(ca_bundle_path=None,
 static const char * default_ca_bundle = \\
 \"{timeserver_ca_def}\\0\";
 
+'''
+    if ccf_enable:
+        header_buff += f'''
 static const size_t num_ccf_certs = {len(ccf_ca_buffs)};
 static const char * ccf_certs[{len(ccf_ca_buffs)}] = \\
 {{"{ccf_ca_def}}};
 
-#endif
+'''
 
+    header_buff += f'''
+#endif
 '''
     print(header_buff)
     with open(ca_bundle_path, "w") as f:

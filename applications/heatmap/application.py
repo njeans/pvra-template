@@ -62,8 +62,16 @@ def get_test_data(admin, users, test_case=None):
 
 
 def get_test_data_omission(admin, users):
-    test_data, admin_data = get_test_data(admin, users)
-    test_data = [list(unzip_none(t))[0] for t in test_data]
+    test_data, admin_data, _ = get_test_data(admin, users)
+    def cleanup(ls):
+        for i in range(len(ls)):
+            if ls[i] is None:
+                ls[i] = [None, None]
+            else:
+                del ls[i][0]["seq"]
+            print(i, ls[i])
+        return list(zip(*ls))[0]
+    test_data = [cleanup(t) for t in test_data]
     return test_data, [0], admin_data
 
 
@@ -180,7 +188,7 @@ def gen_test_data(num_users, num_data):
 
 
 class cResponse(ctypes.Structure):
-    _fields_ = [('error', ctypes.c_uint32),
+    _fields_ = [('error', ctypes.c_int),
                 ('message', ctypes.c_char * 100),
                 ('heatmap_data', ctypes.c_uint32 * (hm_granularity*hm_granularity))]
 
@@ -196,11 +204,4 @@ class cInputs(ctypes.Structure):
 class private_command(ctypes.Structure):
     _fields_ = [('tid', ctypes.c_uint32),
                 ('cInputs', cInputs)]
-
-
-def unzip_none(ls):
-    for i in range(len(ls)):
-        if ls[i] is None:
-            ls[i] = [None, None]
-    return zip(*ls)
 

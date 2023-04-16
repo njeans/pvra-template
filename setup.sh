@@ -15,6 +15,7 @@ if [[ -z "$(ls -A $scs_dir)" ||  -z "$(ls -A $wolfssl_dir)" ]]; then
 fi
 
 if [ ! -f "$wolfssl_dir/IDE/LINUX-SGX/libwolfssl.sgx.static.lib.a" ]; then
+  echo "Building wolfssl"
   cd $wolfssl_dir/IDE/LINUX-SGX
   SGX_MODE=SIM SGX_PRERELEASE=0 SGX_DEBUG=1 make -f $PROJECT_ROOT/trustedLib/wolfssl_sgx_t_static.mk HAVE_WOLFSSL_SP=1
   cp libwolfssl.sgx.static.lib.a libwolfssl.sgx.static.lib_sim.a

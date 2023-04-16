@@ -124,7 +124,7 @@ def send_tx(w3, foo, user_addr, value=0):
     try:
         gas_estimate = foo.estimateGas()  # for some reason this fails sometimes when it shouldn't
     except Exception as e:
-        print_(f"estimate gas error {e}", c=ERRORc, n=FILENAME)
+        print_vv(f"estimate gas error {e}", c=ERRORc, n=FILENAME)
         gas_estimate = 0
 
     if gas_estimate < 10000000:

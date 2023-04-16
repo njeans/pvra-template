@@ -26,132 +26,6 @@ services:
     entrypoint: ""
     command: ["anvil", "--config-out=/accounts/accounts.json", "--accounts", "10"]
 
-  ccf0-virtual:
-    image: scs-virtual
-    build:
-      context: ../counter-service
-      dockerfile: docker/Dockerfile
-      args:
-        platform: virtual
-    hostname: ccf0
-    domainname: ccf0
-    ports:
-      - 8546:8080
-    command: ["--members", "3", "--users", "2", "--nodes", "3"]
-    environment:
-      deployment_location: DOCKER
-      NODE_NUM: "0"
-      platform: virtual
-    volumes:
-      - ../shared/ccf_sandbox:/sandbox_common
-      - ccf_workspace:/workspace/workspace0
-      # - ccf_sandbox:/ccf_sandbox
-
-  ccf1-virtual:
-    image: scs-virtual
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile
-      args:
-        platform: virtual
-    hostname: ccf1
-    domainname: ccf1
-    environment:
-      deployment_location: DOCKER
-      NODE_NUM: "1"
-      platform: virtual
-    depends_on:
-      ccf0-virtual:
-        condition: service_healthy
-    volumes:
-      - ../shared/ccf_sandbox:/sandbox_common
-      - ccf_workspace:/workspace/workspace1
-      # - ccf_sandbox:/ccf_sandbox
-
-  ccf2-virtual:
-    image: scs-virtual
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile
-      args:
-        platform: virtual
-    hostname: ccf2
-    domainname: ccf2
-    depends_on:
-      ccf0-virtual:
-        condition: service_healthy
-    environment:
-      deployment_location: DOCKER
-      NODE_NUM: "2"
-      platform: virtual
-    volumes:
-      - ../shared/ccf_sandbox:/sandbox_common
-      - ccf_workspace:/workspace/workspace2
-      # - ccf_sandbox:/ccf_sandbox
-
-  ccf0-sgx:
-    image: scs-sgx
-    build:
-      context: ../counter-service
-      dockerfile: docker/Dockerfile
-      args:
-        platform: sgx
-    hostname: ccf0
-    domainname: ccf0
-    ports:
-      - 8546:8080
-    command: ["--members", "3", "--users", "2", "--nodes", "3"]
-    environment:
-      deployment_location: DOCKER
-      NODE_NUM: "0"
-      platform: sgx
-    volumes:
-      # - ccf_sandbox:/sandbox_common
-      - ../shared/ccf_sandbox:/sandbox_common
-      - ccf_workspace:/workspace/workspace0
-
-  ccf1-sgx:
-    image: scs-sgx
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile
-      args:
-        platform: sgx
-    hostname: ccf1
-    domainname: ccf1
-    environment:
-      deployment_location: DOCKER
-      NODE_NUM: "1"
-      platform: sgx
-    depends_on:
-      ccf0-sgx:
-        condition: service_healthy
-    volumes:
-      # - ccf_sandbox:/sandbox_common
-      - ../shared/ccf_sandbox:/sandbox_common
-      - ccf_workspace:/workspace/workspace1
-
-  ccf2-sgx:
-    image: scs-sgx
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile
-      args:
-        platform: sgx
-    hostname: ccf2
-    domainname: ccf2
-    depends_on:
-      ccf0-sgx:
-        condition: service_healthy
-    environment:
-      deployment_location: DOCKER
-      NODE_NUM: "2"
-      platform: sgx
-    volumes:
-      # - ccf_sandbox:/sandbox_common
-      - ../shared/ccf_sandbox:/sandbox_common
-      - ccf_workspace_sgx:/workspace/workspace2
-
   enclave-sim:
     image: ${APP_NAME}-enclave-sim
     build:
@@ -166,9 +40,6 @@ services:
     tty: true
     depends_on:
       - billboard
-      - ccf0-virtual
-      - ccf1-virtual
-      - ccf2-virtual
     working_dir: /home/photon/${APP_NAME}/demo
     environment:
       deployment_location: DOCKER
@@ -242,18 +113,12 @@ services:
     tty: true
     depends_on:
       - aesm
-      - ccf0-sgx
-      - ccf1-sgx
-      - ccf2-sgx
       - billboard
     working_dir: /home/photon/${APP_NAME}/demo
     command: python demo.py
 
 volumes:
   # accounts:
-  # ccf_sandbox:
-  ccf_workspace:
-  ccf_workspace_sgx:
   aesmd-socket:
     driver: local
     driver_opts:

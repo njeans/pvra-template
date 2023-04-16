@@ -39,7 +39,7 @@ class User:
         self.uidx = uidx
         self.address, self.public_key, self.secret_key = bb_info
         self.w3 = w3
-        self.seq_num = 0
+        self.seq_num = 1
         self.contract = contract
         self.print_v(f"initialize User {uidx} with address {print_hex_trunc(self.address)} and public key {print_hex_trunc(self.public_key)}")
         self.admin_addr = self.contract.functions.admin_addr().call({"from": self.address})
@@ -61,7 +61,6 @@ class User:
         self.print_vv(f"encrypting user data {data}")
         shared_key = derive_key_aes(self.secret_key, ENCLAVE_PUBLIC_KEY())
         encrypted_data = self._encrypt(shared_key, format_command(data))
-        self.seq_num += 1
         return encrypted_data
 
     def decrypt_data(self, encrypted_data):
@@ -82,7 +81,7 @@ class User:
             self.send_data_bb(encrypted_user_data, self.seq_num)
         else:
             self.send_data_bb(encrypted_user_data, self.seq_num, mode)
-
+        self.seq_num += 1
         return res
 
     def send_data_admin(self, encrypted_user_data, seq=-1, mode=INCL_SIG):
@@ -210,6 +209,7 @@ class User:
             self.print_v(f"verifying proof of omission with admin signature for audit_num {audit_num}: omission_detected {omission_detected}")
         if mode in [OMIT_SIG, OMIT_DATA]:
             assert omission_detected
+            self.seq_num-=1 #if last message was omitted the seq number was not recorded 
         else:
             assert omission_detected == False
 

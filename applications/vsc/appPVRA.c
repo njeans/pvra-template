@@ -14,11 +14,9 @@ struct cResponse statusUpdate(struct ES *enclave_state, struct cInputs *CI, uint
     uint32_t test_idx = enclave_state->appdata.user_tests[uidx].num_tests % MAX_TEST;
 
     enclave_state->appdata.user_tests[uidx].test_history[test_idx] = CI->test_result;
-    if(DEBUGPRINT) printf("[vsc] test_result %d\n", enclave_state->appdata.user_tests[uidx].test_history[test_idx]);
     enclave_state->appdata.user_tests[uidx].num_tests++;
-    if(DEBUGPRINT) printf("[vsc] num_tests %u\n", enclave_state->appdata.user_tests[uidx].num_tests);
-    // enclave_state->appdata.user_tests[uidx].query_counter++;
-    // if(DEBUGPRINT) printf("[vsc] query_counter %u\n", enclave_state->appdata.user_tests[uidx].query_counter);
+    if(DEBUGPRINT) printf("[vsc] test_result %d num_tests %u\n", enclave_state->appdata.user_tests[uidx].test_history[test_idx],
+     enclave_state->appdata.user_tests[uidx].num_tests);
 
     sprintf(ret.message, "success statusUpdate");
     if(DEBUGPRINT) printf("[vsc] %s\n", ret.message);
@@ -50,7 +48,6 @@ struct cResponse statusQuery(struct ES *enclave_state, struct cInputs *CI, uint3
     for (uint64_t i = 0; i < MIN_NEG; i++) {
         next_test_idx = (enclave_state->appdata.user_tests[uidx].num_tests-1-i) % MAX_TEST;
         all_false = all_false && !enclave_state->appdata.user_tests[uidx].test_history[next_test_idx];
-printf("next_test_idx test_idx %u result %d all_false %d\n",next_test_idx,enclave_state->appdata.user_tests[uidx].test_history[next_test_idx], all_false );
     }
     
     if (all_false) {

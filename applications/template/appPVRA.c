@@ -25,6 +25,10 @@ struct cResponse adminCMD1(struct ES *enclave_state, struct cInputs *CI, uint32_
 }
 
 #ifdef MERKLE_TREE  // todo remove no MERKLE
+size_t calc_user_leaf_size(struct ES *enclave_state) {
+    return sizeof(struct userLeaf);
+}
+
 size_t get_user_leaf(struct ES *enclave_state, char ** out) {
     if(DEBUGPRINT) printf("[template] get_user_leaf\n");
     size_t block_size = sizeof(struct userLeaf);
@@ -88,7 +92,7 @@ int initES(struct ES* enclave_state, struct dAppData *dAD, uint64_t num_users, b
 
 int initAD(struct ES* enclave_state, struct dAppData *dAD)
 {
-   enclave_state->appdata.user_info = dAD->dDS[0]->buffer;
+   enclave_state->appdata.user_info = dAD->dDS[0].buffer;
     return 0;
 }
 

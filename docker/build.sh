@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
-./build_ccf.sh
-./deploy_ccf.sh
+if [ "$CCF_ENABLE" = "1" ]; then
+    ./build_ccf.sh
+    ./deploy_ccf.sh
+fi
 ./build_pvra.sh

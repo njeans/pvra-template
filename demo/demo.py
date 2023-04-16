@@ -113,7 +113,8 @@ def eval(num_users=NUM_USERS):
 def setup(num_users=NUM_USERS):
     num_users = int(num_users)
     assert num_users > 0
-    scs.reset_scs()
+    if CCF_ENABLE:
+        scs.reset_scs()
     w3 = billboard.setup_w3()
     bb_info = billboard.gen_keys(num_users)
     admin = admin_lib.Admin(w3, bb_info[0], num_users)

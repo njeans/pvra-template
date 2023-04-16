@@ -16,7 +16,7 @@ struct cInputs
 
 struct cResponse
 {
-	uint32_t error;
+	int error;
 	char message[100];
 	bool access;
 };

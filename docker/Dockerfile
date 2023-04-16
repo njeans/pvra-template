@@ -168,7 +168,7 @@ COPY applications/$APP_NAME/*.h enclave/
 COPY nix /usr/src/nix
 COPY nix/$SGX_MODE.nix /usr/src/default.nix
 
-# RUN nix-build
+RUN nix-build
 
 ##############################################################################
 #                                                                            #
@@ -245,7 +245,6 @@ RUN mkdir -p $PROJECT_ROOT/bin
 
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxsdk /opt/intel/sgxsdk/
 COPY --from=initc3/linux-sgx:2.17.1 --chown=photon:photon /opt/intel/sgxssl /opt/intel/sgxssl/
-RUN sudo apt-get install -y unzip
 
 WORKDIR /home/photon/$APP_NAME
 
@@ -265,10 +264,10 @@ COPY --chown=photon:photon applications/$APP_NAME/*.py demo
 
 # COPY --from=demo-base --chown=photon:photon /home/photon/ca_bundle.h enclave/ca_bundle.h
  
-# COPY --chown=photon:photon ./shared/ccf/sandbox_common/nodecert.pem ccf/
-# COPY --chown=photon:photon ./shared/ccf/sandbox_common/service_cert.pem ccf/
-# COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_cert.pem ccf/
-# COPY --chown=photon:photon ./shared/ccf/sandbox_common/user0_privk.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf_sandbox/nodecert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf_sandbox/service_cert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf_sandbox/user0_cert.pem ccf/
+# COPY --chown=photon:photon ./shared/ccf_sandbox/user0_privk.pem ccf/
 
 # COPY --from=build-enclave --chown=photon:photon /usr/src/result/bin/enclave.signed.so $PROJECT_ROOT/bin/enclave.signed.so
 # COPY --from=build-untrusted --chown=photon:photon /usr/src/$APP_NAME/bin/app $PROJECT_ROOT/bin/app

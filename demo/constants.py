@@ -82,7 +82,7 @@ ENCLAVE_PUBLIC_KEY_PATH = os.path.join(TEST_PATH, "enclave_enc_pubkey.bin")
 ENCLAVE_PUBLIC_KEY_SIG_PATH = os.path.join(TEST_PATH, "enclave_enc_pubkey.sig")
 CONTRACT_ADDRESS_PATH = os.path.join(TEST_PATH, "contract_address")
 
-BILLBOARD_ACCOUNTS_PATH = os.path.join(PROJECT_ROOT, "accounts", 'accounts.json')
+BILLBOARD_ACCOUNTS_PATH = os.path.join(PROJECT_ROOT, "shared", "accounts", 'accounts.json')
 SOLIDITY_PATHS = (os.path.join(PROJECT_ROOT, "solidity"), 'Billboard.sol', [])
 
 ENCLAVE_PUBLIC_KEY_default = ""

@@ -90,6 +90,9 @@ enclave/enclave.key.pem
 enclave/ca_bundle.h
 demo/application.py
 *.bin
+# trustedLib/*
+# !trustedLib/wolfssl_sgx_t_static.mk
+test_sgx/
 
 # application specific
 applications/heatmap/data

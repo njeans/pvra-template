@@ -149,11 +149,13 @@ def get_test_data(admin, users, test_case=None):
 
 def get_test_data_omission(admin, users):
     num_users = len(users)
-    test_data = [[{"tid": ADD_DATA, "input_data": bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8"), "seq": 1},
+    #let the sequence number be handled automatically since omitting data
+    #will cause issues
+    test_data = [[{"tid": ADD_DATA, "input_data": bytes(chr(ord("N")+i) * SECRET_DATA_SIZE, "utf-8")},
                   None,
-                  {"tid": CANCEL_RET, "seq": 2},
+                  {"tid": CANCEL_RET},
                   None,
-                  {"tid": GET_DATA, "seq": 3}] for i in range(num_users)]
+                  {"tid": GET_DATA}] for i in range(num_users)]
     admin_data = [[None,
                    {"tid": START_RET, "user_pubkey": users[i].public_key, "recover_key_hash": sha256(admin.public_key)},
                    None,
@@ -231,7 +233,7 @@ U8ArrKey = ctypes.c_uint8 * KEY_SIZE
 U8ArrHash = ctypes.c_uint8 * HASH_SIZE
 
 class cResponse(ctypes.Structure):
-    _fields_ = [('error', ctypes.c_uint32),
+    _fields_ = [('error', ctypes.c_int),
                 ('message', ctypes.c_char * 100),
                 ('output_data', U8ArrData)]
 
